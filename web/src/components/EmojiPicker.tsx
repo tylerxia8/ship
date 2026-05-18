@@ -1,6 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import type { EmojiClickData, Theme } from 'emoji-picker-react';
 import { cn } from '@/lib/cn';
+
+// Lazy-load the picker (~400 KB rendered / ~74 KB gzipped). The trigger
+// button + popover state ship in the main bundle so users see no flash;
+// the heavy picker chunk is fetched only when the popover opens.
+const EmojiPicker = lazy(() => import('emoji-picker-react'));
 
 interface EmojiPickerPopoverProps {
   value?: string | null;
@@ -73,15 +78,28 @@ export function EmojiPickerPopover({ value, onChange, children, className }: Emo
                 Remove emoji
               </button>
             )}
-            <EmojiPicker
-              onEmojiClick={handleEmojiClick}
-              skinTonesDisabled={true}
-              theme={Theme.DARK}
-              height={350}
-              width={300}
-              searchPlaceholder="Search emoji..."
-              previewConfig={{ showPreview: false }}
-            />
+            <Suspense
+              fallback={
+                <div
+                  style={{ height: 350, width: 300 }}
+                  className="flex items-center justify-center text-sm text-muted"
+                >
+                  Loading emoji picker…
+                </div>
+              }
+            >
+              <EmojiPicker
+                onEmojiClick={handleEmojiClick}
+                skinTonesDisabled={true}
+                /* Theme is a string enum — 'dark' is the runtime value of Theme.DARK.
+                   Casting avoids pulling the (small) Theme enum into the main bundle. */
+                theme={'dark' as Theme}
+                height={350}
+                width={300}
+                searchPlaceholder="Search emoji..."
+                previewConfig={{ showPreview: false }}
+              />
+            </Suspense>
           </div>
         </div>
       )}

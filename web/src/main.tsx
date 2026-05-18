@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -23,27 +23,39 @@ import { IssuesPage } from '@/pages/Issues';
 import { ProgramsPage } from '@/pages/Programs';
 import { TeamModePage } from '@/pages/TeamMode';
 import { TeamDirectoryPage } from '@/pages/TeamDirectory';
-import { PersonEditorPage } from '@/pages/PersonEditor';
-import { FeedbackEditorPage } from '@/pages/FeedbackEditor';
-import { PublicFeedbackPage } from '@/pages/PublicFeedback';
 import { ProjectsPage } from '@/pages/Projects';
 import { DashboardPage } from '@/pages/Dashboard';
 import { MyWeekPage } from '@/pages/MyWeekPage';
-import { AdminDashboardPage } from '@/pages/AdminDashboard';
-import { AdminWorkspaceDetailPage } from '@/pages/AdminWorkspaceDetail';
 import { WorkspaceSettingsPage } from '@/pages/WorkspaceSettings';
-import { ConvertedDocumentsPage } from '@/pages/ConvertedDocuments';
-import { UnifiedDocumentPage } from '@/pages/UnifiedDocumentPage';
 import { StatusOverviewPage } from '@/pages/StatusOverviewPage';
 import { ReviewsPage } from '@/pages/ReviewsPage';
-import { OrgChartPage } from '@/pages/OrgChartPage';
 import { ReviewQueueProvider } from '@/contexts/ReviewQueueContext';
+
+// Editor-heavy and admin-only routes load lazily so the TipTap/Yjs/Prosemirror
+// stack and admin UI don't bloat the main chunk. Visitors landing on /my-week,
+// the dashboard, or the list views never download these.
+const PersonEditorPage      = lazy(() => import('@/pages/PersonEditor').then(m => ({ default: m.PersonEditorPage })));
+const FeedbackEditorPage    = lazy(() => import('@/pages/FeedbackEditor').then(m => ({ default: m.FeedbackEditorPage })));
+const PublicFeedbackPage    = lazy(() => import('@/pages/PublicFeedback').then(m => ({ default: m.PublicFeedbackPage })));
+const UnifiedDocumentPage   = lazy(() => import('@/pages/UnifiedDocumentPage').then(m => ({ default: m.UnifiedDocumentPage })));
+const ConvertedDocumentsPage = lazy(() => import('@/pages/ConvertedDocuments').then(m => ({ default: m.ConvertedDocumentsPage })));
+const OrgChartPage          = lazy(() => import('@/pages/OrgChartPage').then(m => ({ default: m.OrgChartPage })));
+const AdminDashboardPage    = lazy(() => import('@/pages/AdminDashboard').then(m => ({ default: m.AdminDashboardPage })));
+const AdminWorkspaceDetailPage = lazy(() => import('@/pages/AdminWorkspaceDetail').then(m => ({ default: m.AdminWorkspaceDetailPage })));
 
 import { InviteAcceptPage } from '@/pages/InviteAccept';
 import { SetupPage } from '@/pages/Setup';
 import { ToastProvider } from '@/components/ui/Toast';
 import { MutationErrorToast } from '@/components/MutationErrorToast';
 import './index.css';
+
+function RouteFallback() {
+  return (
+    <div className="flex h-full min-h-[200px] items-center justify-center bg-background">
+      <div className="text-sm text-muted">Loading…</div>
+    </div>
+  );
+}
 
 /**
  * Redirect component for type-specific routes to canonical /documents/:id
@@ -131,26 +143,30 @@ function SuperAdminRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <Routes>
-      {/* Truly public routes - no AuthProvider wrapper */}
-      <Route
-        path="/feedback/:programId"
-        element={<PublicFeedbackPage />}
-      />
-      {/* Routes that need AuthProvider (even if some are public) */}
-      <Route
-        path="/*"
-        element={
-          <WorkspaceProvider>
-            <AuthProvider>
-              <RealtimeEventsProvider>
-                <AppRoutes />
-              </RealtimeEventsProvider>
-            </AuthProvider>
-          </WorkspaceProvider>
-        }
-      />
-    </Routes>
+    // Suspense covers every lazy route below (editor, admin, feedback).
+    // Eager routes (login, my-week, dashboard, lists) never hit the fallback.
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        {/* Truly public routes - no AuthProvider wrapper */}
+        <Route
+          path="/feedback/:programId"
+          element={<PublicFeedbackPage />}
+        />
+        {/* Routes that need AuthProvider (even if some are public) */}
+        <Route
+          path="/*"
+          element={
+            <WorkspaceProvider>
+              <AuthProvider>
+                <RealtimeEventsProvider>
+                  <AppRoutes />
+                </RealtimeEventsProvider>
+              </AuthProvider>
+            </WorkspaceProvider>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
 
