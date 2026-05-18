@@ -32,23 +32,35 @@ for f in "$E2E_DIR"/*.spec.ts; do
     continue
   fi
 
-  # Use awk for stateful parsing of test bodies
+  # Use awk for stateful parsing of test bodies.
+  # We track brace depth so nested arrow functions (e.g. `context.route(..., async () => {...})`)
+  # are not misread as the end of the outer test body.
   empty_count=$(awk '
-    /^[[:space:]]*test\(/ && !/test\.fixme/ && !/test\.skip/ && !/test\.todo/ {
-      in_test = 1
-      has_content = 0
-    }
-    in_test && /expect\(/ {
-      has_content = 1
-    }
-    in_test && /page\./ {
-      has_content = 1
-    }
-    in_test && /^\s*}\);/ {
-      if (!has_content) {
-        empty_count++
+    {
+      # Count braces on this line. gsub returns the substitution count;
+      # replacing the matched char with itself leaves $0 unchanged but yields the count.
+      n_open  = gsub(/\{/, "&", $0)
+      n_close = gsub(/\}/, "&", $0)
+
+      if (in_test) {
+        body_depth += n_open - n_close
+        if ($0 ~ /expect\(/) has_content = 1
+        if ($0 ~ /page\./)   has_content = 1
+        # End of test body is when we close a brace AND depth returns to zero.
+        # Requiring n_close > 0 prevents the test from "ending" on a content-only
+        # line that happens to be at depth 0 due to non-canonical formatting.
+        if (body_depth == 0 && n_close > 0) {
+          if (!has_content) empty_count++
+          in_test = 0
+        }
+      } else if (/^[[:space:]]*test\(/ && !/test\.fixme/ && !/test\.skip/ && !/test\.todo/) {
+        in_test = 1
+        has_content = 0
+        body_depth = n_open - n_close
+        # If the test() declaration is balanced on its own line (rare; multi-line
+        # declarations), keep scanning until we see the body open.
+        if (body_depth == 0) in_test = 0
       }
-      in_test = 0
     }
     END { print empty_count + 0 }
   ' "$f")
