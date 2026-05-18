@@ -1,0 +1,40 @@
+=== TOP 30 PACKAGES BY BUNDLE CONTRIBUTION ===
+Rank  Rendered    Gzip    Files  Package
+----  --------  -------   -----  -------
+  1.    399.6K    72.4K      1  emoji-picker-react
+  2.    377.9K   118.5K    195  highlight.js
+  3.    264.9K    55.5K      1  yjs
+  4.    236.3K    57.2K      1  prosemirror-view
+  5.    181.2K    36.9K      1  core/dist/index.js
+  6.    131.7K    42.4K      8  react-dom
+  7.    121.2K    28.7K      1  prosemirror-model
+  8.    106.5K    34.0K     41  lib0
+  9.    101.0K    21.1K      1  core/dist/core.esm.js
+ 10.     80.6K    18.1K      3  diff-match-patch
+ 11.     80.0K    23.3K      1  extension-code-block-lowlight/dist/index.js
+ 12.     79.9K    18.6K      1  prosemirror-transform
+ 13.     79.6K    19.5K      4  react-router
+ 14.     74.9K    11.4K      1  APP/src/pages/App.tsx
+ 15.     70.3K    12.1K      1  tailwind-merge
+ 16.     70.1K    16.4K      1  prosemirror-tables
+ 17.     59.1K    20.3K      1  linkifyjs
+ 18.     58.7K    15.4K      7  y-prosemirror
+ 19.     53.9K     9.0K      1  APP/src/pages/ReviewsPage.tsx
+ 20.     48.7K     9.4K      1  APP/src/components/IssuesList.tsx
+ 21.     41.7K     3.5K      1  APP/src/components/icons/uswds/Icon.tsx
+ 22.     35.8K     8.1K      2  tippy.js
+ 23.     35.2K     9.0K      1  prosemirror-state
+ 24.     33.8K     6.6K      1  APP/src/pages/TeamMode.tsx
+ 25.     32.5K     7.4K      1  react/dist/index.js
+ 26.     30.9K     5.1K      1  APP/src/pages/WorkspaceSettings.tsx
+ 27.     30.5K     7.1K      1  APP/src/components/Editor.tsx
+ 28.     26.4K     6.1K      1  core/dist/floating-ui.core.mjs
+ 29.     25.3K     6.7K      1  dom/dist/floating-ui.dom.mjs
+ 30.     24.6K     5.3K      1  prosemirror-commands
+
+Sum across all packages: 4685.3K rendered, 1192.4K gzip
+Total packages: 670
+
+=== APP CODE TOTAL ===
+Rendered: 1316.6K
+Files: 174
