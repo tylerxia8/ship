@@ -214,8 +214,9 @@ _(pending live app)_
 
 ### Hypotheses to confirm
 
-- **N+1 in dashboard/my-week.** Aggregations over `document_associations` are likely walked per row in JS.
-- **No partial index for `document_type = 'issue'`** alone. Composite indexes exist on `(workspace_id, document_type)` filtered by `archived_at IS NULL AND deleted_at IS NULL` — good — but type-specific list queries with state filters on `properties.state` would benefit from a partial GIN expression index.
+- **N+1 in dashboard/my-week.** _Updated after reading `api/src/routes/dashboard.ts`_: the `/my-work` handler **actually does proper joins** — issues + sprint association + sprint document + program association + program document, all in one SQL — so the dashboard itself is **not** a textbook N+1. But individual handlers (e.g. document loaders that fetch comments + associations + history separately) probably are. Need live trace.
+- **JSONB-key casts without functional indexes.** `dashboard.ts` filters by `(d.properties->>'assignee_id')::uuid = $2` and `d.properties->>'state' NOT IN (...)`. The schema has `idx_documents_properties` (GIN over `properties`) and an `idx_documents_person_user_id` ((properties->>'user_id')) **but no functional index on `properties->>'assignee_id'` or `properties->>'state'`**. Confirm in EXPLAIN.
+- **No partial index for `document_type = 'issue'`** alone. Composite index on `(workspace_id, document_type)` partial-filtered by `archived_at IS NULL AND deleted_at IS NULL` — good — but type-specific list queries with state filters on `properties.state` would benefit from a partial GIN expression index.
 - **`document_associations` lookups** by `(document_id, relationship_type)` are indexed — good. But "find documents that belong-to project X" is `WHERE relationship_type = 'project' AND related_id = $X`, served by `idx_document_associations_related_type` — verify it's used.
 
 ### Improvement target
@@ -292,7 +293,7 @@ The codebase already has solid foundations:
 - **`MutationCache.onError`** in [web/src/lib/queryClient.ts:166](../../web/src/lib/queryClient.ts) emits via `notifyMutationError` → `<MutationErrorToast>` in `main.tsx`.
 - **`subscribeToCacheCorruption`** detects bad IndexedDB state and notifies listeners.
 - **`handleSessionExpired`** in `web/src/lib/api.ts` redirects to `/login?expired=true&returnTo=...`.
-- **No top-level React error boundary** that I've seen yet — to confirm during the audit walkthrough.
+- **`ErrorBoundary` exists** at [web/src/components/ui/ErrorBoundary.tsx](../../web/src/components/ui/ErrorBoundary.tsx) and is used in `pages/App.tsx` and `components/Editor.tsx`. Has a "Try Again" reset path. **Open question for live audit:** is the boundary at the right granularity? E.g., does an error inside a route render gate the whole AppLayout?
 
 ### Concrete gaps already identified (pre-live-app)
 
@@ -332,6 +333,7 @@ _(pending live app)_
 - `@axe-core/playwright` is already a devDep (root `package.json`).
 - Several E2E specs already exercise a11y: `accessibility.spec.ts` (11 tests), `accessibility-remediation.spec.ts` (57 tests — large!), `check-aria.spec.ts`, `status-colors-accessibility.spec.ts`. The team has invested here. **This means baselines might be _good_ — and the improvement target may need to focus on raising bar (Lighthouse score) rather than fixing critical violations (might already be at zero).**
 - Recent commits (last week) include `838375e fix: use aria-label instead of aria-labelledby for USWDS Icon a11y` — active a11y work.
+- **Zero `<div onClick=>` or `<span onClick=>` patterns** in `web/src/**/*.tsx` (positive finding from static grep). The codebase uses proper `<button>` elements for interactive elements. One major class of WCAG 2.1.1 (Keyboard) violations is structurally avoided.
 
 ### Improvement target
 
