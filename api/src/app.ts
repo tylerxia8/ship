@@ -65,6 +65,9 @@ const conditionalCsrf = (req: Request, res: Response, next: NextFunction) => {
 // Production limits: login=5/15min (failed only), api=100/min
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.E2E_TEST === '1';
 const isDevEnv = process.env.NODE_ENV !== 'production';
+// shipshape audit only: SHIPSHAPE_AUDIT=1 disables rate limiting for honest perf measurements.
+// This flag is NEVER committed in a production-meaningful way — see audit-revert step.
+const isAuditMode = process.env.SHIPSHAPE_AUDIT === '1';
 
 // Strict rate limit for login (5 failed attempts / 15 min) - brute force protection
 // skipSuccessfulRequests: true means only failed attempts count toward the limit
@@ -80,7 +83,7 @@ const loginLimiter = rateLimit({
 // General API rate limit (100 req/min in prod, 1000 in dev)
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: isTestEnv ? 10000 : isDevEnv ? 1000 : 100, // High limit for tests/dev
+  max: isAuditMode ? 10_000_000 : isTestEnv ? 10000 : isDevEnv ? 1000 : 100, // High limit for tests/dev
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please slow down.' },
