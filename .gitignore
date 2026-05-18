@@ -64,6 +64,10 @@ test-results/
 # Audit artifacts
 .audit
 
+# ShipShape audit: never commit credentials captured during the audit
+shipshape/audit/raw/.api_token
+shipshape/audit/raw/.session_cookie
+
 # Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl

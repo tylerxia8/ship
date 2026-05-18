@@ -1,0 +1,17 @@
+Endpoint           Conn   RPS    P50  P90  P97.5  P99   Max    Mean   non2xx  Bytes/s
+-----------------------------------------------------------------------------------------------
+auth_me              10    488   18ms  28ms   36ms  41ms  348ms  20.0ms       0    735KB
+auth_me              25    588   41ms  51ms   62ms  68ms   87ms  41.9ms       0    886KB
+auth_me              50    204  136ms 515ms 1174ms 1575ms 2785ms 244.0ms       0    307KB
+docs_wiki            10    489   17ms  29ms   52ms  68ms  177ms  19.9ms       0   1726KB
+docs_wiki            25    596   34ms  73ms  104ms 127ms  193ms  41.5ms       0   2102KB
+docs_wiki            50    676   68ms 113ms  181ms 222ms  462ms  73.3ms       0   2385KB
+issues               10    142   57ms 104ms  128ms 165ms  235ms  69.7ms       0  14294KB
+issues               25    132  183ms 219ms  247ms 274ms  324ms 186.9ms       0  13356KB
+issues               50    136  354ms 403ms  486ms 515ms  560ms 359.2ms       0  13730KB
+my_work              10    369   26ms  34ms   44ms  60ms  135ms  26.6ms       0   2901KB
+my_work              25    231   91ms 162ms  278ms 318ms  365ms 106.6ms       0   1820KB
+my_work              50    379  125ms 162ms  193ms 246ms  346ms 131.0ms       0   2980KB
+weeks                10    396   24ms  31ms   37ms  44ms  112ms  24.8ms       0   2135KB
+weeks                25    449   53ms  63ms   83ms 122ms  200ms  55.1ms       0   2421KB
+weeks                50    470  104ms 117ms  130ms 147ms  249ms 105.2ms       0   2534KB

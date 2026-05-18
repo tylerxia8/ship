@@ -1,0 +1,18 @@
+Route                Total  Crit  Ser  Mod  Min  Console
+-----------------------------------------------------------------
+/dashboard               1     0    1    0    0        0
+/docs                    0     0    0    0    0        0
+/issues                  0     0    0    0    0        0
+/login                   0     0    0    0    0        1
+/my-week                 1     0    1    0    0        0
+/programs                0     0    0    0    0        0
+/projects                1     0    1    0    0        0
+/settings                0     0    0    0    0        0
+/team/allocation         1     0    1    0    0        0
+/team/directory          0     0    0    0    0        0
+/team/org-chart          0     0    0    0    0        0
+/team/status             1     0    1    0    0        0
+
+Violation rule              Routes  Total nodes
+---------------------------------------------------------------------------
+color-contrast (serious)                5      46   on: dashboard, my-week, projects, allocation, status

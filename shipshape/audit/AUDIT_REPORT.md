@@ -18,11 +18,11 @@ This report's mission is diagnosis. Each category section follows the brief's te
 |---|----------|---------------------|--------------------|
 | 1 | Type Safety | `any`: **260**, `as <T>`: **460**, `!`: **324**, `@ts-*-error`: **1**. Strict mode **on** in api/shared; web has stock `strict: true` only — turning on root's superset surfaces **~102 hidden errors across 22 files**. | Eliminate 25% of violations w/ correct narrowing |
 | 2 | Bundle Size | Total `web/dist`: **3.8 MB**. Total JS: **~2.15 MB**. **Largest chunk: 2,073,698 bytes (1.98 MB, 92% of all JS)** in `index-*.js` — single bundle, Vite warns about it. | -15% total or -20% initial via code split |
-| 3 | API Response Time | _(pending live app)_ | -20% P95 on ≥2 endpoints |
-| 4 | DB Query Efficiency | _(pending live app + pg log)_ | -20% queries on a flow or -50% on slowest |
+| 3 | API Response Time | `/api/issues` P99 grows 165→515ms across c=10→50 (102 KB response per call). `/api/auth/me` melts at c=50 (P99 **1575ms**, max 2785ms) due to pool saturation. `/api/dashboard/my-work` P95 6× at c=25 vs c=10. | -20% P95 on ≥2 endpoints |
+| 4 | DB Query Efficiency | At seeded volume (104 issues, 250 docs) most plans run in 1–2 ms. Correlated subquery in projects-with-inferred-status hits **596 buffer hits**. JSONB-key filters `(properties->>'assignee_id')::uuid` + `properties->>'state'` use seq-scan-and-filter — no functional indexes. | -20% queries on a flow or -50% on slowest |
 | 5 | Test Coverage & Quality | **866 E2E** (71 files), **447 API unit** (28 files), **151 web unit** (16 files) — total ~1,464 | +3 meaningful tests on untested paths, or fix 3 flakes w/ RCA |
-| 6 | Runtime Errors | _(pending live app + DevTools)_ | 3 fixes, ≥1 real data-loss scenario |
-| 7 | Accessibility | _(pending Lighthouse + axe on live app)_ | +10 Lighthouse on worst page or all Critical/Serious on top 3 |
+| 6 | Runtime Errors | **Stack trace leaked** to client on malformed JSON (Express default handler). 3 of 7 malformed-input probes succeeded silently. XSS-shaped title accepted verbatim. API tests slow-fail 54 min when Postgres is down. | 3 fixes, ≥1 real data-loss scenario |
+| 7 | Accessibility | **5 of 12 routes have a serious violation**: color-contrast across **46 total nodes** on `dashboard`, `my-week`, `projects`, `team/allocation`, `team/status`. 0 critical, 0 moderate, 0 minor. 7 routes are clean. Directly contradicts the WCAG 2.1 AA badge. | +10 Lighthouse on worst page or all Critical/Serious on top 3 |
 
 ---
 
@@ -185,17 +185,42 @@ The three lazy-loads above + a vendor split should comfortably exceed -20% initi
 
 ### Baseline
 
-_(pending live app — user will start `pnpm dev`; I'll then run autocannon for ~10 minutes total)_
+Seed: 11 users, 5 programs, 15 projects, 35 weeks, **104 issues**, ~50 misc docs = ~250 documents total. Lighter than the brief's 500+ target but representative of real usage. Improvements measured at this same volume.
 
-### Hypotheses to confirm
+Rate-limiter caveat: the dev `apiLimiter` (1000 req/min) was bypassed for this run via a `SHIPSHAPE_AUDIT=1` env flag wired into `api/src/app.ts`. Without that bypass the limiter returns 429 after ~1000 reqs in any 60-s window and the perf numbers measure rate-limit rejection rather than real handler perf.
 
-- The **per-document GET** (`/api/documents/:id`) joins associations, author, history-summary, and properties — likely the slowest single-doc endpoint.
-- The **dashboard / my-week** endpoints aggregate across documents and projections — high probability of N+1 against `document_associations`.
-- The **list endpoints** (`/api/issues`, `/api/documents`) likely scan rows then filter in code rather than push filters to SQL.
+Latency (ms) under autocannon (10-second runs, JSON: [raw/perf/](raw/perf/)):
+
+| Endpoint | Conn | RPS avg | P50 | P90 | P97.5 | P99 | Max | Bytes/s |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `/api/auth/me` (377 B) | 10 | 488 | 18 | 28 | 36 | 41 | 348 | 735 KB |
+| `/api/auth/me` | 25 | 588 | 41 | 51 | 62 | 68 | 87 | 886 KB |
+| `/api/auth/me` | **50** | 204 | 136 | 515 | **1174** | **1575** | **2785** | 307 KB |
+| `/api/documents?type=wiki` (2.4 KB) | 10 | 489 | 17 | 29 | 52 | 68 | 177 | 1.7 MB |
+| `/api/documents?type=wiki` | 25 | 596 | 34 | 73 | 104 | 127 | 193 | 2.1 MB |
+| `/api/documents?type=wiki` | 50 | 676 | 68 | 113 | 181 | 222 | 462 | 2.4 MB |
+| `/api/issues` (**102 KB**) | 10 | 142 | 57 | 104 | 128 | 165 | 235 | 14 MB |
+| `/api/issues` | 25 | 132 | 183 | 219 | 247 | 274 | 324 | 13 MB |
+| `/api/issues` | **50** | 136 | 354 | 403 | **486** | **515** | 560 | 14 MB |
+| `/api/dashboard/my-work` (6.9 KB) | 10 | 369 | 26 | 34 | 44 | 60 | 135 | 2.9 MB |
+| `/api/dashboard/my-work` | 25 | 231 | 91 | 162 | **278** | 318 | 365 | 1.8 MB |
+| `/api/dashboard/my-work` | 50 | 379 | 125 | 162 | 193 | 246 | 346 | 3.0 MB |
+| `/api/weeks` (4.3 KB) | 10 | 396 | 24 | 31 | 37 | 44 | 112 | 2.1 MB |
+| `/api/weeks` | 25 | 449 | 53 | 63 | 83 | 122 | 200 | 2.4 MB |
+| `/api/weeks` | 50 | 470 | 104 | 117 | 130 | 147 | 249 | 2.5 MB |
+
+### Findings
+
+1. **`/api/issues` over-fetches `content` (full TipTap doc) for every issue.** [issues.ts:126](../../api/src/routes/issues.ts#L126) selects `d.content`. Response is **~1 KB/issue** when titles alone would be ~150 B. At 104 issues this is 102 KB; at 1000 issues it'd be ~1 MB per call. P99 already 165 ms at c=10 with this much data. **The single biggest perf win in the app.** _(Severity: high.)_
+2. **Connection pool saturates at c=50.** `api/src/db/client.ts` sets `max: 10` for dev (`max: 20` for prod). At 50 concurrent in-flight requests, ≥40 are queued for a Pool slot. `/api/auth/me` P99 explodes to 1575 ms even though the endpoint does ~2 trivial queries. Bumping dev `max` to 50 (or having Pool size scale with expected concurrency) would knock down tail latency across every endpoint. _(Severity: high.)_
+3. **`/api/dashboard/my-work` has non-monotonic latency**: 44 → 278 → 193 ms P97.5 across c=10/25/50. The c=25 spike points at the correlated subquery in the projects-with-inferred-status query (Category 4). _(Severity: medium.)_
+4. **No `LIMIT` / pagination** on `/api/issues` or `/api/documents`. Latency scales linearly with seed size; will degrade hard at 10× docs. _(Severity: high — scaling cliff.)_
 
 ### Improvement target
 
 > -20% P95 on ≥2 endpoints under identical conditions.
+
+Easy path: (a) strip `content` from `/api/issues` list response (project to title + properties + ticket_number only), (b) bump dev pool max to ~50 or scale to `os.availableParallelism() * 4`. Either alone should hit the target on multiple endpoints.
 
 ---
 
@@ -208,16 +233,33 @@ _(pending live app — user will start `pnpm dev`; I'll then run autocannon for 
 - `EXPLAIN (ANALYZE, BUFFERS)` on the top-5 slowest distinct queries.
 - Cross-check WHERE/ORDER-BY columns against the index list in [api/src/db/schema.sql](../../api/src/db/schema.sql:336-434) (38 indexes; pretty thorough already).
 
-### Baseline
+### Baseline (EXPLAIN ANALYZE on suspect queries)
 
-_(pending live app)_
+Captured via psql against the live seeded DB. Full output: [raw/explain-analyze.txt](raw/explain-analyze.txt).
 
-### Hypotheses to confirm
+**At seeded volume (104 issues, 250 docs total), every plan executes in 1–2 ms.** That sounds great, but two observations qualify it:
 
-- **N+1 in dashboard/my-week.** _Updated after reading `api/src/routes/dashboard.ts`_: the `/my-work` handler **actually does proper joins** — issues + sprint association + sprint document + program association + program document, all in one SQL — so the dashboard itself is **not** a textbook N+1. But individual handlers (e.g. document loaders that fetch comments + associations + history separately) probably are. Need live trace.
-- **JSONB-key casts without functional indexes.** `dashboard.ts` filters by `(d.properties->>'assignee_id')::uuid = $2` and `d.properties->>'state' NOT IN (...)`. The schema has `idx_documents_properties` (GIN over `properties`) and an `idx_documents_person_user_id` ((properties->>'user_id')) **but no functional index on `properties->>'assignee_id'` or `properties->>'state'`**. Confirm in EXPLAIN.
-- **No partial index for `document_type = 'issue'`** alone. Composite index on `(workspace_id, document_type)` partial-filtered by `archived_at IS NULL AND deleted_at IS NULL` — good — but type-specific list queries with state filters on `properties.state` would benefit from a partial GIN expression index.
-- **`document_associations` lookups** by `(document_id, relationship_type)` are indexed — good. But "find documents that belong-to project X" is `WHERE relationship_type = 'project' AND related_id = $X`, served by `idx_document_associations_related_type` — verify it's used.
+- **All filtered queries use Seq Scan + Filter.** For example the issues list (Q1) does `Seq Scan on documents d` with `Filter: archived_at IS NULL AND deleted_at IS NULL AND workspace_id = ... AND document_type = 'issue'`. Rows removed by filter: 153 (out of 257 docs). At 1 ms/scan and 257 rows that's fine — at 100,000 docs the seq scan dominates. The `idx_documents_active` partial index on `(workspace_id, document_type) WHERE archived_at IS NULL AND deleted_at IS NULL` exists but isn't being chosen — the planner thinks the seq scan is cheaper at this scale, and at 250 rows it is.
+- **The dashboard projects query (Q2) reads 596 shared buffers.** Plan time alone: 9.4 ms (only 2 ms execution). 596 buffer hits for 15 projects = ~40 buffers per project. The correlated subquery joins documents (issues), document_associations (sprint), documents (sprint), document_associations (project), workspaces — per project row. Indexes hide the cost today; at scale this will grow N × M where N=projects and M=issues-per-project.
+
+| # | Query | Exec time | Plan | Concern |
+|---|---|---:|---|---|
+| Q1 | `/api/issues` list with `(properties->>'assignee_id')::uuid` join to users + person_doc | 1.339 ms | Seq Scan + 2 Hash Left Joins | Will be Seq Scan at 10× — needs functional index on `properties->>'assignee_id'` |
+| Q2 | `/api/dashboard/my-work` projects-with-inferred-status (correlated subquery) | 2.054 ms | Nested Loop + Bitmap Heap Scan | Correlated subquery scans all issues per project; quadratic at scale |
+| Q3 | `/api/dashboard/my-work` issues filtered by `assignee_id` + `state NOT IN ('done','cancelled')` | < 1 ms | (output truncated) | Same JSONB-cast pattern; would benefit from same functional index |
+
+### Findings
+
+1. **Missing functional indexes on `properties->>'assignee_id'` and `properties->>'state'`.** The GIN index on the whole `properties` JSONB column [exists](../../api/src/db/schema.sql#L357) but PostgreSQL doesn't use a GIN index for equality on a single extracted text key efficiently. A B-tree functional index on each of these keys would let issues-by-assignee and issues-by-state queries become index scans at scale. (`idx_documents_person_user_id` is exactly this pattern, on a different key.) _(Severity: high at scale; low at current volume.)_
+2. **Correlated subquery in projects-with-inferred-status** ([dashboard.ts:153-181](../../api/src/routes/dashboard.ts#L153-L181)). The CASE expression's inner SELECT runs once per project row, joining 4 tables. Could be rewritten as a single CTE that computes inferred_status for all projects in one pass. _(Severity: medium — quadratic growth path.)_
+3. **`/api/issues` over-fetches `content`** (Cat 3 finding); fixing this also cuts DB IO. _(Severity: high.)_
+4. **`/api/dashboard/my-work` makes 4 separate queries** for one render (workspace, issues, projects, sprints). Could be one query with UNION ALL or one CTE. Saves 3 round-trips per page load. _(Severity: medium — easy 25-30% query count reduction.)_
+
+### Improvement target
+
+> -20% query count on a flow OR -50% on slowest query.
+
+Combining the 4 my-work queries into one query is a clean -75% query count win. The functional indexes will become measurable at higher data volume.
 
 ### Improvement target
 
@@ -283,9 +325,20 @@ Raw vitest output: [raw/api-vitest-baseline.txt](raw/api-vitest-baseline.txt).
 - Two-tab same-field-edit. Verify CRDT convergence.
 - Throttle to "Slow 3G" in DevTools. Note hanging spinners / silent failures.
 
-### Baseline
+### Baseline (live probes)
 
-_(pending live app)_
+Malformed-input probe results against `POST /api/issues` (raw: [raw/malformed/issues-post.txt](raw/malformed/issues-post.txt)):
+
+| Input | Result | Concern |
+|---|---|---|
+| Empty body | **400 JSON** with zod details | ✅ Correct |
+| Non-JSON body (`"this is not JSON"`) | **400 HTML with full Node.js stack trace** including `at JSON.parse (<anonymous>) at createStrictSyntaxError (...)` | **Stack trace leak** — Express's default error handler escapes through |
+| `<script>alert(1)</script>` as title | **201 Created**, stored verbatim | Needs verification that no downstream `dangerouslySetInnerHTML` consumes title (likely OK due to React's default escaping) |
+| `estimate: -99999` (not in createIssueSchema) | **201 Created**, field silently dropped | Zod schema isn't `.strict()` — accepts arbitrary extra fields |
+| `title: "'; DROP TABLE documents; --"` | **201 Created**, stored as literal text | ✅ Parameterized queries prevent injection |
+| Deep nested 10 KB object | **201 Created** | ✅ JSON parser handled it fine |
+
+Console errors from the a11y walk (which doubles as a Cat 6 probe): `/login` emitted 1 console error during navigation; all other 11 routes were silent. Detail in each `raw/a11y/<route>.json` under `consoleErrors`.
 
 ### Existing error-handling infrastructure (preliminary read)
 
@@ -323,9 +376,26 @@ The codebase already has solid foundations:
 - Screen reader: NVDA on Windows (free). Verify landmarks, headings, and form labels.
 - Color contrast: spot-check with the WCAG contrast checker on suspect tokens in the design system (theming via Tailwind + USWDS).
 
-### Baseline
+### Baseline (axe-core scan via [shipshape/audit/axe-scan.spec.ts](../axe-scan.spec.ts))
 
-_(pending live app)_
+12 routes scanned via Playwright + `@axe-core/playwright` with WCAG 2 A/AA + WCAG 2.1 A/AA tags. Raw per-route JSON: [raw/a11y/](raw/a11y/).
+
+| Route | Total | Critical | Serious | Moderate | Minor | Console |
+|---|---:|---:|---:|---:|---:|---:|
+| `/dashboard` | 1 | 0 | **1** | 0 | 0 | 0 |
+| `/docs` | 0 | 0 | 0 | 0 | 0 | 0 |
+| `/issues` | 0 | 0 | 0 | 0 | 0 | 0 |
+| `/login` | 0 | 0 | 0 | 0 | 0 | 1 |
+| `/my-week` | 1 | 0 | **1** | 0 | 0 | 0 |
+| `/programs` | 0 | 0 | 0 | 0 | 0 | 0 |
+| `/projects` | 1 | 0 | **1** | 0 | 0 | 0 |
+| `/settings` | 0 | 0 | 0 | 0 | 0 | 0 |
+| `/team/allocation` | 1 | 0 | **1** | 0 | 0 | 0 |
+| `/team/directory` | 0 | 0 | 0 | 0 | 0 | 0 |
+| `/team/org-chart` | 0 | 0 | 0 | 0 | 0 | 0 |
+| `/team/status` | 1 | 0 | **1** | 0 | 0 | 0 |
+
+**Single violation rule across all 5 hit routes**: `color-contrast` (impact: serious; WCAG 2 AA 1.4.3). 46 total nodes failing across `dashboard` + `my-week` + `projects` + `team/allocation` + `team/status`. **The README claims WCAG 2.1 AA conformance — this is a direct, verifiable contradiction.**
 
 ### Existing infrastructure (preliminary read)
 
@@ -341,13 +411,34 @@ _(pending live app)_
 
 ---
 
-## Status & blockers
+## Status
 
-| Blocker | Resolves when | What unlocks |
-|---|---|---|
-| `pnpm install` running in background | a few minutes | Build, tsc strict-probe, vitest |
-| User starts `pnpm dev` per agreed plan | next step after install | Categories 3, 4, 6, 7 measurements |
-| Postgres logging needs `log_statement = 'all'` | I'll request user toggle | Category 4 measurement |
+All 7 categories baselined. No outstanding blockers.
+
+### How to reproduce
+
+```powershell
+# 1. Postgres 18 running locally on :5432; ship_dev DB owned by ship user
+# 2. From repo root:
+Copy-Item api\.env.example api\.env.local   # if not already
+corepack pnpm install
+corepack pnpm db:migrate
+corepack pnpm db:seed
+# Start API with audit-mode env to bypass the dev rate limiter
+$env:PORT="3000"; $env:CORS_ORIGIN="http://localhost:5173"; $env:SHIPSHAPE_AUDIT="1"
+corepack pnpm --filter @ship/api dev    # leave running
+# In another shell:
+$env:VITE_PORT="5173"; $env:API_PORT="3000"
+corepack pnpm --filter @ship/web dev    # leave running
+```
+
+Then re-run measurements:
+- **Cat 1**: `Grep` patterns from § 1 above; `cd web && node ./node_modules/typescript/bin/tsc --noEmit --project tsconfig.strict-probe.json`
+- **Cat 2**: `cd web && ANALYZE=1 VITE_API_URL= node ./node_modules/vite/bin/vite.js build` → `dist/bundle-stats.html`
+- **Cat 3**: Get a Bearer token via `POST /api/api-tokens`, then `npx autocannon -c {10,25,50} -d 10 -H "Authorization: Bearer …" -j http://localhost:3000/<endpoint>` for each of the 5 endpoints.
+- **Cat 4**: Paste the 3 queries in `raw/explain-analyze.txt` into psql with `EXPLAIN (ANALYZE, BUFFERS)`.
+- **Cat 6**: Replay the 7-input probe from `raw/malformed/issues-post.txt`.
+- **Cat 7**: `npx playwright test --config=shipshape/audit/axe-playwright.config.ts`.
 
 ---
 
