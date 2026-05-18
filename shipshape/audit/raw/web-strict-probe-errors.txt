@@ -1,0 +1,131 @@
+src/components/CommandPalette.tsx(81,7): error TS2532: Object is possibly 'undefined'.
+src/components/CommandPalette.tsx(89,11): error TS2532: Object is possibly 'undefined'.
+src/components/CommandPalette.tsx(181,9): error TS2532: Object is possibly 'undefined'.
+src/components/CommandPalette.tsx(269,14): error TS18048: 'groupedDocuments.issue' is possibly 'undefined'.
+src/components/CommandPalette.tsx(271,18): error TS18048: 'groupedDocuments.issue' is possibly 'undefined'.
+src/components/CommandPalette.tsx(285,14): error TS18048: 'groupedDocuments.wiki' is possibly 'undefined'.
+src/components/CommandPalette.tsx(287,18): error TS18048: 'groupedDocuments.wiki' is possibly 'undefined'.
+src/components/CommandPalette.tsx(301,14): error TS18048: 'groupedDocuments.program' is possibly 'undefined'.
+src/components/CommandPalette.tsx(303,18): error TS18048: 'groupedDocuments.program' is possibly 'undefined'.
+src/components/CommandPalette.tsx(317,14): error TS18048: 'groupedDocuments.sprint' is possibly 'undefined'.
+src/components/CommandPalette.tsx(319,18): error TS18048: 'groupedDocuments.sprint' is possibly 'undefined'.
+src/components/CommandPalette.tsx(333,14): error TS18048: 'groupedDocuments.person' is possibly 'undefined'.
+src/components/CommandPalette.tsx(335,18): error TS18048: 'groupedDocuments.person' is possibly 'undefined'.
+src/components/dashboard/DashboardVariantC.tsx(121,5): error TS2532: Object is possibly 'undefined'.
+src/components/dashboard/DashboardVariantC.tsx(127,5): error TS2532: Object is possibly 'undefined'.
+src/components/dashboard/DashboardVariantC.tsx(136,5): error TS2532: Object is possibly 'undefined'.
+src/components/dashboard/DashboardVariantC.tsx(142,5): error TS2532: Object is possibly 'undefined'.
+src/components/dashboard/DashboardVariantC.tsx(149,3): error TS2532: Object is possibly 'undefined'.
+src/components/editor/AIScoringDisplay.tsx(78,19): error TS7030: Not all code paths return a value.
+src/components/editor/AIScoringDisplay.tsx(99,19): error TS7030: Not all code paths return a value.
+src/components/editor/AIScoringDisplay.tsx(126,40): error TS2532: Object is possibly 'undefined'.
+src/components/editor/AIScoringDisplay.tsx(129,42): error TS2532: Object is possibly 'undefined'.
+src/components/editor/AIScoringDisplay.tsx(141,40): error TS2532: Object is possibly 'undefined'.
+src/components/editor/AIScoringDisplay.tsx(145,42): error TS2532: Object is possibly 'undefined'.
+src/components/editor/AIScoringDisplay.tsx(247,50): error TS18048: 'listItem' is possibly 'undefined'.
+src/components/editor/AIScoringDisplay.tsx(248,51): error TS2345: Argument of type 'PlanItemAnalysis | undefined' is not assignable to parameter of type 'PlanItemAnalysis'.
+  Type 'undefined' is not assignable to type 'PlanItemAnalysis'.
+src/components/editor/AIScoringDisplay.tsx(251,46): error TS18048: 'analysisItem' is possibly 'undefined'.
+src/components/editor/AIScoringDisplay.tsx(270,50): error TS18048: 'listItem' is possibly 'undefined'.
+src/components/editor/AIScoringDisplay.tsx(271,52): error TS2345: Argument of type 'RetroItemAnalysis | undefined' is not assignable to parameter of type 'RetroItemAnalysis'.
+  Type 'undefined' is not assignable to type 'RetroItemAnalysis'.
+src/components/editor/AIScoringDisplay.tsx(274,47): error TS18048: 'coverageItem' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(75,22): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(81,49): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(86,74): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(88,70): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(88,112): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(114,53): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(115,59): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(116,77): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(118,48): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(122,109): error TS18048: 'root' is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(211,34): error TS2532: Object is possibly 'undefined'.
+src/components/editor/CommentDisplay.tsx(257,63): error TS2532: Object is possibly 'undefined'.
+src/components/editor/EmojiExtension.ts(148,16): error TS7030: Not all code paths return a value.
+src/components/editor/ResizableImage.tsx(40,13): error TS7030: Not all code paths return a value.
+src/components/editor/TableOfContents.test.ts(85,12): error TS2532: Object is possibly 'undefined'.
+src/components/editor/TableOfContents.test.ts(86,12): error TS2532: Object is possibly 'undefined'.
+src/components/editor/TableOfContents.test.ts(87,12): error TS2532: Object is possibly 'undefined'.
+src/components/editor/TableOfContents.test.ts(88,12): error TS2532: Object is possibly 'undefined'.
+src/components/editor/TableOfContents.test.ts(238,12): error TS2532: Object is possibly 'undefined'.
+src/components/editor/TableOfContents.test.ts(239,12): error TS2532: Object is possibly 'undefined'.
+src/components/editor/TableOfContents.test.ts(240,12): error TS2532: Object is possibly 'undefined'.
+src/components/InlineWeekSelector.tsx(43,13): error TS7030: Not all code paths return a value.
+src/components/InlineWeekSelector.tsx(56,13): error TS7030: Not all code paths return a value.
+src/components/ProjectCombobox.tsx(61,19): error TS2532: Object is possibly 'undefined'.
+src/components/ProjectCombobox.tsx(62,19): error TS2532: Object is possibly 'undefined'.
+src/components/ProjectCombobox.tsx(225,38): error TS18048: 'programProjects' is possibly 'undefined'.
+src/components/ProjectCombobox.tsx(246,22): error TS18048: 'programProjects' is possibly 'undefined'.
+src/components/SessionTimeoutModal.tsx(33,13): error TS7030: Not all code paths return a value.
+src/components/sidebars/WeekSidebar.tsx(249,30): error TS2532: Object is possibly 'undefined'.
+src/components/StandupFeed.tsx(410,5): error TS2532: Object is possibly 'undefined'.
+src/components/VisibilityDropdown.tsx(19,24): error TS18048: 'selected' is possibly 'undefined'.
+src/components/VisibilityDropdown.tsx(36,55): error TS18048: 'selected' is possibly 'undefined'.
+src/components/week/WeekTimeline.tsx(341,26): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/week/WeekTimeline.tsx(342,21): error TS2345: Argument of type '{ month: string; year: number; windows: WeekWindow[]; } | null' is not assignable to parameter of type '{ month: string; year: number; windows: WeekWindow[]; }'.
+  Type 'null' is not assignable to type '{ month: string; year: number; windows: WeekWindow[]; }'.
+src/components/week/WeekTimeline.tsx(344,7): error TS18047: 'currentGroup' is possibly 'null'.
+src/components/week/WeekTimeline.tsx(367,34): error TS18048: 'window' is possibly 'undefined'.
+src/hooks/useSelection.ts(110,18): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/hooks/useSelection.ts(146,32): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/hooks/useSelection.ts(147,16): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/hooks/useSelection.ts(150,34): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/hooks/useSelection.ts(151,54): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/hooks/useSelection.ts(152,16): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/hooks/useSelection.ts(155,11): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/hooks/useSelection.ts(158,11): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/hooks/useSelection.ts(174,39): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/hooks/useSelection.ts(210,18): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/hooks/useSelection.ts(215,18): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'SetStateAction<string | null>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<string | null>'.
+src/hooks/useSelection.ts(219,25): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'SetStateAction<string | null>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<string | null>'.
+src/lib/cn.ts(19,20): error TS2532: Object is possibly 'undefined'.
+src/lib/cn.ts(19,29): error TS2532: Object is possibly 'undefined'.
+src/lib/cn.ts(20,20): error TS2532: Object is possibly 'undefined'.
+src/lib/cn.ts(20,29): error TS2532: Object is possibly 'undefined'.
+src/lib/cn.ts(21,20): error TS2532: Object is possibly 'undefined'.
+src/lib/cn.ts(21,29): error TS2532: Object is possibly 'undefined'.
+src/lib/cn.ts(30,20): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/cn.ts(31,20): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/cn.ts(32,20): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/cn.ts(45,30): error TS2532: Object is possibly 'undefined'.
+src/lib/cn.ts(45,49): error TS2532: Object is possibly 'undefined'.
+src/lib/cn.ts(45,68): error TS2532: Object is possibly 'undefined'.
+src/pages/Dashboard.tsx(137,35): error TS2532: Object is possibly 'undefined'.
+src/pages/Dashboard.tsx(141,20): error TS2532: Object is possibly 'undefined'.
+src/pages/Dashboard.tsx(141,56): error TS2532: Object is possibly 'undefined'.
+src/pages/Dashboard.tsx(141,101): error TS2532: Object is possibly 'undefined'.
+src/pages/ReviewsPage.tsx(216,7): error TS2322: Type '{ planApproval: { state: string; approved_by: null; approved_at: string; comment: string | null; }; reviewApproval?: ApprovalInfo | null | undefined; reviewRating?: RatingInfo | null | undefined; ... 4 more ...; retroDocId?: string | ... 1 more ... | undefined; }' is not assignable to type 'ReviewCell'.
+  Types of property 'reviewApproval' are incompatible.
+    Type 'ApprovalInfo | null | undefined' is not assignable to type 'ApprovalInfo | null'.
+      Type 'undefined' is not assignable to type 'ApprovalInfo | null'.
+src/pages/ReviewsPage.tsx(249,7): error TS2322: Type '{ planApproval?: ApprovalInfo | null | undefined; reviewApproval?: ApprovalInfo | null | undefined; reviewRating?: RatingInfo | null | undefined; ... 4 more ...; retroDocId?: string | ... 1 more ... | undefined; }' is not assignable to type 'ReviewCell'.
+  Types of property 'planApproval' are incompatible.
+    Type 'ApprovalInfo | null | undefined' is not assignable to type 'ApprovalInfo | null'.
+      Type 'undefined' is not assignable to type 'ApprovalInfo | null'.
+src/pages/ReviewsPage.tsx(274,7): error TS2322: Type '{ reviewApproval: { state: string; approved_by: null; approved_at: string; comment: string | null; }; reviewRating: { value: number; rated_by: string; rated_at: string; }; planApproval?: ApprovalInfo | null | undefined; ... 4 more ...; retroDocId?: string | ... 1 more ... | undefined; }' is not assignable to type 'ReviewCell'.
+  Types of property 'planApproval' are incompatible.
+    Type 'ApprovalInfo | null | undefined' is not assignable to type 'ApprovalInfo | null'.
+      Type 'undefined' is not assignable to type 'ApprovalInfo | null'.
+src/pages/TeamMode.tsx(249,16): error TS2532: Object is possibly 'undefined'.
+src/pages/TeamMode.tsx(250,16): error TS2532: Object is possibly 'undefined'.
+src/pages/TeamMode.tsx(513,13): error TS7030: Not all code paths return a value.
+src/pages/UnifiedDocumentPage.tsx(487,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/pages/WorkspaceSettings.tsx(95,32): error TS2532: Object is possibly 'undefined'.
