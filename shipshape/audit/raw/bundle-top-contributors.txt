@@ -1,0 +1,30 @@
+Top 25 contributors to main chunk (rendered raw bytes):
+Bucket      Rendered    Gzip        Files       Pct         
+--------------------------------------------------------------------------------
+app/src (web)                              1222436   270183   157  26.8%
+emoji-picker-react                          409191    74114     1   9.0%
+highlight.js                                387008   121393    39   8.5%
+yjs                                         271286    56796     1   6.0%
+prosemirror-view                            242005    58584     1   5.3%
+@tiptap/core                                185562    37765     1   4.1%
+react-dom                                   134906    43422     8   3.0%
+prosemirror-model                           124149    29395     1   2.7%
+lib0                                        109087    34852    37   2.4%
+@dnd-kit/core                               103395    21624     1   2.3%
+diff-match-patch                             82525    18578     3   1.8%
+@tiptap/extension-code-block-lowlight        81940    23895     1   1.8%
+prosemirror-transform                        81867    19007     1   1.8%
+react-router                                 81486    19922     1   1.8%
+@tanstack/query-core                         79267    20831    18   1.7%
+tailwind-merge                               72017    12423     1   1.6%
+prosemirror-tables                           71811    16758     1   1.6%
+linkifyjs                                    60487    20822     1   1.3%
+y-prosemirror                                60150    15739     6   1.3%
+@popperjs/core                               58710    22528    54   1.3%
+tippy.js                                     36692     8335     2   0.8%
+prosemirror-state                            36050     9247     1   0.8%
+@tiptap/react                                33236     7607     1   0.7%
+@floating-ui/core                            27043     6243     1   0.6%
+@floating-ui/dom                             25891     6847     1   0.6%
+--------------------------------------------------------------------------------
+FULL CHUNK total:                          4553089  1114686
