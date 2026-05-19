@@ -5,6 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+    "startCommand": "echo '>>> phase=migrate-start'; node dist/db/migrate.js; echo \">>> phase=migrate-done exit=$?\"; echo '>>> phase=server-start'; exec node dist/index.js",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 900,
     "restartPolicyType": "ON_FAILURE",
