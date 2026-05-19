@@ -84,6 +84,9 @@ function findListItems(doc: any): Array<{ endPos: number; text: string }> {
       }
       return false;
     }
+    // Return undefined (descendants treats it as "keep descending") for non-list
+    // nodes. Explicit `return` keeps noImplicitReturns happy.
+    return;
   });
 
   return items;
@@ -105,6 +108,7 @@ function findPlanReferenceNodes(doc: any): Array<{ endPos: number; text: string 
       }
       return false;
     }
+    return;
   });
 
   return items;
@@ -121,12 +125,18 @@ function matchAnalysisToListItems(
   const matches = new Map<number, number>();
   const usedAnalysis = new Set<number>();
 
-  // First pass: exact normalized matches
+  // First pass: exact normalized matches.
+  // `li` and `ai` are bounded by the array lengths, so the indexed access
+  // is always defined; the optional-chain satisfies noUncheckedIndexedAccess.
   for (let li = 0; li < listItems.length; li++) {
-    const normalizedLi = normalizeText(listItems[li].text);
+    const liItem = listItems[li];
+    if (!liItem) continue;
+    const normalizedLi = normalizeText(liItem.text);
     for (let ai = 0; ai < analysisItems.length; ai++) {
       if (usedAnalysis.has(ai)) continue;
-      const normalizedAi = normalizeText(analysisItems[ai].text);
+      const aiItem = analysisItems[ai];
+      if (!aiItem) continue;
+      const normalizedAi = normalizeText(aiItem.text);
       if (normalizedLi === normalizedAi) {
         matches.set(li, ai);
         usedAnalysis.add(ai);
@@ -138,11 +148,15 @@ function matchAnalysisToListItems(
   // Second pass: prefix/substring matching for unmatched items
   for (let li = 0; li < listItems.length; li++) {
     if (matches.has(li)) continue;
-    const normalizedLi = normalizeText(listItems[li].text);
+    const liItem = listItems[li];
+    if (!liItem) continue;
+    const normalizedLi = normalizeText(liItem.text);
 
     for (let ai = 0; ai < analysisItems.length; ai++) {
       if (usedAnalysis.has(ai)) continue;
-      const normalizedAi = normalizeText(analysisItems[ai].text);
+      const aiItem = analysisItems[ai];
+      if (!aiItem) continue;
+      const normalizedAi = normalizeText(aiItem.text);
 
       if (normalizedLi.startsWith(normalizedAi) || normalizedAi.startsWith(normalizedLi)) {
         matches.set(li, ai);
@@ -241,8 +255,12 @@ export const AIScoringDisplayExtension = Extension.create<Record<string, never>,
               const matches = matchAnalysisToListItems(listItems, planAnalysis.items);
 
               for (const [listIdx, analysisIdx] of matches) {
+                // Both indices come from matchAnalysisToListItems above and are
+                // bounded by the respective array lengths. Skip if for some
+                // reason the corresponding entry is missing.
                 const listItem = listItems[listIdx];
                 const analysisItem = planAnalysis.items[analysisIdx];
+                if (!listItem || !analysisItem) continue;
 
                 const widget = Decoration.widget(listItem.endPos, () => {
                   return createPlanFeedbackWidget(analysisItem);
@@ -266,6 +284,7 @@ export const AIScoringDisplayExtension = Extension.create<Record<string, never>,
               for (const [listIdx, coverageIdx] of matches) {
                 const listItem = listItems[listIdx];
                 const coverageItem = retroAnalysis.plan_coverage[coverageIdx];
+                if (!listItem || !coverageItem) continue;
 
                 const widget = Decoration.widget(listItem.endPos, () => {
                   return createRetroCoverageWidget(coverageItem);

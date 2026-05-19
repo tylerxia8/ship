@@ -78,15 +78,18 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
         nextIndex = currentIndex >= focusableElements.length - 1 ? 0 : currentIndex + 1;
       }
 
-      focusableElements[nextIndex].focus();
+      // nextIndex is bounded by the length check above; the optional-chain
+      // here is to satisfy noUncheckedIndexedAccess without an `!` assertion.
+      focusableElements[nextIndex]?.focus();
     };
 
     // Fallback: if focus escapes to anywhere outside dialog, bring it back immediately
     const handleFocusIn = (e: FocusEvent) => {
       if (!dialog.contains(e.target as Node)) {
         const focusableElements = getFocusableElements();
-        if (focusableElements.length > 0) {
-          focusableElements[0].focus();
+        const first = focusableElements[0];
+        if (first) {
+          first.focus();
         }
       }
     };
@@ -165,9 +168,20 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
     fetchDocuments();
   }, [open]);
 
-  // Group documents by type for display
-  const groupedDocuments = useMemo(() => {
-    const groups: Record<string, SearchableDocument[]> = {
+  // Group documents by type for display.
+  // Using a concrete object type (vs Record<string, …>) so each property is
+  // guaranteed non-undefined under noUncheckedIndexedAccess — callers below
+  // can do `groupedDocuments.issue.map(…)` without optional-chaining noise.
+  interface DocumentGroups {
+    issue: SearchableDocument[];
+    wiki: SearchableDocument[];
+    program: SearchableDocument[];
+    project: SearchableDocument[];
+    sprint: SearchableDocument[];
+    person: SearchableDocument[];
+  }
+  const groupedDocuments = useMemo<DocumentGroups>(() => {
+    const groups: DocumentGroups = {
       issue: [],
       wiki: [],
       program: [],
@@ -177,8 +191,9 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
     };
 
     for (const doc of documents) {
-      if (groups[doc.document_type]) {
-        groups[doc.document_type].push(doc);
+      // Narrow doc.document_type to the keys of DocumentGroups before indexing.
+      if (doc.document_type in groups) {
+        groups[doc.document_type as keyof DocumentGroups].push(doc);
       }
     }
 

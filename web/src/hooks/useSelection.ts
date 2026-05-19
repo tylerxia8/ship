@@ -107,7 +107,8 @@ export function useSelection<T>({
     setSelectedIds(prev => {
       const next = new Set(prev);
       for (let i = start; i <= end; i++) {
-        next.add(itemIds[i]);
+        const id = itemIds[i];
+        if (id !== undefined) next.add(id);
       }
       return next;
     });
@@ -140,22 +141,31 @@ export function useSelection<T>({
     setFocusedId(prev => {
       const currentIdx = prev ? itemIds.indexOf(prev) : -1;
 
+      // itemIds.length > 0 has already been checked above, so itemIds[0] and
+      // itemIds[itemIds.length-1] exist. The intermediate indices are bounded
+      // inside their branches. Read each via a local so TS narrows undefined
+      // without an `!` assertion.
       let newFocusedId: string | null = prev;
       switch (direction) {
-        case 'up':
-          if (currentIdx <= 0) newFocusedId = itemIds[0];
-          else newFocusedId = itemIds[currentIdx - 1];
+        case 'up': {
+          const target = currentIdx <= 0 ? itemIds[0] : itemIds[currentIdx - 1];
+          newFocusedId = target ?? prev;
           break;
-        case 'down':
-          if (currentIdx === -1) newFocusedId = itemIds[0];
-          else if (currentIdx >= itemIds.length - 1) newFocusedId = itemIds[itemIds.length - 1];
-          else newFocusedId = itemIds[currentIdx + 1];
+        }
+        case 'down': {
+          const target = currentIdx === -1
+            ? itemIds[0]
+            : currentIdx >= itemIds.length - 1
+              ? itemIds[itemIds.length - 1]
+              : itemIds[currentIdx + 1];
+          newFocusedId = target ?? prev;
           break;
+        }
         case 'home':
-          newFocusedId = itemIds[0];
+          newFocusedId = itemIds[0] ?? prev;
           break;
         case 'end':
-          newFocusedId = itemIds[itemIds.length - 1];
+          newFocusedId = itemIds[itemIds.length - 1] ?? prev;
           break;
         default:
           newFocusedId = prev;
@@ -170,7 +180,9 @@ export function useSelection<T>({
 
     // Determine anchor point (where selection started)
     // Priority: lastSelectedId > focusedId > hoveredId > first item
-    const anchor = lastSelectedId || focusedId || hoveredId || itemIds[0];
+    // itemIds.length > 0 above, so itemIds[0] is defined.
+    const anchor: string | null = lastSelectedId || focusedId || hoveredId || itemIds[0] || null;
+    if (!anchor) return;
     const anchorIdx = itemIds.indexOf(anchor);
     if (anchorIdx === -1) return;
 
@@ -207,12 +219,13 @@ export function useSelection<T>({
     setSelectedIds(() => {
       const next = new Set<string>();
       for (let i = start; i <= end; i++) {
-        next.add(itemIds[i]);
+        const id = itemIds[i];
+        if (id !== undefined) next.add(id);
       }
       return next;
     });
 
-    setFocusedId(itemIds[newIdx]);
+    setFocusedId(itemIds[newIdx] ?? null);
 
     // Keep lastSelectedId at anchor for continued range operations
     if (!lastSelectedId) {

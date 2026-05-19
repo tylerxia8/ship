@@ -129,7 +129,7 @@ export function DashboardPage() {
   return (
     <div className="h-full overflow-auto pb-20">
       {/* Blocking Banner for Overdue Items */}
-      {overdueItems.length > 0 && (
+      {overdueItems.length > 0 && overdueItems[0] && (
         <div className="bg-red-600 text-white px-6 py-3">
           <div className="mx-auto max-w-6xl">
             {overdueItems.length === 1 ? (

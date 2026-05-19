@@ -58,8 +58,8 @@ export function ProjectCombobox({
   const sortedProgramKeys = Object.keys(projectsByProgram).sort((a, b) => {
     if (a === '__unassigned__') return 1;
     if (b === '__unassigned__') return -1;
-    const nameA = projectsByProgram[a][0]?.programName || '';
-    const nameB = projectsByProgram[b][0]?.programName || '';
+    const nameA = projectsByProgram[a]?.[0]?.programName || '';
+    const nameB = projectsByProgram[b]?.[0]?.programName || '';
     return nameA.localeCompare(nameB);
   });
 
