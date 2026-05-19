@@ -90,12 +90,21 @@ async function migrate() {
       } catch (err) {
         await client.query('ROLLBACK');
         const msg = err instanceof Error ? err.message : String(err);
-        // Some early migrations (e.g. 010 oauth_state) were later absorbed into
-        // schema.sql with IF NOT EXISTS. On a fresh DB from schema.sql, the
-        // re-create attempt throws "already exists". Record the migration as
-        // applied and continue rather than aborting the whole loop.
-        if (msg.includes('already exists')) {
-          console.log(`  ⏭️  ${file} already in schema.sql — recording as applied`);
+        const code = (err as { code?: string }).code;
+        // Schema.sql represents the current desired schema, so older migrations
+        // that were absorbed into it can't be re-run on a fresh DB. Recognise
+        // the resulting Postgres errors and record-and-skip rather than abort:
+        //   - 42P07 duplicate_table       — CREATE TABLE on existing
+        //   - 42710 duplicate_object      — CREATE INDEX/CONSTRAINT on existing
+        //   - 42701 duplicate_column      — ALTER TABLE ADD COLUMN already there
+        //   - 42P06 duplicate_schema      — CREATE SCHEMA on existing
+        //   - 22023 invalid_parameter_value with "not an existing enum label"
+        //                                 — ALTER TYPE RENAME VALUE (source absent)
+        const absorbedCodes = new Set(['42P07', '42710', '42701', '42P06']);
+        const isEnumRenameAbsorbed = code === '22023' && /not an existing enum label/i.test(msg);
+        const isAbsorbed = (code && absorbedCodes.has(code)) || isEnumRenameAbsorbed || msg.includes('already exists');
+        if (isAbsorbed) {
+          console.log(`  ⏭️  ${file} already in schema.sql (${code || 'no-code'}) — recording as applied`);
           const recordClient = await pool.connect();
           try {
             await recordClient.query(
