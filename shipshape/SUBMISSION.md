@@ -69,6 +69,23 @@ If you have 30 minutes, also read the audit's full Category sections + skim one 
 
 ---
 
+## Submission deliverables index
+
+The brief lists 8 deliverables. This is where each one lives:
+
+| # | Deliverable | Where |
+|---|---|---|
+| 1 | GitHub repository — branches + setup guide | This fork. Branches: `shipshape/audit` + `shipshape/01-…` through `shipshape/07-…` (+ `shipshape/04b-functional-indexes` bonus). Setup: [README.md § Setup (ShipShape fork)](../README.md#getting-started). |
+| 2 | Audit report w/ baselines + methodology | [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md) (450 lines, 7 categories) + [GATE_CHECKLIST.md](audit/GATE_CHECKLIST.md) (1-page brief-gate index). Raw evidence under [audit/raw/](audit/raw/). |
+| 3 | Improvement documentation (one per category) | [shipshape/improvements/0N-*.md](improvements/) — see the table above. Each has before, root cause, fix, after, reproducibility. |
+| 4 | Discovery write-up (3 patterns + reflection) | [shipshape/discoveries.md](discoveries.md) on the `shipshape/05-test-coverage` branch. |
+| 5 | Demo video (3–5 min) | Script + recording-day checklist: [shipshape/demo-video-script.md](demo-video-script.md). MP4 to be recorded once deployment is live (so the closing URL works). |
+| 6 | AI cost analysis | [shipshape/ai-cost-analysis.md](ai-cost-analysis.md) — spend template + 3-section reflection (where AI helped, where it stumbled, what to carry forward). |
+| 7 | Deployed application | Vercel (web) + Fly.io (api + Postgres). **TBD link** — added here once live. |
+| 8 | Social post (X + LinkedIn) | 3 drafts each + posting checklist: [shipshape/social-posts.md](social-posts.md). |
+
+---
+
 ## Raw measurement evidence
 
 All measurements are reproducible from committed inputs:
