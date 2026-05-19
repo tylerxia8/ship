@@ -1,0 +1,54 @@
+Timing is on.
+=== Q1: /api/issues filtered by assignee_id + state NOT IN ===
+                                                                                                                                                                      QUERY PLAN                                                                                                                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Seq Scan on documents d  (cost=0.00..54.51 rows=2 width=217) (actual time=0.082..0.756 rows=20.00 loops=1)
+   Filter: ((archived_at IS NULL) AND (deleted_at IS NULL) AND (workspace_id = '747c7265-1712-4d8b-bdf5-654d28812f51'::uuid) AND (document_type = 'issue'::document_type) AND ((properties ->> 'state'::text) <> ALL ('{done,cancelled}'::text[])) AND (((properties ->> 'assignee_id'::text))::uuid = '04692846-da17-44db-9f27-6b2f9663911e'::uuid))
+   Rows Removed by Filter: 497
+   Buffers: shared hit=39
+ Planning:
+   Buffers: shared hit=408 read=3
+ Planning Time: 18.999 ms
+ Execution Time: 0.970 ms
+(8 rows)
+
+Time: 21.507 ms
+=== Q2: /api/dashboard/my-work projects by owner_id ===
+                                                                                             QUERY PLAN                                                                                             
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on documents d  (cost=4.26..34.12 rows=1 width=213) (actual time=0.054..0.062 rows=1.00 loops=1)
+   Recheck Cond: (document_type = 'project'::document_type)
+   Filter: ((archived_at IS NULL) AND (workspace_id = '747c7265-1712-4d8b-bdf5-654d28812f51'::uuid) AND (((properties ->> 'owner_id'::text))::uuid = '04692846-da17-44db-9f27-6b2f9663911e'::uuid))
+   Rows Removed by Filter: 14
+   Heap Blocks: exact=2
+   Buffers: shared hit=3
+   ->  Bitmap Index Scan on idx_documents_document_type  (cost=0.00..4.26 rows=15 width=0) (actual time=0.013..0.013 rows=15.00 loops=1)
+         Index Cond: (document_type = 'project'::document_type)
+         Index Searches: 1
+         Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=6
+ Planning Time: 0.213 ms
+ Execution Time: 0.079 ms
+(14 rows)
+
+Time: 0.570 ms
+=== Q3: just state filter (NOT IN) without assignee ===
+                                                                                QUERY PLAN                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on documents d  (cost=4.16..10.84 rows=2 width=16) (actual time=0.052..0.064 rows=51.00 loops=1)
+   Recheck Cond: (((properties ->> 'state'::text) = 'in_progress'::text) AND (document_type = 'issue'::document_type) AND (archived_at IS NULL) AND (deleted_at IS NULL))
+   Filter: (workspace_id = '747c7265-1712-4d8b-bdf5-654d28812f51'::uuid)
+   Heap Blocks: exact=17
+   Buffers: shared hit=17 read=1
+   ->  Bitmap Index Scan on idx_documents_issue_state  (cost=0.00..4.16 rows=2 width=0) (actual time=0.044..0.044 rows=51.00 loops=1)
+         Index Cond: ((properties ->> 'state'::text) = 'in_progress'::text)
+         Index Searches: 1
+         Buffers: shared read=1
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.213 ms
+ Execution Time: 0.074 ms
+(13 rows)
+
+Time: 0.497 ms
