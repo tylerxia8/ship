@@ -95,7 +95,7 @@ For each category, ~30 seconds. Show the before number, then the after number, t
 **On screen:** browser at the deployed URL (or, if recording before deploy, the SUBMISSION.md top page).
 
 **Say:**
-> "Everything is at `<deployed URL>`; the submission entry point is `shipshape/SUBMISSION.md`. Thanks."
+> "Everything is at `<deployed-railway-url>` and the code at `github.com/tylerxia8/ship`. Entry point is `shipshape/SUBMISSION.md`. Thanks."
 
 ---
 

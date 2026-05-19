@@ -91,7 +91,7 @@ Every category on its own branch off the audit base. No `--no-verify`. Reproduci
 
 Diagnosis before treatment. Always.
 
-Full write-up + branches: <link>
+Full write-up + branches: github.com/tylerxia8/ship
 @GauntletAI #ShipShape
 
 ### Draft C (lesson-focused — ~150 words, no specific numbers in the lede)
@@ -108,14 +108,14 @@ No automated tool surfaced this. It took reading all four tsconfig files in para
 
 Lesson: targets are floors, not ceilings. The audit phase exists so you can *find what the targets missed.*
 
-Full submission + branches: <link>
+Full submission + branches: github.com/tylerxia8/ship
 @GauntletAI #ShipShape #CodeAudit
 
 ---
 
 ## Posting checklist
 
-- [ ] Replace `<link>` placeholders with the actual fork URL.
+- [ ] Once Railway deploy is live, swap `github.com/tylerxia8/ship` with the **deployed app URL** in the body and move the fork repo link into the comments (LinkedIn deprioritizes posts with external links in the body).
 - [ ] X version: ensure under 280 chars per tweet; thread if longer.
 - [ ] LinkedIn: post during weekday business hours (US Eastern 8–10 AM is highest reach).
 - [ ] Both platforms: tag @GauntletAI (or `@gauntlet_ai` on X depending on handle — verify before posting).

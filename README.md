@@ -98,7 +98,7 @@ To check out and run **this fork** (the audited / improved version):
 
 ```bash
 # 1. Clone this fork (not the upstream repo)
-git clone https://github.com/<your-fork-owner>/ship.git
+git clone https://github.com/tylerxia8/ship.git
 cd ship
 
 # 2. Pick a branch to inspect

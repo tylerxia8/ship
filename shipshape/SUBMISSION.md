@@ -81,7 +81,7 @@ The brief lists 8 deliverables. This is where each one lives:
 | 4 | Discovery write-up (3 patterns + reflection) | [shipshape/discoveries.md](discoveries.md) on the `shipshape/05-test-coverage` branch. |
 | 5 | Demo video (3–5 min) | Script + recording-day checklist: [shipshape/demo-video-script.md](demo-video-script.md). MP4 to be recorded once deployment is live (so the closing URL works). |
 | 6 | AI cost analysis | [shipshape/ai-cost-analysis.md](ai-cost-analysis.md) — spend template + 3-section reflection (where AI helped, where it stumbled, what to carry forward). |
-| 7 | Deployed application | Vercel (web) + Fly.io (api + Postgres). **TBD link** — added here once live. |
+| 7 | Deployed application | Railway (web + api + Postgres in one project). Step-by-step guide: [shipshape/deploy-railway.md](deploy-railway.md). **TBD link** — added here once live. |
 | 8 | Social post (X + LinkedIn) | 3 drafts each + posting checklist: [shipshape/social-posts.md](social-posts.md). |
 
 ---
@@ -107,7 +107,7 @@ Tested on Windows 11 with Git Bash + native PostgreSQL 18. Should work on any pl
 
 ```bash
 # 1. Clone the fork, install, set up the DB (one-time)
-git clone <fork-url> && cd ship
+git clone https://github.com/tylerxia8/ship.git && cd ship
 corepack pnpm install
 cp api/.env.example api/.env.local
 # Create the role + database (psql as superuser):
