@@ -40,6 +40,14 @@ export async function loadProductionSecrets(): Promise<void> {
     return; // Use .env files for local dev
   }
 
+  // Non-AWS prod hosts (Railway, Render, Fly.io, plain Docker, etc.) inject
+  // secrets directly via env vars rather than via AWS SSM. Skip the SSM round
+  // trip in that case. Either an explicit SKIP_SSM=1 *or* a DATABASE_URL already
+  // present is sufficient signal.
+  if (process.env.SKIP_SSM === '1' || process.env.DATABASE_URL) {
+    return;
+  }
+
   const environment = process.env.ENVIRONMENT || 'prod';
   const basePath = `/ship/${environment}`;
 
