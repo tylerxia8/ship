@@ -6,6 +6,8 @@
 
 This is the reviewer's entry point. Everything else is one or two clicks away.
 
+**In a hurry? Read [AT_A_GLANCE.md](AT_A_GLANCE.md)** — all 7 categories on one page (baseline → target → delivered) plus the 8 brief-deliverable checklist. Come back here for deep dives.
+
 ---
 
 ## TL;DR
