@@ -69,4 +69,9 @@ ENV NODE_ENV=production
 EXPOSE 8080
 
 WORKDIR /app/api
-CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
+# Use `;` instead of `&&` so the server starts even if migrations fail —
+# the failure will be visible in logs but won't prevent /health from
+# responding (Railway will SIGKILL the container if /health doesn't
+# respond inside the healthcheck window). Diagnostic echos let us see
+# exactly which phase the container is in.
+CMD ["sh", "-c", "echo '>>> phase=migrate-start'; node dist/db/migrate.js; echo \">>> phase=migrate-done exit=$?\"; echo '>>> phase=server-start'; exec node dist/index.js"]
