@@ -1,8 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { ApprovalTracking } from '@ship/shared';
-import { DiffViewer, tipTapToPlainText } from '@/components/DiffViewer';
+import { tipTapToPlainText } from '@/lib/tipTapToPlainText';
 import { apiPost } from '@/lib/api';
+
+// Lazy-load DiffViewer so diff-match-patch (~82 KB rendered / ~19 KB gzipped)
+// stays out of the initial bundle. The viewer is only rendered when the user
+// opens the "Changes Since Last Approval" modal.
+const DiffViewer = lazy(() => import('@/components/DiffViewer'));
 
 // Inline SVG icons
 function CheckCircleIcon({ className }: { className?: string }) {
@@ -224,11 +229,19 @@ export function ApprovalButton({
               <p className="text-sm text-muted mb-4">
                 Previously approved by {approverName || 'Admin'} on {formatDate(approvedAt)}
               </p>
-              <DiffViewer
-                oldContent={getContentString(approvedContent)}
-                newContent={getContentString(currentContent)}
-                className="p-4 rounded-lg bg-muted/30 border border-border"
-              />
+              <Suspense
+                fallback={
+                  <div className="p-4 rounded-lg bg-muted/30 border border-border text-sm text-muted">
+                    Loading diff…
+                  </div>
+                }
+              >
+                <DiffViewer
+                  oldContent={getContentString(approvedContent)}
+                  newContent={getContentString(currentContent)}
+                  className="p-4 rounded-lg bg-muted/30 border border-border"
+                />
+              </Suspense>
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
