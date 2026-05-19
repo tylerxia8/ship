@@ -121,9 +121,15 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
+    // Note: we intentionally do NOT select d.content here. The list endpoint
+    // returned the full TipTap doc per issue, blowing the response up to
+    // ~1 KB/issue (=102 KB for 104 issues in the audit seed). The list UI
+    // shows title + properties + ticket — content is fetched lazily by the
+    // per-issue GET /api/issues/:id route. Callers that genuinely need
+    // content on the list (e.g. a future export tool) can hit the per-issue
+    // route in a follow-up request; the page-load path stays cheap.
     let query = `
       SELECT d.id, d.title, d.properties, d.ticket_number,
-             d.content,
              d.created_at, d.updated_at, d.created_by,
              d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
              d.converted_from_id,
