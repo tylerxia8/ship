@@ -301,7 +301,7 @@ export function AppLayout() {
           <div className="relative mb-4">
             <button
               onClick={() => setWorkspaceSwitcherOpen(!workspaceSwitcherOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20 text-accent hover:bg-accent/30 transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20 text-accent-bright hover:bg-accent/30 transition-colors"
               title={currentWorkspace?.name || 'Select workspace'}
             >
               {currentWorkspace?.name?.charAt(0).toUpperCase() || 'W'}
@@ -323,7 +323,7 @@ export function AppLayout() {
                         className={cn(
                           'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors',
                           ws.id === currentWorkspace?.id
-                            ? 'bg-accent/10 text-accent'
+                            ? 'bg-accent/10 text-accent-bright'
                             : 'text-foreground hover:bg-border/30'
                         )}
                       >

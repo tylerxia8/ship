@@ -1,0 +1,14 @@
+{
+  "route": "/my-week",
+  "url": "http://localhost:5173/my-week",
+  "scannedAt": "2026-05-19T00:04:48.916Z",
+  "totals": {
+    "violations": 0,
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "violations": [],
+  "consoleErrors": []
+}

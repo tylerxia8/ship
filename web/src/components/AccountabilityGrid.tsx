@@ -283,7 +283,7 @@ export function AccountabilityGrid({ showArchived = false }: AccountabilityGridP
                 >
                   <span className={cn(
                     'text-xs font-medium',
-                    sprint.isCurrent ? 'text-accent' : 'text-foreground'
+                    sprint.isCurrent ? 'text-accent-bright' : 'text-foreground'
                   )}>
                     {sprint.name}
                   </span>

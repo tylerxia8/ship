@@ -1,0 +1,19 @@
+{
+  "route": "/login",
+  "url": "http://localhost:5173/login",
+  "scannedAt": "2026-05-19T00:04:43.775Z",
+  "totals": {
+    "violations": 0,
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "violations": [],
+  "consoleErrors": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    }
+  ]
+}
