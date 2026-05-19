@@ -66,6 +66,7 @@ async function migrate() {
     }
 
     let migrationsRun = 0;
+    let migrationsSkipped = 0;
     for (const file of migrationFiles) {
       const version = file.replace('.sql', '');
 
@@ -88,15 +89,37 @@ async function migrate() {
         migrationsRun++;
       } catch (err) {
         await client.query('ROLLBACK');
-        throw err;
+        const msg = err instanceof Error ? err.message : String(err);
+        // Some early migrations (e.g. 010 oauth_state) were later absorbed into
+        // schema.sql with IF NOT EXISTS. On a fresh DB from schema.sql, the
+        // re-create attempt throws "already exists". Record the migration as
+        // applied and continue rather than aborting the whole loop.
+        if (msg.includes('already exists')) {
+          console.log(`  ⏭️  ${file} already in schema.sql — recording as applied`);
+          const recordClient = await pool.connect();
+          try {
+            await recordClient.query(
+              'INSERT INTO schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING',
+              [version]
+            );
+          } finally {
+            recordClient.release();
+          }
+          migrationsSkipped++;
+        } else {
+          throw err;
+        }
       } finally {
         client.release();
       }
     }
 
-    if (migrationsRun === 0) {
+    if (migrationsSkipped > 0) {
+      console.log(`ℹ️  ${migrationsSkipped} migration(s) skipped (already in schema.sql)`);
+    }
+    if (migrationsRun === 0 && migrationsSkipped === 0) {
       console.log('✅ All migrations already applied');
-    } else {
+    } else if (migrationsRun > 0) {
       console.log(`✅ ${migrationsRun} migration(s) applied successfully`);
     }
 
