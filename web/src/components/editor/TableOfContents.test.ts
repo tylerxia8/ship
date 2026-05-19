@@ -81,11 +81,15 @@ describe('TableOfContentsExtension', () => {
       }
     });
 
+    // `headings` is length 2 (just asserted); indices 0/1 are defined.
+    // Destructuring is the clean way to express that to TS under
+    // noUncheckedIndexedAccess without sprinkling `!` everywhere.
     expect(headings).toHaveLength(2);
-    expect(headings[0].text).toBe('First Heading');
-    expect(headings[0].level).toBe(1);
-    expect(headings[1].text).toBe('Second Heading');
-    expect(headings[1].level).toBe(2);
+    const [h0, h1] = headings;
+    expect(h0?.text).toBe('First Heading');
+    expect(h0?.level).toBe(1);
+    expect(h1?.text).toBe('Second Heading');
+    expect(h1?.level).toBe(2);
 
     editor.destroy();
   });
@@ -235,9 +239,10 @@ describe('TableOfContentsExtension', () => {
     });
 
     expect(headings).toHaveLength(3);
-    expect(headings[0].level).toBe(1);
-    expect(headings[1].level).toBe(2);
-    expect(headings[2].level).toBe(3);
+    const [h0, h1, h2] = headings;
+    expect(h0?.level).toBe(1);
+    expect(h1?.level).toBe(2);
+    expect(h2?.level).toBe(3);
 
     editor.destroy();
   });

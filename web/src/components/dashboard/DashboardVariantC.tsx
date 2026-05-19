@@ -104,8 +104,12 @@ interface TimelineDay {
   }>;
 }
 
+// 7-day tuple to express "always exactly 7 days" so days[0]…days[6] are
+// non-undefined under noUncheckedIndexedAccess.
+type TimelineWeek = [TimelineDay, TimelineDay, TimelineDay, TimelineDay, TimelineDay, TimelineDay, TimelineDay];
+
 function buildTimeline(actionItems: ActionItem[], weekNumber: number): TimelineDay[] {
-  const days: TimelineDay[] = [
+  const days: TimelineWeek = [
     { label: 'Mon', rituals: [] },
     { label: 'Tue', rituals: [] },
     { label: 'Wed', rituals: [] },

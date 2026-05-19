@@ -31,13 +31,12 @@ export function SessionTimeoutModal({
 
   // Focus the Stay Logged In button when modal opens
   useEffect(() => {
-    if (open && stayLoggedInButtonRef.current) {
-      // Delay to ensure the modal is fully mounted
-      const timer = setTimeout(() => {
-        stayLoggedInButtonRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
+    if (!open || !stayLoggedInButtonRef.current) return undefined;
+    // Delay to ensure the modal is fully mounted
+    const timer = setTimeout(() => {
+      stayLoggedInButtonRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(timer);
   }, [open]);
 
   // Screen reader announcements at key intervals
