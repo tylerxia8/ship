@@ -12,7 +12,7 @@ This is the reviewer's entry point. Everything else is one or two clicks away.
 
 I inherited Ship — a U.S. Treasury project-management app — read it, diagnosed it across seven categories, then improved every category with measurable before/after proof. Every brief target is met; most by a wide margin. The improvements live on seven labeled branches off `shipshape/audit`, each one self-contained so you can read the diff for a single category without scanning the others.
 
-The audit gate (Tuesday hard deadline) is satisfied by [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md). Implementation is satisfied by the seven `shipshape/0N-<category>` branches indexed below.
+The audit gate (Tuesday hard deadline) is satisfied by [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md) — see [shipshape/audit/GATE_CHECKLIST.md](audit/GATE_CHECKLIST.md) for a 1-page index confirming all four gate components (methodology / baseline / weaknesses / severity ranking) are present for every category. Implementation is satisfied by the seven `shipshape/0N-<category>` branches indexed below.
 
 ---
 
