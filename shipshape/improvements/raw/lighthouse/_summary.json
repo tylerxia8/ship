@@ -1,0 +1,94 @@
+{
+  "before": {
+    "login": {
+      "score": 98,
+      "fails": [
+        "landmark-one-main"
+      ],
+      "requestedUrl": "http://localhost:5173/login",
+      "finalDisplayedUrl": "http://localhost:5173/login",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:28:59.521Z"
+    },
+    "my-week": {
+      "score": 96,
+      "fails": [
+        "color-contrast"
+      ],
+      "requestedUrl": "http://localhost:5173/my-week",
+      "finalDisplayedUrl": "http://localhost:5173/my-week",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:30:19.481Z"
+    },
+    "dashboard": {
+      "score": 96,
+      "fails": [
+        "color-contrast"
+      ],
+      "requestedUrl": "http://localhost:5173/dashboard",
+      "finalDisplayedUrl": "http://localhost:5173/dashboard",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:30:34.165Z"
+    },
+    "projects": {
+      "score": 100,
+      "fails": [],
+      "requestedUrl": "http://localhost:5173/projects",
+      "finalDisplayedUrl": "http://localhost:5173/projects",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:30:47.959Z"
+    },
+    "team-allocation": {
+      "score": 100,
+      "fails": [],
+      "requestedUrl": "http://localhost:5173/team/allocation",
+      "finalDisplayedUrl": "http://localhost:5173/team/allocation",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:31:01.597Z"
+    }
+  },
+  "after": {
+    "login": {
+      "score": 98,
+      "fails": [
+        "landmark-one-main"
+      ],
+      "requestedUrl": "http://localhost:5173/login",
+      "finalDisplayedUrl": "http://localhost:5173/login",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:44:19.039Z"
+    },
+    "my-week": {
+      "score": 100,
+      "fails": [],
+      "requestedUrl": "http://localhost:5173/my-week",
+      "finalDisplayedUrl": "http://localhost:5173/my-week",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:38:52.461Z"
+    },
+    "dashboard": {
+      "score": 100,
+      "fails": [],
+      "requestedUrl": "http://localhost:5173/dashboard",
+      "finalDisplayedUrl": "http://localhost:5173/dashboard",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:39:12.201Z"
+    },
+    "projects": {
+      "score": 100,
+      "fails": [],
+      "requestedUrl": "http://localhost:5173/projects",
+      "finalDisplayedUrl": "http://localhost:5173/projects",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:39:27.567Z"
+    },
+    "team-allocation": {
+      "score": 100,
+      "fails": [],
+      "requestedUrl": "http://localhost:5173/team/allocation",
+      "finalDisplayedUrl": "http://localhost:5173/team/allocation",
+      "lhVer": "13.3.0",
+      "fetchTime": "2026-05-19T19:43:15.060Z"
+    }
+  }
+}

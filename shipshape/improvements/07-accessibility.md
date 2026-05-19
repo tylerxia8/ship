@@ -3,6 +3,7 @@
 **Branch:** `shipshape/07-accessibility`
 **Audit baseline:** [shipshape/audit/AUDIT_REPORT.md § Category 7](../audit/AUDIT_REPORT.md)
 **Improvement target (per brief):** +10 Lighthouse points on the lowest-scoring page, OR fix all Critical/Serious violations on the 3 most important pages.
+**Cross-check (v2):** [07-accessibility-v2-lighthouse.md](07-accessibility-v2-lighthouse.md) — independent Lighthouse run confirming the axe-core fixes hold under a second scoring rubric (both 96-scoring pages reach 100).
 
 ---
 
