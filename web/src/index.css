@@ -23,9 +23,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Focus styles for accessibility */
+/* Focus styles for accessibility.
+ * Uses the accent token's runtime value (#4a90e2) for visibility against the
+ * dark background. Original #005ea2 had insufficient contrast — see
+ * tailwind.config.js for the audit reasoning.
+ */
 :focus-visible {
-  outline: 2px solid #005ea2; /* Logo blue */
+  outline: 2px solid #4a90e2;
   outline-offset: 2px;
 }
 

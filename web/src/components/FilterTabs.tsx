@@ -42,7 +42,10 @@ export function FilterTabs({ tabs, activeId, onChange, ariaLabel }: FilterTabsPr
               'ml-1 rounded-full px-1.5 py-0.5 text-xs font-medium',
               activeId === tab.id
                 ? 'bg-foreground/10 text-foreground'
-                : 'bg-muted/30 text-muted'
+                // text-muted on bg-muted/30 was 3.65:1 (#8a8a8a on #333333),
+                // failing WCAG 2 AA in the audit. text-foreground passes against
+                // the same blended background.
+                : 'bg-muted/30 text-foreground'
             )}>
               {tab.count}
             </span>

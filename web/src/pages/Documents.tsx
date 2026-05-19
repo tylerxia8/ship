@@ -262,7 +262,7 @@ export function DocumentsPage() {
                 <p className="text-muted">No documents yet</p>
                 <button
                   onClick={() => handleCreateDocument()}
-                  className="mt-2 text-sm text-accent hover:underline"
+                  className="mt-2 text-sm text-accent-bright hover:underline"
                 >
                   Create your first document
                 </button>

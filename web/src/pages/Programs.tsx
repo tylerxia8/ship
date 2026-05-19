@@ -159,7 +159,7 @@ export function ProgramsPage() {
       <button
         onClick={handleCreateProgram}
         disabled={creating}
-        className="mt-2 text-sm text-accent hover:underline disabled:opacity-50"
+        className="mt-2 text-sm text-accent-bright hover:underline disabled:opacity-50"
       >
         Create your first program
       </button>
@@ -334,7 +334,7 @@ function ProgramRowContent({ program, visibleColumns }: ProgramRowContentProps) 
               <span className="truncate">{program.owner.name}</span>
             </div>
           ) : (
-            <span className="text-muted/50">—</span>
+            <span className="text-muted">—</span>
           )}
         </td>
       )}

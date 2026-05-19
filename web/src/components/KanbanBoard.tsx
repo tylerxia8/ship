@@ -350,7 +350,7 @@ function IssueCard({
               onCheckboxClick(e);
             }}
             aria-label={`Select issue #${issue.ticket_number}`}
-            className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+            className="h-4 w-4 rounded border-border text-accent-bright focus:ring-accent cursor-pointer"
           />
         )}
       </div>

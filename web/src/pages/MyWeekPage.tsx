@@ -119,7 +119,7 @@ export function MyWeekPage() {
         <div className="flex items-center gap-2.5">
           <h1 className="text-xl font-semibold text-foreground">Week {week.week_number}</h1>
           {week.is_current && (
-            <span className="text-xs bg-accent/20 text-accent px-1.5 py-0.5 rounded">Current</span>
+            <span className="text-xs bg-accent/20 text-accent-bright px-1.5 py-0.5 rounded">Current</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -225,7 +225,7 @@ export function MyWeekPage() {
                   <div className="space-y-0 max-h-[300px] overflow-hidden">
                     {plan.items.map((item, i) => (
                       <div key={i} className="flex items-start gap-2.5 py-1.5">
-                        <span className="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">
+                        <span className="text-[11px] font-semibold text-muted w-4 text-right shrink-0 mt-0.5">
                           {i + 1}.
                         </span>
                         <span className="text-sm text-foreground leading-relaxed">{item.text}</span>
@@ -287,7 +287,7 @@ export function MyWeekPage() {
                   <div className="space-y-0 max-h-[300px] overflow-hidden">
                     {retro.items.map((item, i) => (
                       <div key={i} className="flex items-start gap-2.5 py-1.5">
-                        <span className="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">
+                        <span className="text-[11px] font-semibold text-muted w-4 text-right shrink-0 mt-0.5">
                           {i + 1}.
                         </span>
                         <span className="text-sm text-foreground leading-relaxed">{item.text}</span>
@@ -333,16 +333,21 @@ export function MyWeekPage() {
               const isToday = isDateToday(slot.date);
               const isFuture = !isPast && !isToday;
 
+              // Future rows previously used `opacity-40` to fade. Multiplying
+              // alpha onto already-muted text drops it below WCAG AA contrast
+              // (#3f3f3f on #0d0d0d ≈ 1.84:1; 12 nodes flagged in the audit).
+              // Differentiation now comes from the absence of a status dot
+              // (past rows have one, future rows don't) and the absence of
+              // hover affordance — both retained below.
               const rowClass = cn(
                 'flex items-center gap-3 rounded-lg border px-4 py-2.5',
                 isToday ? 'border-accent/30 bg-accent/5' : 'border-border bg-surface',
-                isFuture && 'opacity-40',
                 !isFuture && 'hover:border-accent/50 transition-colors'
               );
 
               const dateLabel = (
                 <div className="w-20 flex-shrink-0">
-                  <span className={cn('text-xs font-medium', isToday ? 'text-accent' : 'text-muted')}>
+                  <span className={cn('text-xs font-medium', isToday ? 'text-accent-bright' : 'text-muted')}>
                     {slot.day.slice(0, 3)}
                   </span>
                   <span className="text-xs text-muted ml-1">
