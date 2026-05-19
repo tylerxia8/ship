@@ -35,6 +35,7 @@ import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans.js'
 import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { setupSwagger } from './swagger.js';
 import { initializeCAIA } from './services/caia.js';
+import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 
 // Validate SESSION_SECRET in production
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -238,6 +239,81 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   // Comments routes
   app.use('/api/documents', conditionalCsrf, documentCommentsRouter);
   app.use('/api/comments', conditionalCsrf, commentsRouter);
+
+  // ---------------------------------------------------------------------------
+  // 404 handler — JSON for unmatched /api/* routes.
+  // Must come AFTER all api routes and BEFORE the global error handler.
+  // Non-/api routes fall through; in production the SPA shell handles them,
+  // in dev Vite's proxy handles them (the api process doesn't serve the SPA).
+  // ---------------------------------------------------------------------------
+  app.use('/api', (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.NOT_FOUND).json({
+      success: false,
+      error: { code: ERROR_CODES.NOT_FOUND, message: `No route for ${req.method} ${req.originalUrl}` },
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Global error handler — keep last.
+  //
+  // Replaces Express's default HTML error page, which leaked full Node.js stack
+  // traces to the client on malformed JSON (audit Category 6 finding). Every
+  // unhandled error now returns a sanitized JSON payload matching the
+  // ApiResponse shape from @ship/shared.
+  //
+  // Express requires the 4-arg signature `(err, req, res, next)` to register
+  // this as an error handler.
+  // ---------------------------------------------------------------------------
+  interface AppError extends Error {
+    type?: string;     // body-parser sets e.g. 'entity.parse.failed', 'entity.too.large'
+    status?: number;   // some libraries set HTTP status here
+    statusCode?: number;
+    expose?: boolean;  // http-errors: true => safe to expose message
+  }
+
+  app.use((err: AppError, req: Request, res: Response, next: NextFunction) => {
+    // If headers already streamed, only Express's default close behaviour helps.
+    if (res.headersSent) {
+      return next(err);
+    }
+
+    // Server-side log (full error, including stack — never sent to client).
+    console.error(`[${req.method} ${req.originalUrl}]`, err);
+
+    // body-parser: malformed JSON in request body.
+    if (err.type === 'entity.parse.failed') {
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Request body is not valid JSON' },
+      });
+      return;
+    }
+
+    // body-parser: body exceeded the 10mb limit.
+    if (err.type === 'entity.too.large') {
+      res.status(413).json({
+        success: false,
+        error: { code: ERROR_CODES.VALIDATION_ERROR, message: 'Request body exceeds size limit' },
+      });
+      return;
+    }
+
+    // Generic case. Trust an explicit status on the error if it's in the 4xx range;
+    // collapse everything else to 500 and never leak the message in that case.
+    const explicit = err.status ?? err.statusCode;
+    const status = typeof explicit === 'number' && explicit >= 400 && explicit < 500
+      ? explicit
+      : HTTP_STATUS.INTERNAL_SERVER_ERROR;
+    res.status(status).json({
+      success: false,
+      error: {
+        code: status >= 500 ? ERROR_CODES.INTERNAL_ERROR : ERROR_CODES.VALIDATION_ERROR,
+        message: status >= 500
+          ? 'Internal server error'
+          : (err.expose === false ? 'Bad request' : (err.message || 'Bad request')),
+      },
+    });
+  });
 
   // Initialize CAIA OAuth client at startup
   initializeCAIA().catch((err) => {

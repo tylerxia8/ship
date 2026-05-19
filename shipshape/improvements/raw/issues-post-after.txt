@@ -1,0 +1,39 @@
+=== ShipShape audit Cat 6 — after-fix malformed input probe ===
+Date: Mon May 18 19:14:56 CDT 2026
+Branch: shipshape/06-runtime-errors
+
+--- empty body ---
+Body length: 0
+Status / content-type: 400|application/json; charset=utf-8
+{"error":"Invalid input","details":[{"code":"invalid_type","expected":"string","received":"undefined","path":["title"],"message":"Required"}]}
+
+--- non-JSON body ---
+Body length: 16
+Status / content-type: 400|application/json; charset=utf-8
+{"success":false,"error":{"code":"VALIDATION_ERROR","message":"Request body is not valid JSON"}}
+
+--- huge title ---
+Body length: 50000
+Status / content-type: /usr/bin/bash: line 22: /mingw64/bin/curl: Argument list too long
+{"success":false,"error":{"code":"VALIDATION_ERROR","message":"Request body is not valid JSON"}}
+
+--- XSS in title ---
+Body length: 37
+Status / content-type: 201|application/json; charset=utf-8
+{"id":"81e63e7b-e80d-4dbe-add5-1e4b5b5abd9a","title":"<script>alert(1)</script>","state":"backlog","priority":"medium","assignee_id":null,"estimate":null,"source":"internal","rejection_reason":null,"due_date":null,"is_system_generated":false,"account
+
+--- negative number ---
+Body length: 31
+Status / content-type: 201|application/json; charset=utf-8
+{"id":"210a9bbb-3894-4f07-b95e-8556158e21d4","title":"x","state":"backlog","priority":"medium","assignee_id":null,"estimate":null,"source":"internal","rejection_reason":null,"due_date":null,"is_system_generated":false,"accountability_target_id":null,
+
+--- SQL-injection-ish ---
+Body length: 39
+Status / content-type: 201|application/json; charset=utf-8
+{"id":"12554f19-1989-49ba-81e4-f97123fd56e1","title":"'; DROP TABLE documents; --","state":"backlog","priority":"medium","assignee_id":null,"estimate":null,"source":"internal","rejection_reason":null,"due_date":null,"is_system_generated":false,"accou
+
+--- deep nested object ---
+Body length: 10029
+Status / content-type: 201|application/json; charset=utf-8
+{"id":"ff3a25a4-350c-4c14-bfdc-a05ff6f1d466","title":"x","state":"backlog","priority":"medium","assignee_id":null,"estimate":null,"source":"internal","rejection_reason":null,"due_date":null,"is_system_generated":false,"accountability_target_id":null,
+
