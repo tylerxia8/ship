@@ -199,6 +199,59 @@ Not all types are in `shared/src/types/`. Some domain types are defined locally 
 
 **Gotcha:** When adding types, decide: if used by both API and web, put in `shared/`. If API-only and route-specific, local definition is acceptable.
 
+## 11. Dev Rate Limiter Dominates Perf Measurements
+
+`apiLimiter` middleware caps API requests per IP per minute. The cap is low enough in dev that any concurrency-based benchmark (autocannon, k6) blows past it almost immediately, so what you actually measure is 429-rejection latency — not handler latency.
+
+| Environment | Cap (req/min) |
+|-------------|---------------|
+| Production | 100 |
+| Dev | 1000 |
+| `NODE_ENV=test` or `E2E_TEST=1` | 10000 |
+| `SHIPSHAPE_AUDIT=1` | 10,000,000 (effectively unlimited) |
+
+**Symptom:** An autocannon run at `-c 10 -d 10` against a real endpoint reports 109,196 of 110,190 requests as `non2xx`. Latency percentiles look fast because 429 is fast to return; perf-handler latency is invisible.
+
+**Key locations:**
+- `api/src/app.ts:84-90` - `apiLimiter` rate limit configuration with env-aware caps
+- `api/src/app.ts:67-71` - `isTestEnv` / `isAuditMode` flag detection
+- `shipshape/audit/AUDIT_REPORT.md` - Category 3 baseline notes the first observation of this
+
+**Gotcha:** For honest benchmarks set `SHIPSHAPE_AUDIT=1` on the API process. The flag is off by default and only changes the rate-limit cap; deploys never set it. Without this knob, all perf numbers measure how fast the limiter says no.
+
+## 12. API Tests Slow-Fail 54 Minutes When Postgres is Unreachable
+
+`api/src/test/setup.ts` issues `pool.query('TRUNCATE …')` in `beforeAll` without bounding the connection wait. The `pg` client retries indefinitely on `ECONNREFUSED`; each test file independently hangs for ~2 minutes before the suite gives up. With 28 test files, the entire api suite takes ~54 minutes of dead time before reporting failure.
+
+**Symptom:**
+```
+Test Files  28 failed (28)
+     Tests  451 skipped (451)
+  Duration  3248.99s
+```
+(That's the actual stderr I captured during the audit. 3249s ≈ 54 minutes — all wall-clock spent retrying connections, not running tests.)
+
+**Key locations:**
+- `api/src/test/setup.ts:14` - The `pool.query('TRUNCATE ...')` call that triggers the retries
+- `api/src/db/client.ts` - `Pool` config has `connectionTimeoutMillis: 2000` for the app but the test setup imports the same pool
+
+**Gotcha:** Either add a connection precheck (fast `SELECT 1` with a 2s timeout) before the TRUNCATE, or set `connectionTimeoutMillis` on a dedicated test pool. Otherwise a developer who forgets to start Postgres loses an hour to the retry loop.
+
+## 13. `check-empty-tests.sh` Brace-Tracking Bug (fixed in commit `db106d1`)
+
+The pre-commit hook that catches the empty-tests footgun (gotcha #5) had a parser bug — its awk script treated the first `^\s*}\);` line it found as the end of the test body, even when that closer belonged to a nested arrow function. Tests containing patterns like `await context.route('**', async () => { ... });` were falsely flagged as empty and blocked from committing.
+
+**Symptom:** `ERROR: Empty tests detected!` listing tests that contain real `expect()` calls and full bodies.
+
+**Fix:** The awk parser now tracks brace depth per line — only ends the test scope when depth returns to zero with a closing brace on the same line.
+
+**Key locations:**
+- `scripts/check-empty-tests.sh:35-58` - The awk parser, post-fix
+- `db106d1` - The fix commit
+- `e2e/autosave-race-conditions.spec.ts:179`, `e2e/critical-blockers.spec.ts:118`, `e2e/session-timeout.spec.ts:505` - Tests previously misflagged
+
+**Gotcha:** If you see this hook flag a test that has full content, check the commit history of `scripts/check-empty-tests.sh` to make sure the brace-depth fix is present. Without it, developers tend to bypass the hook with `--no-verify` (forbidden by CLAUDE.md), which then defeats the actual empty-test protection.
+
 ---
 
 ## Quick Reference
@@ -215,3 +268,6 @@ Not all types are in `shared/src/types/`. Some domain types are defined locally 
 | Port conflicts | Low | Use `pnpm dev` which handles this |
 | Schema.sql edits | High | Create migration file instead |
 | Type locations | Low | Check route file if not in shared/ |
+| Rate limiter dominates benches | Medium | Set `SHIPSHAPE_AUDIT=1` for honest perf numbers |
+| API test slow-fail on no Postgres | Medium | Start Postgres before `pnpm test`; consider adding `connectionTimeoutMillis` to test pool |
+| `check-empty-tests.sh` brace bug | Low (fixed) | Verify `db106d1` is in your branch's history |
