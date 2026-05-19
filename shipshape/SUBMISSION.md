@@ -26,7 +26,7 @@ The audit gate (Tuesday hard deadline) is satisfied by [shipshape/audit/AUDIT_RE
 | 4 | DB Query Efficiency | −20% queries on a flow OR −50% on slowest | **`/api/dashboard/my-work` 4 → 2 queries (−50%)** with combined query also faster than the slowest of the original three | `shipshape/04-db-queries` | [`507f4dc`](#) |
 | 5 | Test Coverage | +3 meaningful tests OR fix 3 flakes | **+19 tests** across 3 previously-untested critical paths (extractText/hasContent helpers, date formatting utilities, the global error handler) | `shipshape/05-test-coverage` | [`5ee270f`](#) |
 | 6 | Runtime Errors | 3 fixes, ≥1 user-facing data-loss case | Global JSON error handler closes stack-trace leak on malformed JSON, sanitises payload-too-large to JSON 413, and replaces HTML 404 with JSON `{ NOT_FOUND }` on unmatched `/api/*` | `shipshape/06-runtime-errors` | [`0470de1`](#) |
-| 7 | Accessibility | +10 Lighthouse on worst page OR clear Critical/Serious on top 3 | **46 → 0 color-contrast violations** across all 12 audited routes (cleared everything, not just top 3) | `shipshape/07-accessibility` | [`97a5eec`](#) |
+| 7 | Accessibility | +10 Lighthouse on worst page OR clear Critical/Serious on top 3 | **46 → 0 color-contrast violations** across all 12 audited routes (cleared everything, not just top 3); cross-checked with Lighthouse 13.3.0 — the two lowest-scoring routes (`/my-week`, `/dashboard`) went **96 → 100** | `shipshape/07-accessibility` | [`97a5eec`](#) + [`186ecf8`](#) |
 
 Plus a pre-existing tooling bug found while opening the audit: [`db106d1`](#) fixes a brace-tracking bug in `scripts/check-empty-tests.sh` that was throwing false positives on tests containing nested arrow functions.
 
@@ -65,7 +65,7 @@ If you have 30 minutes, also read the audit's full Category sections + skim one 
 | 4 | [04-db-queries.md](improvements/04-db-queries.md) | `shipshape/04-db-queries` | the UNION ALL design, EXPLAIN ANALYZE on the combined query, why the correlated subquery is intentionally preserved |
 | 5 | (multiple test files) | `shipshape/05-test-coverage` | 16 tests for `extractText`/`hasContent`/date helpers + 3 regression tests for the Cat 6 error handler |
 | 6 | [06-runtime-errors.md](improvements/06-runtime-errors.md) | `shipshape/06-runtime-errors` | before/after malformed-input probe, JSON 404 design, what was scoped out |
-| 7 | (in audit report) | `shipshape/07-accessibility` | new `accent-bright` token, `text-muted/{N}` sweep script, opacity-40 wrapper rewrite |
+| 7 | [07-accessibility.md](improvements/07-accessibility.md) + [v2-lighthouse](improvements/07-accessibility-v2-lighthouse.md) | `shipshape/07-accessibility` | new `accent-bright` token, `text-muted/{N}` sweep script, opacity-40 wrapper rewrite; v2 doc adds independent Lighthouse cross-check with full HTML reports |
 
 ---
 
