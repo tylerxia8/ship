@@ -19,6 +19,13 @@
 
 ---
 
+> **This is a fork — audited and improved as the ShipShape project.**
+> Reviewers entry point: **[shipshape/SUBMISSION.md](shipshape/SUBMISSION.md)**.
+> Audit gate (Tue deadline): [shipshape/audit/AUDIT_REPORT.md](shipshape/audit/AUDIT_REPORT.md) + [GATE_CHECKLIST.md](shipshape/audit/GATE_CHECKLIST.md).
+> Improvements live on seven labeled branches: `shipshape/01-type-safety` … `shipshape/07-accessibility`. Each branches off `shipshape/audit` so `git diff shipshape/audit shipshape/0N-...` shows exactly the change set for one category.
+
+---
+
 ## What is Ship?
 
 Ship is a project management tool that combines documentation, issue tracking, and plan-driven weekly workflows in one place. Instead of switching between a wiki, a task tracker, and a spreadsheet, everything lives together.
@@ -85,7 +92,28 @@ The goal isn't to check boxes. It's to capture what your team learned so you can
 - [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
 - [Docker](https://www.docker.com/) (for the database)
 
-### Setup
+### Setup (ShipShape fork)
+
+To check out and run **this fork** (the audited / improved version):
+
+```bash
+# 1. Clone this fork (not the upstream repo)
+git clone https://github.com/<your-fork-owner>/ship.git
+cd ship
+
+# 2. Pick a branch to inspect
+git checkout shipshape/audit                  # the audit branch — diagnostic only
+# or
+git checkout shipshape/03-api-perf            # the API-perf improvement branch (etc.)
+
+# 3. Continue with the standard setup below (install, env, db, run)
+```
+
+`shipshape/audit` is the merge base for the seven improvement branches; diff any improvement branch against it to see only that category's change (e.g. `git diff shipshape/audit shipshape/03-api-perf`).
+
+To reproduce baseline measurements, set `SHIPSHAPE_AUDIT=1` when starting the API — this bypasses the dev rate limiter so autocannon/load-test runs reflect handler latency rather than 429s. See [shipshape/audit/AUDIT_REPORT.md § "How to reproduce"](shipshape/audit/AUDIT_REPORT.md#status) for full commands per category.
+
+### Setup (upstream Ship)
 
 ```bash
 # 1. Clone the repository
