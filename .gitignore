@@ -118,3 +118,6 @@ vendor/
 # Vite PWA dev artifacts
 web/dev-dist/
 .env.railway
+.cookies.txt
+.csrf.json
+.login.json
