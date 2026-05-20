@@ -1,0 +1,5 @@
+2026-05-20T15:21:05.198Z	-	2	SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.id = $1
+2026-05-20T15:21:05.200Z	-	1	UPDATE sessions SET last_activity = $1 WHERE id = $2
+2026-05-20T15:21:05.202Z	-	1	SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2
+2026-05-20T15:21:05.207Z	-	5	SELECT d.id::text as id, d.title as name, 'person' as document_type FROM documents d WHERE d.workspace_id = $1 AND d.document_type = 'person' AND d.archived_at IS NULL AND d.deleted_at IS NULL AND d.title ILIKE $2 ORDER 
+2026-05-20T15:21:05.211Z	-	3	SELECT id, title, document_type, visibility FROM documents WHERE workspace_id = $1 AND document_type IN ('wiki', 'issue', 'project', 'program') AND deleted_at IS NULL AND title ILIKE $2 AND (visibility = 'workspace' OR c

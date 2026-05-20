@@ -1,0 +1,241 @@
+[
+  {
+    "name": "load_main_page",
+    "description": "User opens /my-week (the workspace hub, the post-login default route)",
+    "requests": [
+      [
+        "GET",
+        "/api/auth/me"
+      ],
+      [
+        "GET",
+        "/api/weeks/my-week"
+      ]
+    ],
+    "query_count": 10,
+    "total_query_ms": 43,
+    "slowest_query": {
+      "dt_ms": 27,
+      "sql": "SELECT i.id as issue_id, i.title as issue_title, i.properties as issue_properties, i.ticket_number, i.created_at as issu"
+    },
+    "possible_n_plus_1": [],
+    "queries": [
+      {
+        "dt": 1,
+        "sql": "SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JO"
+      },
+      {
+        "dt": 3,
+        "sql": "UPDATE sessions SET last_activity = ? WHERE id = ?"
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT id, email, name, is_super_admin FROM users WHERE id = ?"
+      },
+      {
+        "dt": 3,
+        "sql": "SELECT w.id, w.name, wm.role FROM workspaces w JOIN workspace_memberships wm ON w.id = wm.workspace_id WHERE wm.user_id "
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT w.id, w.name, wm.role FROM workspaces w LEFT JOIN workspace_memberships wm ON w.id = wm.workspace_id AND wm.user_"
+      },
+      {
+        "dt": 2,
+        "sql": "SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JO"
+      },
+      {
+        "dt": 1,
+        "sql": "UPDATE sessions SET last_activity = ? WHERE id = ?"
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT role FROM workspace_memberships WHERE workspace_id = ? AND user_id = ?"
+      },
+      {
+        "dt": 3,
+        "sql": "SELECT sprint_start_date FROM workspaces WHERE id = ?"
+      },
+      {
+        "dt": 27,
+        "sql": "SELECT i.id as issue_id, i.title as issue_title, i.properties as issue_properties, i.ticket_number, i.created_at as issu"
+      }
+    ]
+  },
+  {
+    "name": "view_a_document",
+    "description": "User opens a wiki document. Walks: list → pick first → fetch by id",
+    "requests": [
+      [
+        "GET",
+        "/api/documents/6176eab4-ebed-4346-ae33-7cc1f28a7a83"
+      ]
+    ],
+    "query_count": 4,
+    "total_query_ms": 11,
+    "slowest_query": {
+      "dt_ms": 6,
+      "sql": "SELECT d.*, (d.visibility = 'workspace' OR d.created_by = ? OR (SELECT role FROM workspace_memberships WHERE workspace_i"
+    },
+    "possible_n_plus_1": [],
+    "queries": [
+      {
+        "dt": 1,
+        "sql": "SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JO"
+      },
+      {
+        "dt": 1,
+        "sql": "UPDATE sessions SET last_activity = ? WHERE id = ?"
+      },
+      {
+        "dt": 6,
+        "sql": "SELECT d.*, (d.visibility = 'workspace' OR d.created_by = ? OR (SELECT role FROM workspace_memberships WHERE workspace_i"
+      },
+      {
+        "dt": 3,
+        "sql": "SELECT da.related_id as id, da.relationship_type as type, d.title, (d.properties->>'color') as color FROM document_assoc"
+      }
+    ]
+  },
+  {
+    "name": "list_issues",
+    "description": "User opens /issues",
+    "requests": [
+      [
+        "GET",
+        "/api/issues"
+      ]
+    ],
+    "query_count": 5,
+    "total_query_ms": 26,
+    "slowest_query": {
+      "dt_ms": 13,
+      "sql": " SELECT d.id, d.title, d.properties, d.ticket_number, d.created_at, d.updated_at, d.created_by, d.started_at, d.complete"
+    },
+    "possible_n_plus_1": [],
+    "queries": [
+      {
+        "dt": 1,
+        "sql": "SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JO"
+      },
+      {
+        "dt": 1,
+        "sql": "UPDATE sessions SET last_activity = ? WHERE id = ?"
+      },
+      {
+        "dt": 0,
+        "sql": "SELECT role FROM workspace_memberships WHERE workspace_id = ? AND user_id = ?"
+      },
+      {
+        "dt": 13,
+        "sql": " SELECT d.id, d.title, d.properties, d.ticket_number, d.created_at, d.updated_at, d.created_by, d.started_at, d.complete"
+      },
+      {
+        "dt": 11,
+        "sql": "SELECT da.document_id, da.related_id as id, da.relationship_type as type, d.title, d.properties->>'color' as color FROM "
+      }
+    ]
+  },
+  {
+    "name": "load_sprint_board",
+    "description": "User opens /dashboard which loads the my-work board",
+    "requests": [
+      [
+        "GET",
+        "/api/auth/me"
+      ],
+      [
+        "GET",
+        "/api/dashboard/my-work"
+      ]
+    ],
+    "query_count": 10,
+    "total_query_ms": 36,
+    "slowest_query": {
+      "dt_ms": 23,
+      "sql": "SELECT 'issue' AS kind, d.id, d.title, d.properties, d.ticket_number, jsonb_build_object( 'sprint_id', sprint_assoc.rela"
+    },
+    "possible_n_plus_1": [],
+    "queries": [
+      {
+        "dt": 2,
+        "sql": "SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JO"
+      },
+      {
+        "dt": 2,
+        "sql": "UPDATE sessions SET last_activity = ? WHERE id = ?"
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT id, email, name, is_super_admin FROM users WHERE id = ?"
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT w.id, w.name, wm.role FROM workspaces w JOIN workspace_memberships wm ON w.id = wm.workspace_id WHERE wm.user_id "
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT w.id, w.name, wm.role FROM workspaces w LEFT JOIN workspace_memberships wm ON w.id = wm.workspace_id AND wm.user_"
+      },
+      {
+        "dt": 2,
+        "sql": "SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JO"
+      },
+      {
+        "dt": 2,
+        "sql": "UPDATE sessions SET last_activity = ? WHERE id = ?"
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT role FROM workspace_memberships WHERE workspace_id = ? AND user_id = ?"
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT sprint_start_date FROM workspaces WHERE id = ?"
+      },
+      {
+        "dt": 23,
+        "sql": "SELECT 'issue' AS kind, d.id, d.title, d.properties, d.ticket_number, jsonb_build_object( 'sprint_id', sprint_assoc.rela"
+      }
+    ]
+  },
+  {
+    "name": "search_content",
+    "description": "User invokes the global search (used in CommandPalette + mentions)",
+    "requests": [
+      [
+        "GET",
+        "/api/search/mentions?q=ship"
+      ]
+    ],
+    "query_count": 5,
+    "total_query_ms": 12,
+    "slowest_query": {
+      "dt_ms": 5,
+      "sql": "SELECT d.id::text as id, d.title as name, 'person' as document_type FROM documents d WHERE d.workspace_id = ? AND d.docu"
+    },
+    "possible_n_plus_1": [],
+    "queries": [
+      {
+        "dt": 2,
+        "sql": "SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JO"
+      },
+      {
+        "dt": 1,
+        "sql": "UPDATE sessions SET last_activity = ? WHERE id = ?"
+      },
+      {
+        "dt": 1,
+        "sql": "SELECT role FROM workspace_memberships WHERE workspace_id = ? AND user_id = ?"
+      },
+      {
+        "dt": 5,
+        "sql": "SELECT d.id::text as id, d.title as name, 'person' as document_type FROM documents d WHERE d.workspace_id = ? AND d.docu"
+      },
+      {
+        "dt": 3,
+        "sql": "SELECT id, title, document_type, visibility FROM documents WHERE workspace_id = ? AND document_type IN ('wiki', 'issue',"
+      }
+    ]
+  }
+]

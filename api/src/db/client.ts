@@ -38,6 +38,39 @@ const pool = new Pool({
   statement_timeout: 30000, // 30 seconds max query duration
 });
 
+// SHIPSHAPE CAT-4 INSTRUMENTATION (opt-in via env, no overhead when off).
+// When QUERY_LOG points at a file path, every pool.query call appends one
+// tab-separated line with timestamp, duration_ms, and the first 200 chars
+// of the SQL. Used only by the Cat 4 measurement script; production sets
+// no QUERY_LOG so this path is unreachable.
+//
+// Lives behind a top-level `if` (no top-level await) so module evaluation
+// stays synchronous for every importer.
+if (process.env.QUERY_LOG) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const fs = require('fs') as typeof import('fs');
+  const filePath = process.env.QUERY_LOG;
+  const originalQuery = pool.query.bind(pool);
+  // @ts-expect-error — replacing overloaded method with a single signature
+  pool.query = async (...args: unknown[]) => {
+    const start = Date.now();
+    try {
+      // @ts-expect-error — passthrough
+      const result = await originalQuery(...args);
+      const dt = Date.now() - start;
+      const sql = String((args[0] as { text?: string })?.text ?? args[0] ?? '').replace(/\s+/g, ' ').slice(0, 220);
+      fs.appendFileSync(filePath, `${new Date().toISOString()}\t${dt}\t${sql}\n`);
+      return result;
+    } catch (err) {
+      const dt = Date.now() - start;
+      const sql = String((args[0] as { text?: string })?.text ?? args[0] ?? '').replace(/\s+/g, ' ').slice(0, 220);
+      fs.appendFileSync(filePath, `${new Date().toISOString()}\tERR-${dt}\t${sql}\n`);
+      throw err;
+    }
+  };
+  console.log(`[query-log] writing to ${filePath}`);
+}
+
 // Graceful shutdown - close pool connections on process termination
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, closing database pool...');
