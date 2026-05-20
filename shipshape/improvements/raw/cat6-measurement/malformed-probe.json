@@ -1,0 +1,58 @@
+[
+  {
+    "label": "empty body",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "bodySnippet": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Request body is not valid JSON\"}}",
+    "leaksStack": false
+  },
+  {
+    "label": "non-JSON body",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "bodySnippet": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Request body is not valid JSON\"}}",
+    "leaksStack": false
+  },
+  {
+    "label": "huge title (50 KB)",
+    "status": 400,
+    "contentType": "application/json; charset=utf-8",
+    "bodySnippet": "{\"error\":\"Invalid input\",\"details\":[{\"code\":\"too_big\",\"maximum\":500,\"type\":\"string\",\"inclusive\":true,\"exact\":false,\"message\":\"String must contain at most 500 character(s)\",\"path\":[\"title\"]}]}",
+    "leaksStack": false
+  },
+  {
+    "label": "XSS in title",
+    "status": 201,
+    "contentType": "application/json; charset=utf-8",
+    "bodySnippet": "{\"id\":\"14aafffc-1cfa-4324-96a6-89201e5b9513\",\"title\":\"<script>alert(1)</script>\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"accou",
+    "leaksStack": false
+  },
+  {
+    "label": "negative estimate",
+    "status": 201,
+    "contentType": "application/json; charset=utf-8",
+    "bodySnippet": "{\"id\":\"4f9f29c3-64f0-4cb5-a357-c8d27fd3e7c9\",\"title\":\"x\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"accountability_type\":null,\"ti",
+    "leaksStack": false
+  },
+  {
+    "label": "SQL injection",
+    "status": 201,
+    "contentType": "application/json; charset=utf-8",
+    "bodySnippet": "{\"id\":\"8d5b62e5-fbb1-4a1d-8442-cdc6b7fe4560\",\"title\":\"'; DROP TABLE documents; --\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"acc",
+    "leaksStack": false
+  },
+  {
+    "label": "deep nested object",
+    "status": 201,
+    "contentType": "application/json; charset=utf-8",
+    "bodySnippet": "{\"id\":\"3688d6d9-d61e-494f-a45b-3a77772dbf7c\",\"title\":\"x\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"accountability_type\":null,\"ti",
+    "leaksStack": false
+  },
+  {
+    "label": "payload over 10 MB",
+    "status": 413,
+    "contentType": "application/json; charset=utf-8",
+    "bodySnippet": "{\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Request body exceeds size limit\"}}",
+    "leaksStack": false
+  }
+]
