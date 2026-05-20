@@ -127,7 +127,12 @@ export function DashboardPage() {
   const overdueItems = actionItems.filter(item => item.urgency === 'overdue');
 
   return (
-    <div className="h-full overflow-auto pb-20">
+    <div
+      className="h-full overflow-auto pb-20"
+      tabIndex={0}
+      role="region"
+      aria-label="Dashboard content"
+    >
       {/* Blocking Banner for Overdue Items */}
       {overdueItems.length > 0 && overdueItems[0] && (
         <div className="bg-red-600 text-white px-6 py-3">
