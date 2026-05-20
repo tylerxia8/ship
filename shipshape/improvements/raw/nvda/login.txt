@@ -1,0 +1,49 @@
+# NVDA + accessibility-tree transcript — /login
+# Captured: 2026-05-20T04:07:30.379Z
+
+## Chrome accessibility tree (what NVDA reads from the page)
+
+- ?
+  - ?
+    - main "Sign in to ShipEnter your credentials to continueEmail addre"
+      - ?
+        - img
+        - heading "Sign in to Ship"
+      - form "Email addressPasswordSign in"
+        - textbox "Email address"
+        - textbox "Password"
+        - button "Sign in"
+      - ?
+        - ?
+          - img "Check (h-3)"
+          - img "Close (h-4)"
+          - img "Warning (h-5)"
+          - img "Info (h-6)"
+    - ?
+      - ?
+        - ?
+          - button "Open Tanstack query devtools"
+
+## Keyboard focus sequence (10 × Tab from page start)
+
+  1. <input role="input"> Email address
+  2. <input role="input"> Password
+  3. <button role="button"> Sign in
+  4. <button role="button"> Open Tanstack query devtools
+  5. <input role="input"> Email address
+  6. <input role="input"> Password
+  7. <button role="button"> Sign in
+  8. <button role="button"> Open Tanstack query devtools
+
+## NVDA speech log (10 utterances)
+
+   1: <silence>
+   2: <silence>
+   3: <silence>
+   4: <silence>
+   5: <silence>
+   6: <silence>
+   7: <silence>
+   8: <silence>
+   9: <silence>
+  10: Desktop, window
