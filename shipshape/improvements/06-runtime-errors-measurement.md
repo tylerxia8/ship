@@ -51,7 +51,7 @@ POST `/api/issues` with 8 input shapes through a **fully-authenticated session**
 | Non-JSON body (`"this is not JSON"`) | **400** | Same structured envelope | NO |
 | Huge title — 50 000 chars | **400** | Structured Zod error with `path: ["title"]`, max 500 | NO |
 | XSS in title — `<script>alert(1)</script>` | **201** | Stored verbatim; React text-escapes on render | NO |
-| Negative estimate (`-99999`) | **201** | `estimate: null` — see real finding below | NO |
+| Negative estimate (`-99999`) | **400** | Zod `too_small` on `estimate`, path-qualified | NO |
 | SQL injection — `'; DROP TABLE documents; --` | **201** | Stored verbatim; parameterized queries prevent execution | NO |
 | Deep nested object (5 levels) | **201** | Zod strips the unknown nested field | NO |
 | Payload over 10 MB — 12 MB body | **413** | `{"success":false,"error":{"code":"VALIDATION_ERROR","message":"Request body exceeds size limit"}}` | NO |
@@ -60,8 +60,8 @@ POST `/api/issues` with 8 input shapes through a **fully-authenticated session**
 
 ### Real findings from this probe
 
-1. **`createIssueSchema` silently strips the `estimate` field on create.**
-   The probe sent `{ title: 'x', estimate: -99999 }`. Response shows `estimate: null`. The reason is at [api/src/routes/issues.ts:30-45](../../api/src/routes/issues.ts#L30-L45): `createIssueSchema` defines title/state/priority/assignee_id/belongs_to/source/due_date/is_system_generated/accountability_target_id/accountability_type — **but NOT `estimate`**. Zod silently strips unknown keys. The result: the UI's "create with estimate" flow on the issue form silently drops the estimate. The update-issue flow handles it correctly ([api/src/routes/issues.ts:53](../../api/src/routes/issues.ts#L53) has `estimate: z.number().positive().nullable().optional()`). The user has to create, then update, to set an estimate.
+1. **`createIssueSchema` silently strips the `estimate` field on create.** (Now fixed on this branch — see below.)
+   The probe originally sent `{ title: 'x', estimate: -99999 }` and got back `estimate: null` with status 201. The reason was at [api/src/routes/issues.ts:30-45](../../api/src/routes/issues.ts#L30-L45): `createIssueSchema` defined title/state/priority/assignee_id/belongs_to/source/due_date/is_system_generated/accountability_target_id/accountability_type — **but NOT `estimate`**. Zod silently strips unknown keys, so the UI's "create with estimate" flow on the issue form was silently dropping the estimate. The update-issue flow handled it correctly ([api/src/routes/issues.ts:53](../../api/src/routes/issues.ts#L53) has `estimate: z.number().positive().nullable().optional()`); only the create path was broken. After the fix on this branch, the same probe now correctly returns a 400 Zod `too_small` validation error (because `-99999` violates the positive constraint), and a positive estimate persists end-to-end.
 
 2. **XSS / SQL strings are stored verbatim in the database.**
    This is not a vulnerability per se because:
