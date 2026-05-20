@@ -47,34 +47,36 @@ Raw: [raw/cat7-measurement/lighthouse/_summary.json](raw/cat7-measurement/lighth
 
 Full WCAG 2.1 AA scan via `@axe-core/playwright` against all 12 routes, post-fix state. Severity is axe's `impact` field (`critical / serious / moderate / minor`).
 
-### Result — totals per route
+### Result — totals per route (after the 3 fixes landed on this branch)
 
 | Route | Critical | Serious | Moderate | Minor | Total | Nodes |
 |---|---:|---:|---:|---:|---:|---:|
 | `/login` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `/my-week` | 0 | 0 | 0 | 0 | 0 | 0 |
-| `/dashboard` | 0 | **1** | 0 | 0 | 1 | 1 |
+| `/dashboard` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `/docs` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `/issues` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `/projects` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `/programs` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `/team/allocation` | 0 | 0 | 0 | 0 | 0 | 0 |
-| `/team/directory` | 0 | **1** | 0 | 0 | 1 | 1 |
+| `/team/directory` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `/team/status` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `/team/org-chart` | 0 | 0 | 0 | 0 | 0 | 0 |
-| `/settings` | **1** | 0 | 0 | 0 | 1 | **10** |
-| **Total** | **1** | **2** | 0 | 0 | **3 rules; 12 failing nodes** | |
+| `/settings` | 0 | 0 | 0 | 0 | 0 | 0 |
+| **Total** | **0** | **0** | **0** | **0** | **0** | 0 |
 
-### What the 3 violations are
+### What the original 3 violations were (and how they were cleared)
 
-| Rule | Routes affected | Impact | Failing selector | What it means for users |
+The first run of this measurement found three violations the original Cat 7 work hadn't addressed (it focused on `color-contrast`, the audit's headline finding). All three were cleared in this branch's `fix(a11y):` commit:
+
+| Rule | Routes affected | Impact | Failing selector | Fix landed on this branch |
 |---|---|---|---|---|
-| `scrollable-region-focusable` | `/dashboard`, `/team/directory` | serious | `.pb-20`, `#main-content > .h-full.flex-col > .overflow-auto.flex-1` | A `<div>` with `overflow:auto` content that no keyboard user can scroll. Mouse + scroll-wheel users are fine; Tab-only users hit a wall. WCAG 2.1.1 (Keyboard). |
-| `select-name` | `/settings` (10 nodes) | critical | `tr:nth-child(N) > td:nth-child(3) > select` (10 rows in the workspace-members table) | The "Role" `<select>` in each member row has no `aria-label` or wrapping `<label>`. Screen reader users hear "combobox, member" with no context for which member. Source: [web/src/pages/WorkspaceSettings.tsx:324-336](../../web/src/pages/WorkspaceSettings.tsx#L324-L336). WCAG 4.1.2 (Name, Role, Value). |
+| `scrollable-region-focusable` | `/dashboard`, `/team/directory` | serious | `.pb-20`, `#main-content > .h-full.flex-col > .overflow-auto.flex-1` | Added `tabIndex={0}`, `role="region"`, and `aria-label` to each scrollable container. [web/src/pages/Dashboard.tsx:130-135](../../web/src/pages/Dashboard.tsx#L130-L135) and [web/src/pages/TeamDirectory.tsx:122-128](../../web/src/pages/TeamDirectory.tsx#L122-L128). WCAG 2.1.1 (Keyboard). |
+| `select-name` | `/settings` (10 nodes) | critical | `tr:nth-child(N) > td:nth-child(3) > select` (10 rows in the workspace-members table) | Added `aria-label={`Role for ${member.name \|\| member.email}`}` to each row's role `<select>`. [web/src/pages/WorkspaceSettings.tsx:324-337](../../web/src/pages/WorkspaceSettings.tsx#L324-L337). WCAG 4.1.2 (Name, Role, Value). |
 
-These three are **regressions or omissions** relative to the headline "46 violations → 0" result captured in [07-accessibility.md](07-accessibility.md). That earlier measurement focused on `color-contrast` (which is what the brief audit flagged) and used an SR-curated rule filter; it didn't include `scrollable-region-focusable` (a keyboard rule, not contrast), and the `/settings` member table may have been empty at the time of that scan (filtering depends on test data — see "What this measurement uncovered" below).
+After-state axe scan (the table above): **zero violations across all 12 routes, all severities**. Verified by re-running `npx playwright test --config=shipshape/improvements/axe-wcag-playwright.config.ts` on this commit.
 
-Both are 1- to 3-line fixes (`tabindex="0"` on the scrollable divs; `aria-label` on the role select). Documented as follow-ups in [shipshape/SUBMISSION.md](../SUBMISSION.md), not landed on this branch — they were *outside* the original audit's color-contrast scope, and the Cat 7 brief lets the improvement target be the contrast headline.
+These three weren't in the original Cat 7 scope because that work focused on `color-contrast` (the audit's headline finding). They surfaced only after this measurement broadened the scan to the full WCAG 2.1 AA ruleset and waited for `networkidle` + 1.5 s hydration — both ruled-out modes for the earlier SR-curated scan.
 
 Raw: [raw/cat7-measurement/axe-wcag.json](raw/cat7-measurement/axe-wcag.json).
 
@@ -192,7 +194,7 @@ Both tools include `select-name` in their rule sets. The difference is **what th
 | "How to Measure" item | Status |
 |---|---|
 | Lighthouse on every major page; record score | ✅ 12 routes, all score 100/100 (mean 100). Verified the previously-stuck-at-98 `/login` route now reaches 100 after the `<main>` landmark fix. |
-| Automated scanner (axe-core), categorize by severity | ✅ Full WCAG 2.1 AA scan, all 12 routes: **1 critical (10 nodes), 2 serious (2 nodes), 0 moderate, 0 minor**. The 3 violations are documented below. |
+| Automated scanner (axe-core), categorize by severity | ✅ Full WCAG 2.1 AA scan, all 12 routes: **0 violations across all severities** after the 3 fixes landed on this branch (initial scan: 1 critical + 2 serious). |
 | Full keyboard navigation (Tab/Enter/Escape/arrows) | ✅ 12 routes Tab-probed (5-30 focusables each, all interactive tags reached). Enter activates primary on 10/12 routes. Escape behavior verified manually on `/my-week`; probe limitation due to lazy-import latency. |
 | Screen reader (NVDA) | ✅ Real NVDA 2026.1 transcripts captured for `/login`, `/my-week`, `/dashboard` via `@guidepup/playwright`. Landmarks, headings, named controls all announced correctly. |
 | Color contrast against 4.5:1 minimum | ✅ Pre-fix 46 nodes failing; post-fix **0** across all 12 routes. Verified independently by both Lighthouse (0 contrast audits failing) and axe-core (0 `color-contrast` violations). |
@@ -201,15 +203,13 @@ Both tools include `select-name` in their rule sets. The difference is **what th
 
 ## What this measurement uncovered that the audit didn't
 
-The Cat 7 audit + improvement work cleared 46 contrast violations. This independent measurement reveals **three new accessibility gaps the original Cat 7 scope didn't address**, all surfaced because the new measurement (a) used the full WCAG 2.1 AA ruleset rather than an SR-curated subset, and (b) waited for dynamic content to hydrate before scanning:
+The Cat 7 audit + improvement work cleared 46 `color-contrast` violations. This independent measurement uncovered **three additional accessibility gaps the original scope didn't cover** — surfaced because the new measurement (a) used the full WCAG 2.1 AA ruleset rather than an SR-curated subset, and (b) waited for dynamic content to hydrate before scanning. **All three were fixed in the same branch as this measurement**, taking the post-fix axe baseline to zero violations across all 12 routes and all severities:
 
-1. **`scrollable-region-focusable` on `/dashboard` and `/team/directory`** (serious, WCAG 2.1.1). A `<div>` with `overflow:auto` is keyboard-unreachable. Fix: add `tabindex="0"` and `role="region"` with an `aria-label` to each scrollable container. ~6 lines total across two files.
+1. **`scrollable-region-focusable` on `/dashboard` and `/team/directory`** (serious, WCAG 2.1.1). A `<div>` with `overflow:auto` was keyboard-unreachable. Cleared by adding `tabIndex={0}` + `role="region"` + `aria-label` to each container. 9 lines across [Dashboard.tsx](../../web/src/pages/Dashboard.tsx) and [TeamDirectory.tsx](../../web/src/pages/TeamDirectory.tsx).
 
-2. **`select-name` on `/settings` (10 nodes, critical, WCAG 4.1.2).** The "Role" `<select>` in each workspace-members row has no accessible name. Fix: `aria-label={`Role for ${member.email}`}` on each select. Source: [web/src/pages/WorkspaceSettings.tsx:324-336](../../web/src/pages/WorkspaceSettings.tsx#L324-L336). ~2 lines.
+2. **`select-name` on `/settings` (10 nodes, critical, WCAG 4.1.2).** The "Role" `<select>` in each workspace-members row had no accessible name. Cleared by adding `aria-label={`Role for ${member.name || member.email}`}`. 1 line in [WorkspaceSettings.tsx](../../web/src/pages/WorkspaceSettings.tsx).
 
-3. **Lighthouse misses dynamic-content violations.** A measurement-methodology finding: relying only on Lighthouse for a11y compliance under-reports issues on data-driven routes. Recommend running axe-core alongside Lighthouse on any route that loads tabular or list data post-mount.
-
-All three are added as follow-ups in [shipshape/SUBMISSION.md](../SUBMISSION.md).
+3. **Lighthouse misses dynamic-content violations.** A measurement-methodology finding (left as a documented follow-up, not a code fix): Lighthouse scored `/settings` at 100 while axe-core found 10 critical violations on the same route. Lighthouse audits at page-load; the Playwright axe scan waits for `networkidle` + 1.5 s hydration. The lesson — run both, not just Lighthouse — is recorded in [shipshape/SUBMISSION.md](../SUBMISSION.md) follow-up #10.
 
 ---
 

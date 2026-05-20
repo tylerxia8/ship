@@ -325,6 +325,7 @@ function MembersTab({
                         value={member.role || 'member'}
                         onChange={(e) => onUpdateRole(member.userId, e.target.value as 'admin' | 'member')}
                         disabled={isLastAdmin}
+                        aria-label={`Role for ${member.name || member.email}`}
                         className={cn(
                           'px-2 py-1 rounded text-sm bg-background border border-border',
                           isLastAdmin && 'opacity-50 cursor-not-allowed'

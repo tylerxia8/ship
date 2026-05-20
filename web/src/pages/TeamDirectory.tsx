@@ -120,7 +120,12 @@ export function TeamDirectoryPage() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
+      <div
+        className="flex-1 overflow-auto"
+        tabIndex={0}
+        role="region"
+        aria-label="Team directory table"
+      >
         {loading ? (
           <div className="flex h-32 items-center justify-center">
             <span className="text-muted">Loading...</span>
