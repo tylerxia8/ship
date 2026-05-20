@@ -1,0 +1,98 @@
+[
+  {
+    "route": "login",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "my-week",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "dashboard",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "docs",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "issues",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "projects",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "programs",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "team-allocation",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "team-directory",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "team-status",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "team-org-chart",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  },
+  {
+    "route": "settings",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "warnings": [],
+    "pageerrors": []
+  }
+]

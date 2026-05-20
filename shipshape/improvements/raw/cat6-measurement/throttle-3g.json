@@ -1,0 +1,32 @@
+[
+  {
+    "route": "my-week",
+    "navigationMs": 25378,
+    "pendingRequestsAt5s": 4,
+    "pendingRequestsAt15s": 1
+  },
+  {
+    "route": "dashboard",
+    "navigationMs": 25710,
+    "pendingRequestsAt5s": 5,
+    "pendingRequestsAt15s": 1
+  },
+  {
+    "route": "docs",
+    "navigationMs": 25775,
+    "pendingRequestsAt5s": 1,
+    "pendingRequestsAt15s": 1
+  },
+  {
+    "route": "issues",
+    "navigationMs": 25701,
+    "pendingRequestsAt5s": 1,
+    "pendingRequestsAt15s": 1
+  },
+  {
+    "route": "projects",
+    "navigationMs": 25713,
+    "pendingRequestsAt5s": 1,
+    "pendingRequestsAt15s": 1
+  }
+]
