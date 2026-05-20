@@ -3,8 +3,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @ship/shared build && pnpm --filter @ship/web build",
   "outputDirectory": "web/dist",
-  "framework": null,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!assets|icons|.*\\.).*)", "destination": "/index.html" }
   ]
 }
