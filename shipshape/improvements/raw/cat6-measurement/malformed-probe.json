@@ -24,28 +24,28 @@
     "label": "XSS in title",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "bodySnippet": "{\"id\":\"14aafffc-1cfa-4324-96a6-89201e5b9513\",\"title\":\"<script>alert(1)</script>\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"accou",
+    "bodySnippet": "{\"id\":\"9e9f0e15-dc46-4585-891e-d2d826854e76\",\"title\":\"<script>alert(1)</script>\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"accou",
     "leaksStack": false
   },
   {
     "label": "negative estimate",
-    "status": 201,
+    "status": 400,
     "contentType": "application/json; charset=utf-8",
-    "bodySnippet": "{\"id\":\"4f9f29c3-64f0-4cb5-a357-c8d27fd3e7c9\",\"title\":\"x\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"accountability_type\":null,\"ti",
+    "bodySnippet": "{\"error\":\"Invalid input\",\"details\":[{\"code\":\"too_small\",\"minimum\":0,\"type\":\"number\",\"inclusive\":false,\"exact\":false,\"message\":\"Number must be greater than 0\",\"path\":[\"estimate\"]}]}",
     "leaksStack": false
   },
   {
     "label": "SQL injection",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "bodySnippet": "{\"id\":\"8d5b62e5-fbb1-4a1d-8442-cdc6b7fe4560\",\"title\":\"'; DROP TABLE documents; --\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"acc",
+    "bodySnippet": "{\"id\":\"c0dc34c2-50b6-4460-aa00-d25f65ca2b3c\",\"title\":\"'; DROP TABLE documents; --\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"acc",
     "leaksStack": false
   },
   {
     "label": "deep nested object",
     "status": 201,
     "contentType": "application/json; charset=utf-8",
-    "bodySnippet": "{\"id\":\"3688d6d9-d61e-494f-a45b-3a77772dbf7c\",\"title\":\"x\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"accountability_type\":null,\"ti",
+    "bodySnippet": "{\"id\":\"7dee57b3-b1b8-4e8d-89ec-387d8b5c6329\",\"title\":\"x\",\"state\":\"backlog\",\"priority\":\"medium\",\"assignee_id\":null,\"estimate\":null,\"source\":\"internal\",\"rejection_reason\":null,\"due_date\":null,\"is_system_generated\":false,\"accountability_target_id\":null,\"accountability_type\":null,\"ti",
     "leaksStack": false
   },
   {
