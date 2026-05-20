@@ -1,0 +1,13 @@
+{
+  "route": "/team/status",
+  "url": "http://localhost:5173/team/status",
+  "scannedAt": "2026-05-20T03:46:11.578Z",
+  "totals": {
+    "violations": 0,
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "srViolations": []
+}

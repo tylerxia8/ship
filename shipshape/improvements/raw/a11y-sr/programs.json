@@ -1,0 +1,13 @@
+{
+  "route": "/programs",
+  "url": "http://localhost:5173/programs",
+  "scannedAt": "2026-05-20T03:46:02.465Z",
+  "totals": {
+    "violations": 0,
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "srViolations": []
+}
