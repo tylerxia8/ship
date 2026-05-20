@@ -32,6 +32,9 @@ const createIssueSchema = z.object({
   priority: z.enum(['urgent', 'high', 'medium', 'low', 'none']).optional().default('medium'),
   assignee_id: z.string().uuid().optional().nullable(),
   belongs_to: z.array(belongsToEntrySchema).optional().default([]),
+  // Story-point estimate. Matches the update schema's shape; was previously
+  // missing here, so the UI's "create with estimate" silently dropped the field.
+  estimate: z.number().positive().nullable().optional(),
   // Source for the issue (internal, external, or action_items for system-generated)
   source: z.enum(['internal', 'external', 'action_items']).optional().default('internal'),
   // Due date (ISO date string)
@@ -575,6 +578,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       priority,
       assignee_id,
       belongs_to,
+      estimate,
       source,
       due_date,
       is_system_generated,
@@ -606,6 +610,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       priority: priority || 'medium',
       source: source || 'internal',
       assignee_id: assignee_id || null,
+      estimate: estimate ?? null,
       rejection_reason: null,
       // Accountability fields for action_items issues
       due_date: due_date || null,
