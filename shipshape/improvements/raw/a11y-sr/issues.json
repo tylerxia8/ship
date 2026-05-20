@@ -1,0 +1,13 @@
+{
+  "route": "/issues",
+  "url": "http://localhost:5173/issues",
+  "scannedAt": "2026-05-20T03:45:56.395Z",
+  "totals": {
+    "violations": 0,
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "srViolations": []
+}
