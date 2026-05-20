@@ -7,6 +7,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 
+import { authCtx } from '../middleware/auth-context.js';
 const router: RouterType = Router();
 
 // Generate a secure API token with "ship_" prefix
@@ -30,6 +31,7 @@ const createTokenSchema = z.object({
 
 // POST /api/api-tokens - Generate a new API token
 router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+    const { userId } = authCtx(req);
   const parseResult = createTokenSchema.safeParse(req.body);
 
   if (!parseResult.success) {
@@ -79,7 +81,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     await logAuditEvent({
       workspaceId: req.workspaceId,
-      actorUserId: req.userId!,
+      actorUserId: userId,
       action: 'api_token.created',
       resourceType: 'api_token',
       resourceId: result.rows[0].id,
@@ -150,6 +152,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
 // DELETE /api/api-tokens/:id - Revoke an API token
 router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+    const { userId } = authCtx(req);
   const id = String(req.params.id);
 
   try {
@@ -179,7 +182,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
 
     await logAuditEvent({
       workspaceId: req.workspaceId,
-      actorUserId: req.userId!,
+      actorUserId: userId,
       action: 'api_token.revoked',
       resourceType: 'api_token',
       resourceId: id,

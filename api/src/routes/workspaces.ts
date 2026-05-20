@@ -5,6 +5,7 @@ import { authMiddleware, workspaceAdminMiddleware } from '../middleware/auth.js'
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 
+import { authCtx } from '../middleware/auth-context.js';
 const router: RouterType = Router();
 
 // GET /api/workspaces - List user's workspaces
@@ -142,6 +143,7 @@ router.get('/current', authMiddleware, async (req: Request, res: Response): Prom
 
 // POST /api/workspaces/:id/switch - Switch to a workspace
 router.post('/:id/switch', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+    const { userId } = authCtx(req);
   const workspaceId = String(req.params.id);
 
   try {
@@ -211,7 +213,7 @@ router.post('/:id/switch', authMiddleware, async (req: Request, res: Response): 
 
     await logAuditEvent({
       workspaceId,
-      actorUserId: req.userId!,
+      actorUserId: userId,
       action: 'workspace.switch',
       resourceType: 'workspace',
       resourceId: workspaceId,
@@ -323,6 +325,7 @@ router.get('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req:
 
 // POST /api/workspaces/:id/members - Add member to workspace (admin only)
 router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req: Request, res: Response): Promise<void> => {
+    const { userId: actorUserId } = authCtx(req);
   const workspaceId = String(req.params.id);
   const { userId, role = 'member' } = req.body;
 
@@ -386,7 +389,7 @@ router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req
 
     await logAuditEvent({
       workspaceId,
-      actorUserId: req.userId!,
+      actorUserId: userId,
       action: 'membership.create',
       resourceType: 'user',
       resourceId: userId,
@@ -735,6 +738,7 @@ router.get('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req:
 // Email is always required (it's the login identifier)
 // x509SubjectDn is optional - for PIV certificate matching when cert doesn't contain email
 router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req: Request, res: Response): Promise<void> => {
+    const { userId } = authCtx(req);
   const workspaceId = String(req.params.id);
   const { email, x509SubjectDn, role = 'member' } = req.body;
 
@@ -858,7 +862,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
 
       await logAuditEvent({
         workspaceId,
-        actorUserId: req.userId!,
+        actorUserId: userId,
         action: 'member.add',
         resourceType: 'user',
         resourceId: existingUser.id,
@@ -930,7 +934,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
 
     await logAuditEvent({
       workspaceId,
-      actorUserId: req.userId!,
+      actorUserId: userId,
       action: 'invite.create',
       resourceType: 'invite',
       resourceId: result.rows[0].id,
@@ -966,6 +970,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
 
 // DELETE /api/workspaces/:id/invites/:inviteId - Revoke invite (admin only)
 router.delete('/:id/invites/:inviteId', authMiddleware, workspaceAdminMiddleware, async (req: Request, res: Response): Promise<void> => {
+    const { userId } = authCtx(req);
   const workspaceId = String(req.params.id);
   const inviteId = String(req.params.inviteId);
 
@@ -997,7 +1002,7 @@ router.delete('/:id/invites/:inviteId', authMiddleware, workspaceAdminMiddleware
 
     await logAuditEvent({
       workspaceId,
-      actorUserId: req.userId!,
+      actorUserId: userId,
       action: 'invite.delete',
       resourceType: 'invite',
       resourceId: inviteId,

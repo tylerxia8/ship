@@ -3,6 +3,7 @@ import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
 
+import { authCtx } from '../middleware/auth-context.js';
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
@@ -55,7 +56,7 @@ const entityTypeSchema = z.enum(['program', 'project', 'sprint']);
 router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { entityType, entityId } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = authCtx(req);
 
     // Validate entity type
     const typeResult = entityTypeSchema.safeParse(entityType);
