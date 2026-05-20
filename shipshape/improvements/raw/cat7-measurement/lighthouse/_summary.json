@@ -1,0 +1,98 @@
+{
+  "login": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/login",
+    "finalDisplayedUrl": "http://localhost:5173/login",
+    "fetchTime": "2026-05-20T16:40:31.372Z",
+    "lhVer": "13.3.0"
+  },
+  "my-week": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/my-week",
+    "finalDisplayedUrl": "http://localhost:5173/my-week",
+    "fetchTime": "2026-05-20T16:40:42.368Z",
+    "lhVer": "13.3.0"
+  },
+  "dashboard": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/dashboard",
+    "finalDisplayedUrl": "http://localhost:5173/dashboard",
+    "fetchTime": "2026-05-20T16:40:53.201Z",
+    "lhVer": "13.3.0"
+  },
+  "docs": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/docs",
+    "finalDisplayedUrl": "http://localhost:5173/docs",
+    "fetchTime": "2026-05-20T16:41:04.431Z",
+    "lhVer": "13.3.0"
+  },
+  "issues": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/issues",
+    "finalDisplayedUrl": "http://localhost:5173/issues",
+    "fetchTime": "2026-05-20T16:41:15.712Z",
+    "lhVer": "13.3.0"
+  },
+  "projects": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/projects",
+    "finalDisplayedUrl": "http://localhost:5173/projects",
+    "fetchTime": "2026-05-20T16:41:27.662Z",
+    "lhVer": "13.3.0"
+  },
+  "programs": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/programs",
+    "finalDisplayedUrl": "http://localhost:5173/programs",
+    "fetchTime": "2026-05-20T16:41:39.913Z",
+    "lhVer": "13.3.0"
+  },
+  "team-allocation": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/team/allocation",
+    "finalDisplayedUrl": "http://localhost:5173/team/allocation",
+    "fetchTime": "2026-05-20T16:41:51.267Z",
+    "lhVer": "13.3.0"
+  },
+  "team-directory": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/team/directory",
+    "finalDisplayedUrl": "http://localhost:5173/team/directory",
+    "fetchTime": "2026-05-20T16:42:02.506Z",
+    "lhVer": "13.3.0"
+  },
+  "team-status": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/team/status",
+    "finalDisplayedUrl": "http://localhost:5173/team/status",
+    "fetchTime": "2026-05-20T16:42:13.569Z",
+    "lhVer": "13.3.0"
+  },
+  "team-org-chart": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/team/org-chart",
+    "finalDisplayedUrl": "http://localhost:5173/team/org-chart",
+    "fetchTime": "2026-05-20T16:42:25.128Z",
+    "lhVer": "13.3.0"
+  },
+  "settings": {
+    "score": 100,
+    "fails": [],
+    "url": "http://localhost:5173/settings",
+    "finalDisplayedUrl": "http://localhost:5173/settings",
+    "fetchTime": "2026-05-20T16:42:36.659Z",
+    "lhVer": "13.3.0"
+  }
+}

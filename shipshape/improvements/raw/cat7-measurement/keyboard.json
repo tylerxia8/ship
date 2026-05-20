@@ -1,0 +1,1269 @@
+[
+  {
+    "route": "login",
+    "tabCount": 30,
+    "uniqueFocusable": 5,
+    "tagsReached": [
+      "input",
+      "button",
+      "body"
+    ],
+    "primaryEnterWorks": true,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "input",
+        "role": "",
+        "name": "password",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Sign in"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Open Tanstack query devtools",
+        "text": ""
+      },
+      {
+        "tag": "body",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "email",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "password",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Sign in"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Open Tanstack query devtools",
+        "text": ""
+      },
+      {
+        "tag": "body",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "email",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "password",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Sign in"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Open Tanstack query devtools",
+        "text": ""
+      },
+      {
+        "tag": "body",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "email",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "route": "my-week",
+    "tabCount": 30,
+    "uniqueFocusable": 23,
+    "tagsReached": [
+      "button",
+      "a",
+      "body"
+    ],
+    "primaryEnterWorks": true,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Previous week",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Next week",
+        "text": ""
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Ship Core - Core Features Ship Core"
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Submitted 1. Refactor data access layer 2. Implement caching"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "+ Create retro for this week"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Mon5/18 + Write update"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Tue5/19 + Write update"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Wed5/20 + Write update"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Open Tanstack query devtools",
+        "text": ""
+      },
+      {
+        "tag": "body",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Skip to main content"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "1 accountability item is due today. 1 View items"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "S"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Dashboard",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Docs",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "route": "dashboard",
+    "tabCount": 30,
+    "uniqueFocusable": 16,
+    "tagsReached": [
+      "div",
+      "button",
+      "body",
+      "a"
+    ],
+    "primaryEnterWorks": false,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "div",
+        "role": "",
+        "name": "",
+        "text": "My Work What you need to do right now MON Plan W14 Retro W"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Open Tanstack query devtools",
+        "text": ""
+      },
+      {
+        "tag": "body",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Skip to main content"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "1 accountability item is due today. 1 View items"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "S"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Dashboard",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Docs",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Programs",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Projects",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Teams",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Settings",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "D"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Collapse sidebar",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "My Work"
+      }
+    ]
+  },
+  {
+    "route": "docs",
+    "tabCount": 30,
+    "uniqueFocusable": 22,
+    "tagsReached": [
+      "input",
+      "button",
+      "a",
+      "body"
+    ],
+    "primaryEnterWorks": false,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "input",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "combobox",
+        "name": "Sort by",
+        "text": "Title"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "List view",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Tree view",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "New Document"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-all",
+        "text": "All"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-workspace",
+        "text": "Workspace"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-private",
+        "text": "Private"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Expand",
+        "text": ""
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Welcome to Ship"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Delete document",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Add sub-document",
+        "text": ""
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Project Overview"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Delete document",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Add sub-document",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "route": "issues",
+    "tabCount": 30,
+    "uniqueFocusable": 30,
+    "tagsReached": [
+      "button",
+      "table"
+    ],
+    "primaryEnterWorks": false,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "button",
+        "role": "combobox",
+        "name": "Filter issues by program",
+        "text": "All Programs"
+      },
+      {
+        "tag": "button",
+        "role": "combobox",
+        "name": "Filter issues by project",
+        "text": "All Projects"
+      },
+      {
+        "tag": "button",
+        "role": "combobox",
+        "name": "Filter issues by week",
+        "text": "All Weeks"
+      },
+      {
+        "tag": "button",
+        "role": "combobox",
+        "name": "Sort by",
+        "text": "Updated"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "List view",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Kanban view",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Customize columns",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "New Issue"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-",
+        "text": "All"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-triage",
+        "text": "Needs Triage"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-todo,in_progress,in_review",
+        "text": "Active"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-backlog",
+        "text": "Backlog"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-done",
+        "text": "Done"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-cancelled",
+        "text": "Cancelled"
+      },
+      {
+        "tag": "table",
+        "role": "grid",
+        "name": "Issues list",
+        "text": "ID Title Status Source Program Week Priority Assignee Updat"
+      }
+    ]
+  },
+  {
+    "route": "projects",
+    "tabCount": 30,
+    "uniqueFocusable": 30,
+    "tagsReached": [
+      "button",
+      "table",
+      "body",
+      "a"
+    ],
+    "primaryEnterWorks": true,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "button",
+        "role": "combobox",
+        "name": "Filter projects by program",
+        "text": "All Programs"
+      },
+      {
+        "tag": "button",
+        "role": "combobox",
+        "name": "Sort by",
+        "text": "ICE Score"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Customize columns",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "New Project"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-",
+        "text": "All 15"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-active",
+        "text": "Active 5"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-planned",
+        "text": "Planned 10"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-completed",
+        "text": "Completed 0"
+      },
+      {
+        "tag": "button",
+        "role": "tab",
+        "name": "filter-archived",
+        "text": "Archived 0"
+      },
+      {
+        "tag": "table",
+        "role": "grid",
+        "name": "Projects list",
+        "text": "Title I C E Score Program Design Review Owner Updated In"
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item 56ebeb56-13e6-4322-aac1-e1ee508414d0",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item d7fa6027-1375-4632-b2fd-f7caa4aff61a",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item 670b6ffd-9c0a-4947-bbdb-338bdf2d9238",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item c89e7bb4-b6b0-4996-9ca9-982f8775de6f",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item 7c92cd65-1ad3-4c1c-aea1-6965588d2d61",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "route": "programs",
+    "tabCount": 30,
+    "uniqueFocusable": 30,
+    "tagsReached": [
+      "button",
+      "table",
+      "body",
+      "a"
+    ],
+    "primaryEnterWorks": true,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "button",
+        "role": "combobox",
+        "name": "Sort by",
+        "text": "Name"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Customize columns",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "New Program"
+      },
+      {
+        "tag": "table",
+        "role": "grid",
+        "name": "Programs list",
+        "text": "Name Owner Issues Weeks Created Updated A API Platform"
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item 449d0796-d1f9-4255-8b91-3f83592b3227",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item 92effefe-6d79-4a6c-aa54-7989e9bab6b0",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item ed63c74e-5768-432d-8a37-dca828e08898",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item 2a690b14-c0a2-4d7b-8d43-37667dff86af",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "checkbox",
+        "name": "Select item 2fc1c392-c4ae-438b-a2bd-9dcf09684acc",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Open Tanstack query devtools",
+        "text": ""
+      },
+      {
+        "tag": "body",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Skip to main content"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "1 accountability item is due today. 1 View items"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "S"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Dashboard",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "route": "team-allocation",
+    "tabCount": 30,
+    "uniqueFocusable": 17,
+    "tagsReached": [
+      "button",
+      "input"
+    ],
+    "primaryEnterWorks": true,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "My Team"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Everyone"
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Show past weeks"
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "",
+        "text": "on"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "A Authentication 1"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "D Design System 1"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "? Unassigned 1"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "A Authentication - Core Features"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Change project assignment",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "D Design System - Core Features"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Change project assignment",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "+"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "A Authentication - Bug Fixes"
+      }
+    ]
+  },
+  {
+    "route": "team-directory",
+    "tabCount": 30,
+    "uniqueFocusable": 21,
+    "tagsReached": [
+      "button",
+      "input",
+      "div",
+      "body",
+      "a"
+    ],
+    "primaryEnterWorks": true,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Manage"
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "",
+        "text": "on"
+      },
+      {
+        "tag": "div",
+        "role": "",
+        "name": "",
+        "text": "NAME EMAIL A Alice Chen alice.chen@ship.local B Bob Marti"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Open Tanstack query devtools",
+        "text": ""
+      },
+      {
+        "tag": "body",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Skip to main content"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "1 accountability item is due today. 1 View items"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "S"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Dashboard",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Docs",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Programs",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Projects",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Teams",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Settings",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "D"
+      }
+    ]
+  },
+  {
+    "route": "team-status",
+    "tabCount": 30,
+    "uniqueFocusable": 21,
+    "tagsReached": [
+      "input",
+      "button"
+    ],
+    "primaryEnterWorks": true,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "input",
+        "role": "",
+        "name": "",
+        "text": "on"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "A API Platform 2"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "A Authentication 2"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "D Design System 2"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "I Infrastructure 2"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "S Ship Core 2"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "N No Program 1"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Weekly Plan (done) (API Platform - Core Features)",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Weekly Retro (late) (API Platform - Core Features)",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Weekly Plan (done) (API Platform - Core Features)",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Weekly Retro (done) (API Platform - Core Features)",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Weekly Plan (done) (Authentication - Core Features)",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Weekly Retro (done) (Authentication - Core Features)",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Weekly Plan (done) (Authentication - Core Features)",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Weekly Retro (late) (Authentication - Core Features)",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "route": "team-org-chart",
+    "tabCount": 30,
+    "uniqueFocusable": 20,
+    "tagsReached": [
+      "input",
+      "li",
+      "button",
+      "body",
+      "a"
+    ],
+    "primaryEnterWorks": true,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "input",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "li",
+        "role": "treeitem",
+        "name": "",
+        "text": "DU Dev User 3 reports dev@ship.local"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Open Tanstack query devtools",
+        "text": ""
+      },
+      {
+        "tag": "body",
+        "role": "",
+        "name": "",
+        "text": ""
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Skip to main content"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "1 accountability item is due today. 1 View items"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "S"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Dashboard",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Docs",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Programs",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Projects",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Teams",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Settings",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "D"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "Collapse sidebar",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "route": "settings",
+    "tabCount": 30,
+    "uniqueFocusable": 12,
+    "tagsReached": [
+      "button",
+      "a",
+      "input",
+      "select",
+      "body"
+    ],
+    "primaryEnterWorks": false,
+    "escapeDismissesDialog": null,
+    "arrowsWorkInList": false,
+    "focusTrail": [
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Members"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Pending Invites"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "API Tokens"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Audit Logs"
+      },
+      {
+        "tag": "a",
+        "role": "",
+        "name": "",
+        "text": "Conversions"
+      },
+      {
+        "tag": "input",
+        "role": "",
+        "name": "",
+        "text": "on"
+      },
+      {
+        "tag": "select",
+        "role": "",
+        "name": "",
+        "text": "Admin Member"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Archive"
+      },
+      {
+        "tag": "select",
+        "role": "",
+        "name": "",
+        "text": "Admin Member"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Archive"
+      },
+      {
+        "tag": "select",
+        "role": "",
+        "name": "",
+        "text": "Admin Member"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Archive"
+      },
+      {
+        "tag": "select",
+        "role": "",
+        "name": "",
+        "text": "Admin Member"
+      },
+      {
+        "tag": "button",
+        "role": "",
+        "name": "",
+        "text": "Archive"
+      },
+      {
+        "tag": "select",
+        "role": "",
+        "name": "",
+        "text": "Admin Member"
+      }
+    ]
+  }
+]
