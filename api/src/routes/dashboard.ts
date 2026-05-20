@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { computeICEScore } from '@ship/shared';
 import { extractText } from '../utils/document-content.js';
 
+import { authCtx } from '../middleware/auth-context.js';
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
@@ -41,8 +42,7 @@ interface WorkItem {
  */
 router.get('/my-work', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = authCtx(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -317,8 +317,7 @@ function extractPlanItems(content: unknown): PlanItem[] {
  */
 router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = authCtx(req);
 
     // 1. Look up the user's person document
     const personResult = await pool.query(
@@ -497,8 +496,7 @@ router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
  */
 router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = authCtx(req);
 
     // 1. Look up the user's person document
     const personResult = await pool.query(

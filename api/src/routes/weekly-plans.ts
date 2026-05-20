@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { v4 as uuidv4 } from 'uuid';
 import { extractText } from '../utils/document-content.js';
 
+import { authCtx } from '../middleware/auth-context.js';
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
@@ -190,8 +191,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { person_id, project_id, week_number } = parsed.data;
-    const workspaceId = req.workspaceId!;
-    const userId = req.userId!;
+    const { userId, workspaceId } = authCtx(req);
 
     // Verify person exists in this workspace
     const personResult = await client.query(
@@ -328,7 +328,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
  */
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = authCtx(req);
     const { person_id, project_id, week_number } = req.query;
 
     let query = `
@@ -408,7 +408,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.get('/:id/history', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = authCtx(req);
 
     // Verify document exists and is a weekly_plan
     const docCheck = await pool.query(
@@ -473,7 +473,7 @@ router.get('/:id/history', authMiddleware, async (req: Request, res: Response) =
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = authCtx(req);
 
     const result = await pool.query(
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
@@ -567,8 +567,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
     }
 
     const { person_id, project_id, week_number } = parsed.data;
-    const workspaceId = req.workspaceId!;
-    const userId = req.userId!;
+    const { userId, workspaceId } = authCtx(req);
 
     // Verify person exists in this workspace
     const personResult = await client.query(
@@ -723,7 +722,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
  */
 weeklyRetrosRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = authCtx(req);
     const { person_id, project_id, week_number } = req.query;
 
     let query = `
@@ -803,7 +802,7 @@ weeklyRetrosRouter.get('/', authMiddleware, async (req: Request, res: Response) 
 weeklyRetrosRouter.get('/:id/history', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = authCtx(req);
 
     // Verify document exists and is a weekly_retro
     const docCheck = await pool.query(
@@ -868,7 +867,7 @@ weeklyRetrosRouter.get('/:id/history', authMiddleware, async (req: Request, res:
 weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = authCtx(req);
 
     const result = await pool.query(
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
@@ -928,7 +927,7 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
 router.get('/project-allocation-grid/:projectId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { projectId } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = authCtx(req);
 
     // Verify project exists
     const projectResult = await pool.query(

@@ -7,6 +7,7 @@ import { handleVisibilityChange, handleDocumentConversion, invalidateDocumentCac
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent, checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { loadContentFromYjsState } from '../utils/yjsConverter.js';
 
+import { authCtx } from '../middleware/auth-context.js';
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
@@ -94,8 +95,7 @@ const updateDocumentSchema = z.object({
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { type, parent_id } = req.query;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = authCtx(req);
 
     // Check if user is admin (admins can see all documents)
     const isAdmin = await isWorkspaceAdmin(userId, workspaceId);
@@ -503,6 +503,7 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
 
 // Create document
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
+    const { userId } = authCtx(req);
   const client = await pool.connect();
   try {
     const parsed = createDocumentSchema.safeParse(req.body);
@@ -577,7 +578,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     // Sprint plans clear the "write sprint plan" action item
     // Documents with outcome property linked to sprints clear the "write retro" action item
     if (document_type === 'weekly_plan' || (properties && 'outcome' in properties)) {
-      broadcastToUser(req.userId!, 'accountability:updated', { documentId: newDoc.id, documentType: document_type });
+      broadcastToUser(userId, 'accountability:updated', { documentId: newDoc.id, documentType: document_type });
     }
 
     res.status(201).json(newDoc);
