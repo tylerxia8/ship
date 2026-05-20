@@ -222,6 +222,7 @@ export function ProjectCombobox({
               {/* Projects grouped by program */}
               {sortedProgramKeys.map((programKey) => {
                 const programProjects = projectsByProgram[programKey];
+                if (!programProjects) return null; // programKey came from Object.keys, so this is unreachable, but satisfies noUncheckedIndexedAccess
                 const firstProject = programProjects[0];
                 const programName = programKey === '__unassigned__'
                   ? 'Not assigned to a program'
