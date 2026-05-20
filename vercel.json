@@ -1,10 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @ship/shared build && pnpm --filter @ship/web build",
+  "installCommand": "pnpm install --frozen-lockfile --filter @ship/web --filter @ship/shared",
+  "buildCommand": "pnpm --filter @ship/shared build && pnpm --filter @ship/web build && cp web/dist/index.html web/dist/404.html",
   "outputDirectory": "web/dist",
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/.*", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }
