@@ -1,0 +1,17 @@
+Endpoint                       Conc  P50     P95     P99     RPS     Status
+---------------------------------------------------------------------------
+/api/auth/me                     10     7ms    12ms    16ms   1212  OK
+/api/auth/me                     25    19ms    30ms    50ms   1189  OK
+/api/auth/me                     50    38ms    47ms    54ms   1273  OK
+/api/weeks/my-week               10    18ms    38ms    53ms    490  OK
+/api/weeks/my-week               25    45ms    69ms    88ms    524  OK
+/api/weeks/my-week               50    92ms   146ms   179ms    509  OK
+/api/dashboard/my-work           10    20ms    39ms    48ms    445  OK
+/api/dashboard/my-work           25    48ms   128ms   166ms    446  OK
+/api/dashboard/my-work           50   108ms   196ms   230ms    427  OK
+/api/issues                      10    67ms    88ms    99ms    147  OK
+/api/issues                      25   174ms   242ms   282ms    139  OK
+/api/issues                      50   375ms   479ms   505ms    130  OK
+/api/documents?type=wiki         10    14ms    19ms    24ms    683  OK
+/api/documents?type=wiki         25    37ms    53ms    76ms    640  OK
+/api/documents?type=wiki         50    77ms   171ms   229ms    570  OK

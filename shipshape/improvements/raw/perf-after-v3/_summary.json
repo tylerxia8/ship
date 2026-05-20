@@ -1,0 +1,145 @@
+{
+  "seed": "517 docs / 304 issues / 21 users / 35 sprints",
+  "conditions": {
+    "duration_sec": 10,
+    "hardware": "Windows 11 dev box, native Postgres 18",
+    "flag": "SHIPSHAPE_AUDIT=1 rate-limiter bypass"
+  },
+  "cells": [
+    {
+      "endpoint": "/api/auth/me",
+      "concurrency": 10,
+      "p50_ms": 7,
+      "p95_ms": 12,
+      "p99_ms": 16,
+      "rps": 1212,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/auth/me",
+      "concurrency": 25,
+      "p50_ms": 19,
+      "p95_ms": 30,
+      "p99_ms": 50,
+      "rps": 1189,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/auth/me",
+      "concurrency": 50,
+      "p50_ms": 38,
+      "p95_ms": 47,
+      "p99_ms": 54,
+      "rps": 1273,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/weeks/my-week",
+      "concurrency": 10,
+      "p50_ms": 18,
+      "p95_ms": 38,
+      "p99_ms": 53,
+      "rps": 490,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/weeks/my-week",
+      "concurrency": 25,
+      "p50_ms": 45,
+      "p95_ms": 69,
+      "p99_ms": 88,
+      "rps": 524,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/weeks/my-week",
+      "concurrency": 50,
+      "p50_ms": 92,
+      "p95_ms": 146,
+      "p99_ms": 179,
+      "rps": 509,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/dashboard/my-work",
+      "concurrency": 10,
+      "p50_ms": 20,
+      "p95_ms": 39,
+      "p99_ms": 48,
+      "rps": 445,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/dashboard/my-work",
+      "concurrency": 25,
+      "p50_ms": 48,
+      "p95_ms": 128,
+      "p99_ms": 166,
+      "rps": 446,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/dashboard/my-work",
+      "concurrency": 50,
+      "p50_ms": 108,
+      "p95_ms": 196,
+      "p99_ms": 230,
+      "rps": 427,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 10,
+      "p50_ms": 67,
+      "p95_ms": 88,
+      "p99_ms": 99,
+      "rps": 147,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 25,
+      "p50_ms": 174,
+      "p95_ms": 242,
+      "p99_ms": 282,
+      "rps": 139,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 50,
+      "p50_ms": 375,
+      "p95_ms": 479,
+      "p99_ms": 505,
+      "rps": 130,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 10,
+      "p50_ms": 14,
+      "p95_ms": 19,
+      "p99_ms": 24,
+      "rps": 683,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 25,
+      "p50_ms": 37,
+      "p95_ms": 53,
+      "p99_ms": 76,
+      "rps": 640,
+      "non2xx": 0
+    },
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 50,
+      "p50_ms": 77,
+      "p95_ms": 171,
+      "p99_ms": 229,
+      "rps": 570,
+      "non2xx": 0
+    }
+  ]
+}
