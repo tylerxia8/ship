@@ -1,0 +1,75 @@
+# NVDA + accessibility-tree transcript — /dashboard
+# Captured: 2026-05-20T04:08:46.467Z
+
+## Chrome accessibility tree (what NVDA reads from the page)
+
+- ?
+  - ?
+    - ?
+      - link "Skip to main content"
+      - button "1 accountability item is due today.1View items"
+      - ?
+        - navigation "Primary navigation"
+          - button "Ship Workspace"
+          - button "Dashboard"
+          - button "Docs"
+          - button "Programs"
+          - button "Projects"
+          - button "Teams (standup due)"
+          - button "Settings"
+          - button "Dev User - Click to logout"
+        - ?
+          - ?
+            - ?
+              - heading "Dashboard"
+              - ?
+                - button "Collapse sidebar"
+            - ?
+              - ?
+                - button "My Work"
+                - button "Overview"
+        - main "My WorkWhat you need to do right nowMonPlan W14Retro W13TueW"
+          - ?
+            - ?
+              - ?
+                - heading "My Work"
+              - ?
+                - ?
+                  - heading "Your Focus"
+    - ?
+      - ?
+        - ?
+          - button "Open Tanstack query devtools"
+  - dialog "Action ItemsYou have 1 pending item (1 overdue)Post standupP"
+    - ?
+      - heading "Action Items"
+    - button "Close"
+    - ?
+      - button "Post standupPost standup for Week 14 (5 issues assigned)Week"
+    - button "Got it"
+
+## Keyboard focus sequence (10 × Tab from page start)
+
+  1. <button role="button"> Ship Workspace
+  2. <button role="button"> Dashboard
+  3. <button role="button"> Docs
+  4. <button role="button"> Programs
+  5. <button role="button"> Projects
+  6. <button role="button"> Teams (standup due)
+  7. <button role="button"> Settings
+  8. <button role="button"> Dev User - Click to logout
+  9. <button role="button"> Collapse sidebar
+  10. <button role="button"> My Work
+
+## NVDA speech log (10 utterances)
+
+   1: Secure Desktop
+   2: <silence>
+   3: <silence>
+   4: <silence>
+   5: <silence>
+   6: <silence>
+   7: <silence>
+   8: <silence>
+   9: <silence>
+  10: <silence>
