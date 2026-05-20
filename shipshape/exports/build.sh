@@ -19,6 +19,7 @@ cd "$REPO_ROOT"
 declare -A DOCS=(
   ["shipshape/AT_A_GLANCE.md"]="AT_A_GLANCE"
   ["shipshape/audit/AUDIT_REPORT.md"]="AUDIT_REPORT"
+  ["shipshape/audit/COMPREHENSIVE_AUDIT.md"]="COMPREHENSIVE_AUDIT"
   ["shipshape/SUBMISSION.md"]="SUBMISSION"
 )
 

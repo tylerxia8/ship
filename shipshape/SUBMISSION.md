@@ -8,6 +8,8 @@ This is the reviewer's entry point. Everything else is one or two clicks away.
 
 **In a hurry? Read [AT_A_GLANCE.md](AT_A_GLANCE.md)** — all 7 categories on one page (baseline → target → delivered) plus the 8 brief-deliverable checklist. Come back here for deep dives.
 
+**Want every brief metric, baseline + after, on one page each?** Read [audit/COMPREHENSIVE_AUDIT.md](audit/COMPREHENSIVE_AUDIT.md) — fills in the brief's "Audit Deliverable" tables row-by-row for all 7 categories, with explicit "not measured" labels where I have honest gaps.
+
 ---
 
 ## TL;DR

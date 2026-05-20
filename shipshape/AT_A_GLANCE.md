@@ -2,6 +2,8 @@
 
 **For reviewers in a hurry.** Each category uses the brief's "Metric / Baseline" table style, with an added "After fix" column so before-and-after lives on the same row. Full diff for any category: `git diff shipshape/audit shipshape/0N-...`.
 
+For the **brief's exact Audit Deliverable metric rows** (filled in row-by-row, with honest "not measured" labels where applicable), see [audit/COMPREHENSIVE_AUDIT.md](audit/COMPREHENSIVE_AUDIT.md).
+
 ---
 
 ## The whole project in one table

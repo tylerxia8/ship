@@ -6,6 +6,7 @@ The same three reviewer documents, exported to DOCX and PDF for easy reading off
 |---|---|---|---|
 | [shipshape/AT_A_GLANCE.md](../AT_A_GLANCE.md) | [AT_A_GLANCE.docx](AT_A_GLANCE.docx) | [AT_A_GLANCE.pdf](AT_A_GLANCE.pdf) | 8 |
 | [shipshape/audit/AUDIT_REPORT.md](../audit/AUDIT_REPORT.md) | [AUDIT_REPORT.docx](AUDIT_REPORT.docx) | [AUDIT_REPORT.pdf](AUDIT_REPORT.pdf) | 8 |
+| [shipshape/audit/COMPREHENSIVE_AUDIT.md](../audit/COMPREHENSIVE_AUDIT.md) | [COMPREHENSIVE_AUDIT.docx](COMPREHENSIVE_AUDIT.docx) | [COMPREHENSIVE_AUDIT.pdf](COMPREHENSIVE_AUDIT.pdf) | ~7 |
 | [shipshape/SUBMISSION.md](../SUBMISSION.md) | [SUBMISSION.docx](SUBMISSION.docx) | [SUBMISSION.pdf](SUBMISSION.pdf) | 7 |
 
 The markdown is the source of truth; these are convenience snapshots taken at the moment of submission. If the markdown changes after this, regenerate with `./build.sh` from this directory.
