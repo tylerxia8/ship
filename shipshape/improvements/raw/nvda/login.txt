@@ -1,5 +1,28 @@
 # NVDA + accessibility-tree transcript — /login
-# Captured: 2026-05-20T04:07:30.379Z
+# Captured: 2026-05-20T14:18:10.307Z
+
+## Per-Tab NVDA announcements (the gold-standard SR evidence)
+
+  Tab 1: focus → <input> Email address
+             NVDA says: Email address, edit, focused, required, Email address, blank
+  Tab 2: focus → <input> Password
+             NVDA says: Password, edit, focused, protected, required, Password, blank
+  Tab 3: focus → <button> Sign in
+             NVDA says: Sign in, button, focused
+  Tab 4: focus → <button> Open Tanstack query devtools
+             NVDA says: Open Tanstack query devtools, button, focused
+  Tab 5: focus → <input> Email address
+             NVDA says: View site information, button, focused
+  Tab 6: focus → <input> Password
+             NVDA says: View site information, button, focused
+  Tab 7: focus → <button> Sign in
+             NVDA says: View site information, button, focused
+  Tab 8: focus → <button> Open Tanstack query devtools
+             NVDA says: View site information, button, focused
+  Tab 9: focus → (no focus change)
+             NVDA says: View site information, button, focused
+  Tab 10: focus → (no focus change)
+             NVDA says: Address and search bar, edit, focused, Press tab then enter to ask AI Mode, Ctrl plus L, selected localhost:5173 slash login
 
 ## Chrome accessibility tree (what NVDA reads from the page)
 
@@ -24,26 +47,6 @@
         - ?
           - button "Open Tanstack query devtools"
 
-## Keyboard focus sequence (10 × Tab from page start)
+## NVDA speech log — full buffer (1 utterances)
 
-  1. <input role="input"> Email address
-  2. <input role="input"> Password
-  3. <button role="button"> Sign in
-  4. <button role="button"> Open Tanstack query devtools
-  5. <input role="input"> Email address
-  6. <input role="input"> Password
-  7. <button role="button"> Sign in
-  8. <button role="button"> Open Tanstack query devtools
-
-## NVDA speech log (10 utterances)
-
-   1: <silence>
-   2: <silence>
-   3: <silence>
-   4: <silence>
-   5: <silence>
-   6: <silence>
-   7: <silence>
-   8: <silence>
-   9: <silence>
-  10: Desktop, window
+   1: Address and search bar, edit, focused, Press tab then enter to ask AI Mode, Ctrl plus L, selected localhost:5173 slash login
