@@ -1,0 +1,200 @@
+[
+  {
+    "name": "login",
+    "route": "/login",
+    "scannedAt": "2026-05-20T16:39:32.804Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "my-week",
+    "route": "/my-week",
+    "scannedAt": "2026-05-20T16:39:36.606Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "dashboard",
+    "route": "/dashboard",
+    "scannedAt": "2026-05-20T16:39:40.283Z",
+    "totals": {
+      "violations": 1,
+      "critical": 0,
+      "serious": 1,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 1
+    },
+    "violations": [
+      {
+        "id": "scrollable-region-focusable",
+        "impact": "serious",
+        "description": "Ensure elements that have scrollable content are accessible by keyboard",
+        "help": "Scrollable region must have keyboard access",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/scrollable-region-focusable?application=playwright",
+        "nodes": 1,
+        "firstFailingSelector": ".pb-20"
+      }
+    ]
+  },
+  {
+    "name": "docs",
+    "route": "/docs",
+    "scannedAt": "2026-05-20T16:39:44.088Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "issues",
+    "route": "/issues",
+    "scannedAt": "2026-05-20T16:39:52.460Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "projects",
+    "route": "/projects",
+    "scannedAt": "2026-05-20T16:39:56.932Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "programs",
+    "route": "/programs",
+    "scannedAt": "2026-05-20T16:40:00.714Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "team-allocation",
+    "route": "/team/allocation",
+    "scannedAt": "2026-05-20T16:40:04.732Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "team-directory",
+    "route": "/team/directory",
+    "scannedAt": "2026-05-20T16:40:08.630Z",
+    "totals": {
+      "violations": 1,
+      "critical": 0,
+      "serious": 1,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 1
+    },
+    "violations": [
+      {
+        "id": "scrollable-region-focusable",
+        "impact": "serious",
+        "description": "Ensure elements that have scrollable content are accessible by keyboard",
+        "help": "Scrollable region must have keyboard access",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/scrollable-region-focusable?application=playwright",
+        "nodes": 1,
+        "firstFailingSelector": "#main-content > .h-full.flex-col > .overflow-auto.flex-1"
+      }
+    ]
+  },
+  {
+    "name": "team-status",
+    "route": "/team/status",
+    "scannedAt": "2026-05-20T16:40:13.120Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "team-org-chart",
+    "route": "/team/org-chart",
+    "scannedAt": "2026-05-20T16:40:17.034Z",
+    "totals": {
+      "violations": 0,
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "settings",
+    "route": "/settings",
+    "scannedAt": "2026-05-20T16:40:20.598Z",
+    "totals": {
+      "violations": 1,
+      "critical": 1,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0,
+      "nodes": 10
+    },
+    "violations": [
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "description": "Ensure select element has an accessible name",
+        "help": "Select element must have an accessible name",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/select-name?application=playwright",
+        "nodes": 10,
+        "firstFailingSelector": "tr:nth-child(1) > td:nth-child(3) > select"
+      }
+    ]
+  }
+]
