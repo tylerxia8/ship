@@ -203,7 +203,7 @@ The 11 logged errors are all *expected* validation rejections that the API corre
 
 Three findings that the static audit (which scanned for `componentDidCatch`, error-boundary coverage, and missing loading states) didn't surface:
 
-1. **`createIssueSchema` is missing `estimate`.** Static audit can't catch a schema mismatch with the UI; only an actual round-trip probe reveals that `POST /api/issues { estimate: 5 }` silently strips the field. Filed as a 4-line PR.
+1. **`createIssueSchema` is missing `estimate`.** Static audit can't catch a schema mismatch with the UI; only an actual round-trip probe reveals that `POST /api/issues { estimate: 5 }` silently strips the field. **Fixed on this branch** — see [api/src/routes/issues.ts](../../api/src/routes/issues.ts): three-line change (schema field + destructure + properties insert). Verified end-to-end: `POST /api/issues {title:"x", estimate:5}` now returns `estimate: 5` instead of `estimate: null`.
 
 2. **`ActionItemsModal` blocks direct-URL document navigation.** The audit flagged "no Radix Dialog overlay click-through patterns" — but didn't catch the specific UX collision of the modal auto-opening on top of the editor. Modal does dismiss on Escape, so it's not a hard block; just an extra step for shared-link users.
 
