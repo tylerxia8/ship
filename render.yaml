@@ -1,0 +1,40 @@
+# Render Infrastructure-as-Code for the Ship API.
+#
+# Deploys the API as a Docker web service. Database is intentionally NOT
+# defined here — Render's free Postgres tier was sunsetted (paid only now),
+# so the public reviewer deployment uses Neon for free Postgres and points
+# DATABASE_URL at it via env var.
+#
+# To deploy:
+#   1. Sign in to https://render.com (GitHub OAuth, no card required)
+#   2. New + → Blueprint → connect this repo + branch shipshape/deploy
+#   3. Render reads this file and creates the service
+#   4. Set the env vars marked `sync: false` in the dashboard (one-time)
+#
+# See DEPLOY.md for the full step-by-step.
+
+services:
+  - type: web
+    name: ship-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: shipshape/deploy
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SKIP_SSM
+        value: "1"
+      - key: PORT
+        value: "8080"
+      # User-provided values — set in the Render dashboard, not in this file.
+      - key: DATABASE_URL
+        sync: false       # paste from Neon
+      - key: SESSION_SECRET
+        generateValue: true   # Render generates a strong random
+      - key: CORS_ORIGIN
+        sync: false       # paste the Vercel URL once known (e.g. https://ship-shipshape.vercel.app)
