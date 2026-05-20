@@ -1,0 +1,38 @@
+# Vercel deploys the web SPA only. The API lives on Render and is not part
+# of this deployment. Vercel auto-detects `api/` at the repo root and treats
+# each route file as a Serverless Function, which (a) we don't want and (b)
+# blows past the Hobby plan's 12-function limit.
+#
+# Exclude api/'s source code from the deployment scan, but keep api/package.json
+# so pnpm install can resolve the workspace graph (pnpm-workspace.yaml lists
+# `api` as a workspace).
+
+api/src
+api/dist
+api/test
+api/coverage
+api/.env*
+
+# Audit + improvement artifacts the web build doesn't need
+shipshape/audit
+shipshape/improvements
+shipshape/SUBMISSION*.docx
+shipshape/SUBMISSION*.pdf
+audit/
+
+# Documentation
+docs/
+
+# E2E tests (run elsewhere, not in production build)
+e2e/
+
+# Coverage + test output
+coverage/
+test-results/
+playwright-report/
+
+# Other large dirs not needed by the web build
+.git
+.github
+node_modules
+**/node_modules
