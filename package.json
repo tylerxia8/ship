@@ -43,6 +43,7 @@
     "get-port": "^7.1.0",
     "husky": "^9.1.7",
     "prettier": "^3.4.2",
+    "puppeteer-core": "^25.0.4",
     "supertest": "^7.1.4",
     "testcontainers": "^11.11.0",
     "typescript": "^5.7.2",

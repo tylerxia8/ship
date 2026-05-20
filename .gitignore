@@ -48,6 +48,8 @@ Thumbs.db
 # Evidence/verification screenshots
 evidence/
 *.png
+# ShipShape submission artifacts — explicitly track these PNGs
+!shipshape/improvements/raw/cat6-repros/*.png
 
 # Playwright test artifacts
 playwright-report/

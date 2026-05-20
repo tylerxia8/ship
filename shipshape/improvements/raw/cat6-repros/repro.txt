@@ -1,0 +1,56 @@
+=== FIX 1: malformed JSON body (stack-trace leak) ===
+--- Command ---
+curl -sv -X POST -H "Content-Type: application/json" -d "this is not JSON" http://localhost:3000/api/issues
+
+--- BEFORE (from audit/raw/malformed/issues-post.txt) ---
+
+--- AFTER (live run today against shipshape/deploy) ---
+HTTP/1.1 400 Bad Request
+Content-Security-Policy: default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: cross-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+RateLimit-Policy: 10000000;w=60
+RateLimit-Limit: 10000000
+RateLimit-Remaining: 9999999
+RateLimit-Reset: 60
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Content-Type: application/json; charset=utf-8
+Content-Length: 96
+ETag: W/"60-qGqiKUm960g7+/xbPt118N38whM"
+Date: Wed, 20 May 2026 03:21:12 GMT
+Connection: keep-alive
+Keep-Alive: timeout=65
+
+{"success":false,"error":{"code":"VALIDATION_ERROR","message":"Request body is not valid JSON"}}
+
+=== FIX 2: JSON 404 for unmatched /api/* ===
+--- Command ---
+curl -si http://localhost:3000/api/this-route-does-not-exist
+--- BEFORE (Express default HTML 404) ---
+HTTP/1.1 404 Not Found
+Content-Type: text/html; charset=utf-8
+Content-Length: 161
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Cannot GET /api/this-route-does-not-exist</pre>
+</body>
+</html>
+
+--- AFTER (live) ---
