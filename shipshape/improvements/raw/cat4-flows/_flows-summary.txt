@@ -1,0 +1,9 @@
+Flow                  Queries  TotalMs  Slowest (ms)  Slowest query (first 80 chars)
+--------------------------------------------------------------------------------------------------------------
+load_main_page             10      43           27  SELECT i.id as issue_id, i.title as issue_title, i.propertie
+view_a_document             4      11            6  SELECT d.*, (d.visibility = 'workspace' OR d.created_by = ? 
+list_issues                 5      26           13   SELECT d.id, d.title, d.properties, d.ticket_number, d.crea
+load_sprint_board          10      36           23  SELECT 'issue' AS kind, d.id, d.title, d.properties, d.ticke
+search_content              5      12            5  SELECT d.id::text as id, d.title as name, 'person' as docume
+
+Possible N+1 (shape that repeated ≥3 times in a single flow):
