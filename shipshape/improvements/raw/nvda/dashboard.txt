@@ -1,5 +1,28 @@
 # NVDA + accessibility-tree transcript — /dashboard
-# Captured: 2026-05-20T04:08:46.467Z
+# Captured: 2026-05-20T14:19:20.338Z
+
+## Per-Tab NVDA announcements (the gold-standard SR evidence)
+
+  Tab 1: focus → <button> Ship Workspace
+             NVDA says: S, button, focused, Ship Workspace
+  Tab 2: focus → <button> Dashboard
+             NVDA says: Dashboard, button, focused
+  Tab 3: focus → <button> Docs
+             NVDA says: Docs, button, focused
+  Tab 4: focus → <button> Programs
+             NVDA says: Programs, button, focused
+  Tab 5: focus → <button> Projects
+             NVDA says: Projects, button, focused
+  Tab 6: focus → <button> Teams (standup due)
+             NVDA says: Teams (standup due), button, focused
+  Tab 7: focus → <button> Settings
+             NVDA says: Settings, button, focused
+  Tab 8: focus → <button> Dev User - Click to logout
+             NVDA says: D, button, focused, Dev User Click to logout
+  Tab 9: focus → <button> Collapse sidebar
+             NVDA says: Collapse sidebar, button, focused
+  Tab 10: focus → <button> My Work
+             NVDA says: My Work, button, focused
 
 ## Chrome accessibility tree (what NVDA reads from the page)
 
@@ -48,28 +71,6 @@
       - button "Post standupPost standup for Week 14 (5 issues assigned)Week"
     - button "Got it"
 
-## Keyboard focus sequence (10 × Tab from page start)
+## NVDA speech log — full buffer (1 utterances)
 
-  1. <button role="button"> Ship Workspace
-  2. <button role="button"> Dashboard
-  3. <button role="button"> Docs
-  4. <button role="button"> Programs
-  5. <button role="button"> Projects
-  6. <button role="button"> Teams (standup due)
-  7. <button role="button"> Settings
-  8. <button role="button"> Dev User - Click to logout
-  9. <button role="button"> Collapse sidebar
-  10. <button role="button"> My Work
-
-## NVDA speech log (10 utterances)
-
-   1: Secure Desktop
-   2: <silence>
-   3: <silence>
-   4: <silence>
-   5: <silence>
-   6: <silence>
-   7: <silence>
-   8: <silence>
-   9: <silence>
-  10: <silence>
+   1: My Work, button, focused

@@ -17,6 +17,63 @@ import { test, expect } from '@playwright/test';
 import { nvdaTest } from '@guidepup/playwright';
 import { writeFileSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
+import { spawnSync } from 'child_process';
+
+/**
+ * Force the Chrome window to the foreground at the WIN32 level.
+ *
+ * Windows has "focus stealing prevention" that blocks programmatic
+ * SetForegroundWindow calls from background processes. Playwright's
+ * page.bringToFront() does CDP Page.bringToFront — that activates the
+ * TAB inside Chrome but does NOT steal Windows-level foreground from
+ * whatever the user has focused.
+ *
+ * Result: NVDA, which always reads the WIN32-foregrounded window,
+ * announces whatever the user was last interacting with (their chat,
+ * IDE, etc.) instead of Chrome.
+ *
+ * Fix: run a tiny PowerShell snippet that calls SetForegroundWindow via
+ * the Win32 API on the Chrome window matching our page title. This
+ * bypasses the focus-stealing-prevention because PowerShell runs at the
+ * same shell-integration level as a user keystroke.
+ */
+function forceFocusChromeWindow(titleContains: string) {
+  const ps = `
+    Add-Type @"
+      using System;
+      using System.Runtime.InteropServices;
+      public class W {
+        [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+        [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll", SetLastError=true)] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
+        [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+        [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+        [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint i, uint a, bool f);
+      }
+"@
+    $proc = Get-Process chrome -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -like '*${titleContains}*' } | Select-Object -First 1
+    if ($proc) {
+      $h = $proc.MainWindowHandle
+      # The thread-attach + SetForegroundWindow combo bypasses focus-stealing
+      # prevention; this is the well-known "AttachThreadInput trick".
+      $foregroundHwnd = [W]::GetForegroundWindow()
+      $foregroundPid = 0
+      $foregroundTid = [W]::GetWindowThreadProcessId($foregroundHwnd, [ref]$foregroundPid)
+      $currentTid = [W]::GetCurrentThreadId()
+      [W]::AttachThreadInput($currentTid, $foregroundTid, $true) | Out-Null
+      [W]::ShowWindow($h, 9) | Out-Null    # SW_RESTORE
+      [W]::BringWindowToTop($h) | Out-Null
+      [W]::SetForegroundWindow($h) | Out-Null
+      [W]::AttachThreadInput($currentTid, $foregroundTid, $false) | Out-Null
+      Write-Output "focused: $($proc.MainWindowTitle)"
+    } else {
+      Write-Output "no-match: $titleContains"
+    }
+  `;
+  const r = spawnSync('powershell.exe', ['-NoProfile', '-Command', ps], { encoding: 'utf8' });
+  return (r.stdout || '').trim();
+}
 
 const OUT_DIR = resolve(process.cwd(), 'shipshape/improvements/raw/nvda');
 mkdirSync(OUT_DIR, { recursive: true });
@@ -86,26 +143,37 @@ nvdaTest.describe('NVDA walkthrough — real screen-reader capture', () => {
         return walk(document.body);
       });
 
-      // 3. Force the Chrome window to the front + click body to ensure
-      //    keyboard focus is in the document, not Playwright's runner shell.
+      // 3. Force the Chrome window to the WIN32 foreground. CDP
+      //    bringToFront only activates the TAB; NVDA reads whatever has
+      //    WIN32 foreground (Slack, IDE, whatever you last clicked).
+      //    The PowerShell helper uses SetForegroundWindow + the thread-
+      //    attach trick to bypass Windows focus-stealing prevention.
       await page.bringToFront();
+      const docTitle = await page.title();
+      const focusResult = forceFocusChromeWindow(docTitle);
+      console.log(`    [forceFocusChrome] ${focusResult}`);
+      await page.waitForTimeout(800);
+      // Click into the page body so the keyboard focus is in the document,
+      // not on the address bar.
       await page.locator('body').click({ position: { x: 5, y: 5 } });
       await page.waitForTimeout(500);
 
       await nvda.clearSpokenPhraseLog();
 
       // 4. Tab-traverse to discover interactive controls. NVDA speech is
-      //    captured via Guidepup's phrase log. For each Tab stop we also
-      //    record what Playwright sees (the focused element + its
-      //    accessible name) so the transcript is self-verifying even if
-      //    NVDA's IPC drops an utterance.
+      //    captured per Tab. We clear the log between Tabs so each entry
+      //    in the transcript corresponds to one Tab press.
       const TAB_COUNT = 10;
       const focusSequence: Array<{ tag: string; role: string; name: string }> = [];
+      const perTabSpeech: string[] = [];
       for (let i = 0; i < TAB_COUNT; i++) {
+        await nvda.clearSpokenPhraseLog();
         await page.keyboard.press('Tab');
-        await page.waitForTimeout(400);
+        await page.waitForTimeout(600);
         await nvda.perform(nvda.keyboardCommands.reportCurrentFocus);
-        await page.waitForTimeout(400);
+        await page.waitForTimeout(600);
+        const speech = (await nvda.spokenPhraseLog()).filter(p => p && p.trim().length > 0);
+        perTabSpeech.push(speech.join(' / ') || '<silence>');
         const focused = await page.evaluate(() => {
           const el = document.activeElement;
           if (!el || el === document.body) return null;
@@ -121,14 +189,12 @@ nvdaTest.describe('NVDA walkthrough — real screen-reader capture', () => {
         if (focused) focusSequence.push(focused);
       }
 
-      // 5. Grab the NVDA speech log.
+      // 5. Final speech log snapshot (everything still buffered).
       const phrases = await nvda.spokenPhraseLog();
 
       // 6. Write a transcript that combines NVDA speech + Playwright a11y
-      //    tree + focus sequence. Reviewers can verify "did NVDA actually
-      //    see something?" via the speech log, AND "what's structurally
-      //    available to NVDA?" via the a11y tree, AND "where did keyboard
-      //    focus land?" via the focus sequence.
+      //    tree + focus sequence. Per-Tab speech is the gold-standard
+      //    evidence: it pairs each focus change with what NVDA announced.
       function renderAx(node: any, indent = 0): string[] {
         if (!node) return [];
         const lines: string[] = [];
@@ -145,15 +211,19 @@ nvdaTest.describe('NVDA walkthrough — real screen-reader capture', () => {
         `# NVDA + accessibility-tree transcript — ${route.path}`,
         `# Captured: ${new Date().toISOString()}`,
         ``,
+        `## Per-Tab NVDA announcements (the gold-standard SR evidence)`,
+        ``,
+        ...perTabSpeech.map((s, i) => {
+          const f = focusSequence[i];
+          const target = f ? `<${f.tag}> ${f.name}` : '(no focus change)';
+          return `  Tab ${i + 1}: focus → ${target}\n             NVDA says: ${s}`;
+        }),
+        ``,
         `## Chrome accessibility tree (what NVDA reads from the page)`,
         ``,
         ...renderAx(axTree),
         ``,
-        `## Keyboard focus sequence (10 × Tab from page start)`,
-        ``,
-        ...focusSequence.map((f, i) => `  ${i + 1}. <${f.tag} role="${f.role}"> ${f.name}`),
-        ``,
-        `## NVDA speech log (${phrases.length} utterances)`,
+        `## NVDA speech log — full buffer (${phrases.length} utterances)`,
         ``,
         ...phrases.map((p, i) => `  ${String(i + 1).padStart(2, ' ')}: ${p || '<silence>'}`),
       ].join('\n');
