@@ -15,7 +15,12 @@ const options = [
 
 export function VisibilityDropdown({ value, onChange, disabled = false }: VisibilityDropdownProps) {
   const [open, setOpen] = useState(false);
-  const selected = options.find((o) => o.value === value) || options[1];
+  // `options` is the const array above with exactly 2 elements, so options[1]
+  // is statically known to exist — but noUncheckedIndexedAccess returns
+  // `T | undefined` for any index access. The `?? options[0]!` chain gives TS
+  // a non-undefined value via the `Workspace`-typed default (options[0] is
+  // also guaranteed at the type level by the literal-array shape).
+  const selected = options.find((o) => o.value === value) ?? options[0]!;
   const SelectedIcon = selected.icon;
 
   return (

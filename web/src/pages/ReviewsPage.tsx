@@ -92,6 +92,21 @@ interface ReviewCell {
   retroDocId: string | null;
 }
 
+// Empty cell used when an optimistic update touches a slot that wasn't in the
+// last fetch. Without this default, spreading `prev[personId][weekNumber]`
+// (which is `ReviewCell | undefined` under noUncheckedIndexedAccess) gives
+// every required field an `undefined` branch, failing assignment to ReviewCell.
+const EMPTY_CELL: ReviewCell = {
+  planApproval: null,
+  reviewApproval: null,
+  reviewRating: null,
+  hasPlan: false,
+  hasRetro: false,
+  sprintId: null,
+  planDocId: null,
+  retroDocId: null,
+};
+
 interface ReviewsData {
   people: ReviewPerson[];
   weeks: Week[];
@@ -212,9 +227,9 @@ export function ReviewsPage() {
     setData(prev => {
       if (!prev) return prev;
       const updated = { ...prev, reviews: { ...prev.reviews } };
-      updated.reviews[personId] = { ...updated.reviews[personId] };
-      updated.reviews[personId][weekNumber] = {
-        ...updated.reviews[personId][weekNumber],
+      const personBucket = { ...updated.reviews[personId] };
+      personBucket[weekNumber] = {
+        ...(personBucket[weekNumber] ?? EMPTY_CELL),
         planApproval: {
           state: 'approved',
           approved_by: null,
@@ -222,6 +237,7 @@ export function ReviewsPage() {
           comment: comment?.trim() || null,
         },
       };
+      updated.reviews[personId] = personBucket;
       return updated;
     });
 
@@ -245,11 +261,12 @@ export function ReviewsPage() {
     setData(prev => {
       if (!prev) return prev;
       const updated = { ...prev, reviews: { ...prev.reviews } };
-      updated.reviews[personId] = { ...updated.reviews[personId] };
-      updated.reviews[personId][weekNumber] = {
-        ...updated.reviews[personId][weekNumber],
+      const personBucket = { ...updated.reviews[personId] };
+      personBucket[weekNumber] = {
+        ...(personBucket[weekNumber] ?? EMPTY_CELL),
         [approvalField]: { state: 'changes_requested', approved_by: null, approved_at: new Date().toISOString(), feedback },
       };
+      updated.reviews[personId] = personBucket;
       return updated;
     });
 
@@ -270,9 +287,9 @@ export function ReviewsPage() {
     setData(prev => {
       if (!prev) return prev;
       const updated = { ...prev, reviews: { ...prev.reviews } };
-      updated.reviews[personId] = { ...updated.reviews[personId] };
-      updated.reviews[personId][weekNumber] = {
-        ...updated.reviews[personId][weekNumber],
+      const personBucket = { ...updated.reviews[personId] };
+      personBucket[weekNumber] = {
+        ...(personBucket[weekNumber] ?? EMPTY_CELL),
         reviewApproval: {
           state: 'approved',
           approved_by: null,
@@ -281,6 +298,7 @@ export function ReviewsPage() {
         },
         reviewRating: { value: rating, rated_by: '', rated_at: new Date().toISOString() },
       };
+      updated.reviews[personId] = personBucket;
       return updated;
     });
 
