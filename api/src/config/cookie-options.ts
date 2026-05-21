@@ -10,7 +10,10 @@
  * Set COOKIE_SAMESITE=none in the API environment for cross-origin deploys.
  */
 export function getCookieSameSite(): 'strict' | 'lax' | 'none' {
-  const val = process.env.COOKIE_SAMESITE;
+  // Normalize: trim whitespace + lowercase. Render's dashboard sometimes
+  // preserves trailing spaces or unexpected casing in env-var values, which
+  // breaks strict equality with the literal 'none' / 'lax' / 'strict' string.
+  const val = (process.env.COOKIE_SAMESITE ?? '').trim().toLowerCase();
   if (val === 'none' || val === 'lax' || val === 'strict') return val;
   return 'strict';
 }
