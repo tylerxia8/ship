@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { csrfSync } from 'csrf-sync';
+import { getCookieSameSite } from './config/cookie-options.js';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
 import documentsRoutes from './routes/documents.js';
@@ -147,7 +148,8 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   app.use(express.urlencoded({ extended: true, limit: '10mb' })); // For HTML form submissions
   app.use(cookieParser(sessionSecret));
 
-  // Session middleware for CSRF token storage
+  // Session middleware for CSRF token storage. See config/cookie-options.ts
+  // for the SameSite policy (env-driven for cross-origin deploys).
   app.use(session({
     secret: sessionSecret,
     resave: false,
@@ -155,7 +157,7 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: getCookieSameSite(),
       maxAge: 15 * 60 * 1000, // 15 minutes
     },
   }));
