@@ -150,6 +150,7 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   // Session middleware for CSRF token storage. See config/cookie-options.ts
   // for the SameSite policy (env-driven for cross-origin deploys).
+  console.log(`[boot] COOKIE_SAMESITE env=${process.env.COOKIE_SAMESITE ?? '(unset)'} → using sameSite=${getCookieSameSite()}`);
   app.use(session({
     secret: sessionSecret,
     resave: false,
