@@ -1,0 +1,29 @@
+{
+  "//": "Type-check the security probe's .d.mts companions. The probe itself runs as plain ES modules; this tsconfig only validates the type declarations.",
+  "//run": "pnpm dlx tsc --noEmit -p shipshape/security",
+
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023", "DOM"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    "allowJs": false,
+    "checkJs": false
+  },
+
+  "include": [
+    "probe-types.d.mts",
+    "modules/*.d.mts",
+    "report.d.mts"
+  ]
+}

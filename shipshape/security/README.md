@@ -60,3 +60,25 @@ node shipshape/security/probe.mjs \
 - **Independent modules.** Each surface is a standalone file in `modules/`. If one throws, the rest still run; the failure is captured as a `info`-severity finding.
 - **No third-party dependencies.** The probe uses Node 24's built-in `fetch` and `WebSocket`. The only external command it shells out to is `pnpm audit`.
 - **Reproducible.** Every finding includes a `reproduction` array — copy-pasteable curl/playwright steps a grader can re-run.
+
+## Type contract (`.d.mts` companions)
+
+The probe runs as plain ES modules (`.mjs`) for the "boring technology" reason — Node 24 executes them natively, no build step. But every exported function has a typed contract via `.d.mts` declaration companions:
+
+| File | Declares |
+|---|---|
+| [probe-types.d.mts](probe-types.d.mts) | `Severity`, `Surface`, `Finding`, `ProbeConfig`, `ProbeResult`, `SeverityCounts`, `ProbeReport` |
+| [modules/auth.d.mts](modules/auth.d.mts) | `runAuthProbe(config: ProbeConfig): Promise<ProbeResult>` |
+| [modules/input.d.mts](modules/input.d.mts) | `runInputProbe(...)` |
+| [modules/websocket.d.mts](modules/websocket.d.mts) | `runWebSocketProbe(...)` |
+| [modules/deps.d.mts](modules/deps.d.mts) | `runDepsProbe(): Promise<ProbeResult>` (no config — scans workspace-globally) |
+| [modules/manual.d.mts](modules/manual.d.mts) | `runManualReview(...)` — emits findings under 5 sub-surfaces |
+| [report.d.mts](report.d.mts) | `writeReport(findings, meta, outDir): SeverityCounts` |
+
+Type-check the declarations with:
+
+```bash
+corepack pnpm exec tsc --noEmit -p shipshape/security
+```
+
+Exits 0 today. Adding a new probe module without declaring its types here will not break the runtime (the `.mjs` files don't care) but will be visible by what's *missing* from the .d.mts companions — that's the regression signal.
