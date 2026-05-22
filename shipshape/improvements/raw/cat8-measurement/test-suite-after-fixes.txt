@@ -1,0 +1,142 @@
+
+> @ship/api@0.0.0 test C:\Users\tyler\ship\api
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.17 [39m[90mC:/Users/tyler/ship/api[39m
+
+[90mstdout[2m | src/routes/auth.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/auth.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 4489[2mms[22m[39m
+       [33m[2m✓[22m[39m should reject login with wrong password [33m 301[2mms[22m[39m
+       [33m[2m✓[22m[39m should successfully logout with valid session [33m 381[2mms[22m[39m
+       [33m[2m✓[22m[39m should return session info [33m 322[2mms[22m[39m
+       [33m[2m✓[22m[39m should generate unique session IDs for each login [33m 492[2mms[22m[39m
+       [33m[2m✓[22m[39m should invalidate old session on re-login (session fixation prevention) [33m 613[2mms[22m[39m
+[90mstdout[2m | src/routes/workspaces.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+[90mstdout[2m | src/routes/workspaces.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+[90mstdout[2m | src/routes/workspaces.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/workspaces.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 1552[2mms[22m[39m
+[90mstdout[2m | src/routes/sprint-reviews.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/sprint-reviews.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 13344[2mms[22m[39m
+       [33m[2m✓[22m[39m returns existing review with is_draft: false after POST [33m 908[2mms[22m[39m
+[90mstdout[2m | src/routes/weeks.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/weeks.test.ts [2m([22m[2m41 tests[22m[2m)[22m[33m 2173[2mms[22m[39m
+[90mstdout[2m | src/routes/documents-visibility.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/documents-visibility.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 1700[2mms[22m[39m
+ [32m✓[39m src/routes/projects.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 667[2mms[22m[39m
+[90mstdout[2m | src/routes/documents.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+[90mstdout[2m | src/routes/documents.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+[90mstdout[2m | src/routes/documents.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+[90mstdout[2m | src/routes/documents.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+[90mstdout[2m | src/routes/documents.test.ts[2m > [22m[2mDocuments API - Weekly Doc Resubmission[2m > [22m[2mmoves plan_approval back to changed_since_approved after weekly plan edit
+[22m[39m[Collaboration] No cached doc found for f6325a0f-8a14-40b8-b6c1-423f20b103b1
+
+[90mstdout[2m | src/routes/documents.test.ts[2m > [22m[2mDocuments API - Weekly Doc Resubmission[2m > [22m[2mmoves review_approval back to changed_since_approved after weekly retro edit
+[22m[39m[Collaboration] No cached doc found for f27fd609-a1df-4f05-b795-72652658ac18
+
+ [32m✓[39m src/routes/documents.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 1374[2mms[22m[39m
+ [32m✓[39m src/routes/circular-reference.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 790[2mms[22m[39m
+ [32m✓[39m src/routes/issues-history.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 550[2mms[22m[39m
+[90mstdout[2m | src/routes/issues.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/issues.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 1940[2mms[22m[39m
+[90mstderr[2m | src/__tests__/activity.test.ts[2m > [22m[2mActivity API[2m > [22m[2mGET /activity/:entityType/:entityId[2m > [22m[2merror handling[2m > [22m[2mreturns 500 on database error
+[22m[39mActivity fetch error: Error: Database connection failed
+    at C:/Users/tyler/ship/api/src/__tests__/activity.test.ts:219:11
+    at file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+    at file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:1209:10)
+    at file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+    at Traces.$ (file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/vitest@4.0.17_@types+node@2_d1c9c207c256d988cd870c1226ab24ca/node_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/vitest@4.0.17_@types+node@2_d1c9c207c256d988cd870c1226ab24ca/node_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:12)
+
+ [32m✓[39m src/__tests__/activity.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 994[2mms[22m[39m
+[90mstdout[2m | src/routes/associations-regression.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/associations-regression.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 1361[2mms[22m[39m
+[90mstdout[2m | src/routes/backlinks.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/backlinks.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 1353[2mms[22m[39m
+ [32m✓[39m src/collaboration/__tests__/collaboration.test.ts [2m([22m[2m30 tests[22m[2m)[22m[33m 1088[2mms[22m[39m
+[90mstdout[2m | src/routes/standups.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/standups.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 1365[2mms[22m[39m
+[90mstdout[2m | src/routes/reports-to.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/reports-to.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 1269[2mms[22m[39m
+[90mstdout[2m | src/routes/health.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/health.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 757[2mms[22m[39m
+[90mstderr[2m | src/__tests__/auth.test.ts[2m > [22m[2mauthMiddleware[2m > [22m[2merror handling[2m > [22m[2mreturns 500 on database error
+[22m[39mAuth middleware error: Error: DB connection failed
+    at C:/Users/tyler/ship/api/src/__tests__/auth.test.ts:215:51
+    at file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+    at file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:1209:10)
+    at file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+    at Traces.$ (file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/vitest@4.0.17_@types+node@2_d1c9c207c256d988cd870c1226ab24ca/node_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/vitest@4.0.17_@types+node@2_d1c9c207c256d988cd870c1226ab24ca/node_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/Users/tyler/ship/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.17/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:12)
+
+ [32m✓[39m src/__tests__/auth.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 725[2mms[22m[39m
+ [32m✓[39m src/__tests__/transformIssueLinks.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 243[2mms[22m[39m
+ [32m✓[39m src/services/accountability.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 1668[2mms[22m[39m
+[90mstdout[2m | src/routes/project-retros.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/project-retros.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 1651[2mms[22m[39m
+[90mstdout[2m | src/routes/search.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+[90mstdout[2m | src/routes/search.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/search.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 564[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/business-days.test.ts [2m([22m[2m27 tests[22m[2m)[22m[32m 282[2mms[22m[39m
+ [32m✓[39m src/routes/api-tokens.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 398[2mms[22m[39m
+ [32m✓[39m src/routes/iterations.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 754[2mms[22m[39m
+ [32m✓[39m src/__tests__/extractHypothesis.test.ts [2m([22m[2m36 tests[22m[2m)[22m[33m 356[2mms[22m[39m
+[90mstdout[2m | src/routes/files.test.ts
+[22m[39mCAIA not configured, skipping initialization
+
+ [32m✓[39m src/routes/files.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 932[2mms[22m[39m
+ [32m✓[39m src/collaboration/__tests__/api-content-preservation.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 564[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m28 passed[39m[22m[90m (28)[39m
+[2m      Tests [22m [1m[32m451 passed[39m[22m[90m (451)[39m
+[2m   Start at [22m 20:22:38
+[2m   Duration [22m 108.40s[2m (transform 4.55s, setup 3.81s, import 44.38s, tests 44.90s, environment 10ms)[22m
+
