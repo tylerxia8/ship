@@ -123,3 +123,4 @@ web/dev-dist/
 .cookies.txt
 .csrf.json
 .login.json
+.vercel
