@@ -18,6 +18,8 @@
 
 Raw before/after evidence: [raw/cat8-measurement/probe-before.json](raw/cat8-measurement/probe-before.json) and [raw/cat8-measurement/probe-after.json](raw/cat8-measurement/probe-after.json).
 
+The brief separates Cat 8 into two deliverables — the **probe tool** (automated) and the **manual review** (code reading). The manual review is at [shipshape/security/MANUAL_REVIEW.md](../security/MANUAL_REVIEW.md) and covers each of the four brief-specified areas (CORS + CSP, env + secrets, rate limiting, error verbosity) with line-anchored references into the actual source. Where the manual review and the probe agree, both are cited; where they diverge, both are documented.
+
 ---
 
 ## The probe tool ("Security Probe Tool" — required deliverable)
