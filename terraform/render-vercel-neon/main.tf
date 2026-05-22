@@ -36,37 +36,24 @@ resource "random_id" "session_secret" {
 # ─── Neon: Postgres 16 project + main branch + role + database ─────────────────
 
 resource "neon_project" "ship" {
-  name                      = var.project_name
-  region_id                 = var.neon_region
-  pg_version                = 16
-  history_retention_seconds = 86400 # 1 day point-in-time-restore window
+  name       = var.project_name
+  org_id     = var.neon_org_id
+  region_id  = var.neon_region
+  pg_version = 16
+
+  # Free tier caps point-in-time-restore at 6 hours (21600s). Paid tiers
+  # allow up to 30 days. Stay at the free-tier ceiling so this module works
+  # against any account; bump to 86400 (1d) or higher on a paid tier.
+  history_retention_seconds = 21600
 }
 
-resource "neon_branch" "main" {
-  project_id = neon_project.ship.id
-  name       = "main"
-}
-
-resource "neon_role" "app" {
-  project_id = neon_project.ship.id
-  branch_id  = neon_branch.main.id
-  name       = "neondb_owner"
-}
-
-resource "neon_database" "ship" {
-  project_id = neon_project.ship.id
-  branch_id  = neon_branch.main.id
-  name       = "neondb"
-  owner_name = neon_role.app.name
-}
-
-# Neon's provider exposes the full connection URI directly on neon_project.
-# Verified against the kislerdm/neon v0.13.0 schema via
-# `terraform providers schema -json` — neon_project exports
-# `connection_uri`, `database_host`, `database_password`, etc. Earlier
-# versions of this module manually assembled the URL from role + branch
-# attributes (incorrectly assumed `neon_branch.endpoint` existed); the
-# direct attribute is the canonical way.
+# Neon auto-creates a "main" branch, a "neondb_owner" role, and a "neondb"
+# database when neon_project is created — declaring those as Terraform
+# resources would 409 ("already exists"). Instead we just read the
+# connection URI directly off neon_project, which embeds host + role +
+# password + db_name. Verified against kislerdm/neon v0.13.0 schema via
+# `terraform providers schema -json` — neon_project exports `connection_uri`,
+# `database_host`, `database_password`, etc.
 locals {
   database_url = neon_project.ship.connection_uri
 }
@@ -112,10 +99,7 @@ resource "render_web_service" "api" {
     COOKIE_SAMESITE = { value = "none" }
   }
 
-  depends_on = [
-    neon_role.app,
-    neon_database.ship,
-  ]
+  depends_on = [neon_project.ship]
 }
 
 # ─── Vercel: web frontend (Vite SPA) ──────────────────────────────────────────
@@ -124,10 +108,19 @@ resource "vercel_project" "web" {
   name      = "${var.project_name}-web"
   framework = "vite"
 
-  # Vite outputs to web/dist; Vercel's vite preset reads vercel.json at the
-  # repo root for any overrides (see commit 5dc95ad for the VITE_API_URL
-  # env-clearing fix).
-  root_directory = "."
+  # Default Vercel project creation enables "standard_protection", which puts
+  # the deployment behind a Vercel-account auth wall. For a public demo URL
+  # (and to match the existing ship-henna.vercel.app behavior, which is
+  # publicly accessible), set this to "none".
+  vercel_authentication = {
+    deployment_type = "none"
+  }
+
+  # Vite outputs to web/dist; vercel.json at the repo root handles the build
+  # command + output directory (see commit 5dc95ad for the VITE_API_URL
+  # env-clearing fix). Vercel rejects root_directory = "." with
+  # invalid_root_directory; omitting the field defaults to repo root, which
+  # is what we want.
 
   git_repository = {
     type              = "github"
@@ -138,15 +131,16 @@ resource "vercel_project" "web" {
   # Build-time env vars baked into the Vite bundle. Vite only inlines
   # VITE_*-prefixed vars (Cat 8 secrets-in-client-bundle check verifies
   # this); these are URLs and labels, NOT secrets.
+  # render_web_service.url already includes the https:// scheme.
   environment = [
     {
       key    = "VITE_API_URL"
-      value  = "https://${render_web_service.api.url}"
+      value  = render_web_service.api.url
       target = ["production", "preview"]
     },
     {
       key    = "VITE_WS_URL"
-      value  = "wss://${render_web_service.api.url}"
+      value  = "wss://${trimprefix(render_web_service.api.url, "https://")}"
       target = ["production", "preview"]
     },
     {

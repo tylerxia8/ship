@@ -37,6 +37,11 @@ variable "neon_api_key" {
   sensitive   = true
 }
 
+variable "neon_org_id" {
+  description = "Neon organization ID (required by the Neon API as of 2024-late). Look up via `curl -H 'Authorization: Bearer $NEON_API_KEY' https://console.neon.tech/api/v2/users/me/organizations`."
+  type        = string
+}
+
 # ---------- Project / repo wiring --------------------------------------------
 
 variable "project_name" {

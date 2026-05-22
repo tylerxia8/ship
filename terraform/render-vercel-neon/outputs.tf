@@ -9,13 +9,14 @@ output "web_url" {
 
 output "api_url" {
   description = "Render-hosted API URL."
-  value       = "https://${render_web_service.api.url}"
+  # render_web_service.url already includes the https:// scheme.
+  value = render_web_service.api.url
 }
 
 output "verify_prod_command" {
   description = "Drop-in command to verify Cat 8 protections against this deploy."
   value = format(
-    "node shipshape/security/verify-prod.mjs --api=https://%s --web=https://%s",
+    "node shipshape/security/verify-prod.mjs --api=%s --web=https://%s",
     render_web_service.api.url,
     vercel_project_domain.web.domain,
   )
