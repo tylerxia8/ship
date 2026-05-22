@@ -114,11 +114,47 @@ export async function runDepsProbe() {
 
   // Bucket by severity. pnpm advisories use 'critical' | 'high' | 'moderate' | 'low' | 'info'.
   const SEV_MAP = { critical: 'critical', high: 'high', moderate: 'medium', low: 'low', info: 'info' };
+
+  // Cache `pnpm why` lookups so we only shell out once per unique package.
+  // The audit may include multiple advisories for the same package (e.g.
+  // 5 different undici CVEs); they share a dependency chain.
+  const whyCache = new Map();
+  function whyFor(pkg) {
+    if (whyCache.has(pkg)) return whyCache.get(pkg);
+    let chains = [];
+    let consumingFeature = null;
+    try {
+      const out = execSync(`corepack pnpm why ${pkg} --recursive`, {
+        encoding: 'utf-8', timeout: 30_000, cwd: REPO_ROOT, shell: true,
+      });
+      // Extract up to the first 5 dependency-chain lines (each line shows
+      // one path from a workspace root to the vulnerable package).
+      chains = out.split('\n').filter(l => l.includes(pkg) && (l.includes('└') || l.includes('├'))).slice(0, 5);
+      // Top-level consumer = the first workspace path that mentions the pkg.
+      // Heuristic: scan for "<some-package>@<version>" near the start.
+      const workspaceMatch = out.match(/^(\S+)@[\d.]+ /m);
+      if (workspaceMatch) consumingFeature = workspaceMatch[1];
+    } catch {
+      // pnpm why can fail if pkg isn't in the workspace; that's not an error.
+    }
+    const result = { chains, consumingFeature };
+    whyCache.set(pkg, result);
+    return result;
+  }
+
   for (const adv of advisories) {
     const pkg = adv.module_name ?? adv.package ?? adv.name ?? '(unknown)';
     const sev = SEV_MAP[adv.severity] ?? 'info';
     const title = adv.title ?? `Advisory on ${pkg}`;
     const cve = (adv.cves && adv.cves[0]) ?? adv.cve;
+
+    // Per brief: "identify which application features depend on the
+    // vulnerable package". Pull from two sources:
+    //   1. pnpm audit's own `paths` / `findings` field if present
+    //   2. `corepack pnpm why <pkg>` cross-reference
+    const advisoryPaths = adv.findings?.[0]?.paths ?? adv.paths ?? null;
+    const why = (sev === 'critical' || sev === 'high') ? whyFor(pkg) : { chains: [], consumingFeature: null };
+
     findings.push({
       surface: 'deps',
       id: `deps-cve-${(adv.id ?? adv.github_advisory_id ?? pkg).toString().slice(0, 40)}`,
@@ -132,6 +168,11 @@ export async function runDepsProbe() {
         module: pkg,
         vulnerable_versions: adv.vulnerable_versions ?? adv.range,
         patched_versions: adv.patched_versions ?? adv.patched_in,
+        // NEW: dependency-chain evidence so a reviewer can identify which
+        // application feature consumes the vulnerable package.
+        consumingWorkspace: why.consumingFeature,
+        dependencyChains: why.chains,
+        auditPathsField: advisoryPaths,
         url: adv.url ?? adv.references,
       },
     });

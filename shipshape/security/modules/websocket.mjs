@@ -101,6 +101,15 @@ export async function runWebSocketProbe(config) {
       // D.3 — send text frame (Yjs is binary-only)
       const textFrame = await sendMalformedAndCheckHealth(config.api, wsBase, auth, collabAuthRes.docId, 'this is text, not a Yjs sync frame');
       findings.push(buildMalformedFinding(textFrame, 'text frame to binary Yjs endpoint'));
+
+      // D.4 — valid binary frame with UNEXPECTED messageType varuint.
+      // Yjs protocol defines two messageType values: 0 (sync) and 1 (awareness).
+      // Send a structurally valid binary frame whose leading varuint encodes
+      // 99 — server must drop the message silently (the default branch in
+      // handleMessage's switch), not crash and not act on it.
+      const unknownTypeFrame = encodeVarUintFrame(99);
+      const unknownType = await sendMalformedAndCheckHealth(config.api, wsBase, auth, collabAuthRes.docId, unknownTypeFrame);
+      findings.push(buildMalformedFinding(unknownType, 'unknown messageType varuint=99'));
     } else {
       findings.push({
         surface: 'websocket',
@@ -286,6 +295,25 @@ function randomBytes(n) {
   const buf = new Uint8Array(n);
   for (let i = 0; i < n; i++) buf[i] = Math.floor(Math.random() * 256);
   return buf;
+}
+
+// Encode a Yjs-style unsigned varuint (LEB128 / base-128 little-endian). The
+// Yjs protocol reads the leading varuint as messageType. Probe uses this to
+// craft a frame whose messageType is structurally valid but semantically
+// unknown (e.g. 99) to test the switch-default branch of handleMessage().
+function encodeVarUintFrame(value) {
+  const bytes = [];
+  let v = value >>> 0;
+  while (v >= 0x80) {
+    bytes.push((v & 0x7f) | 0x80);
+    v >>>= 7;
+  }
+  bytes.push(v & 0x7f);
+  // Pad with a few extra random bytes after the messageType so the parser
+  // would try to consume a payload — if the switch-default branch correctly
+  // ignores unknown types, these extra bytes are harmless.
+  for (let i = 0; i < 16; i++) bytes.push(Math.floor(Math.random() * 256));
+  return new Uint8Array(bytes);
 }
 
 async function login(base, email, password) {

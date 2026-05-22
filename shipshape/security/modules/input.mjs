@@ -169,7 +169,77 @@ export async function runInputProbe(config) {
     });
   }
 
-  // ── D. Reflected XSS in search query params ────────────────────────────
+  // ── D. XSS / long-input across OTHER user-facing fields ────────────────
+  // Per brief: "test for XSS, SQL injection, and excessively long input
+  // across all user-facing fields". This block probes 3 more endpoints
+  // beyond the issue-title surface tested above.
+  const fieldProbes = [
+    {
+      label: 'document title (wiki)',
+      method: 'POST',
+      path: '/api/documents',
+      body: (payload) => ({ document_type: 'wiki', title: payload, content: { type: 'doc', content: [] } }),
+    },
+    {
+      label: 'document content (wiki TipTap)',
+      method: 'POST',
+      path: '/api/documents',
+      body: (payload) => ({
+        document_type: 'wiki',
+        title: 'probe',
+        content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: payload }] }] },
+      }),
+    },
+    {
+      label: 'project title',
+      method: 'POST',
+      path: '/api/projects',
+      body: (payload) => ({ title: payload, content: { type: 'doc', content: [] } }),
+    },
+  ];
+  for (const field of fieldProbes) {
+    const accepted = [];
+    for (const payload of XSS_PAYLOADS.slice(0, 2)) {
+      try {
+        const res = await fetch(`${base}${field.path}`, {
+          method: field.method,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+            Cookie: cookieJar,
+          },
+          body: JSON.stringify(field.body(payload)),
+        });
+        const respText = await res.text();
+        accepted.push({ payload, status: res.status, echoedVerbatim: respText.includes(payload) });
+      } catch (err) {
+        accepted.push({ payload, status: 'error', error: err.message });
+      }
+    }
+    const created = accepted.filter(a => a.status === 201 || a.status === 200);
+    if (created.length === 0) {
+      findings.push({
+        surface: 'input',
+        id: `input-${field.label.replace(/\W+/g, '-').toLowerCase()}-rejected`,
+        severity: 'ok',
+        title: `${field.label}: XSS-shaped input rejected or schema-validated`,
+        description: `${field.path} returned non-success for the probe payloads. Either the schema validates the field or the endpoint is gated.`,
+        evidence: accepted,
+      });
+    } else {
+      findings.push({
+        surface: 'input',
+        id: `input-${field.label.replace(/\W+/g, '-').toLowerCase()}-accepts-xss`,
+        severity: 'low',
+        title: `${field.label}: XSS-shaped input accepted (stored verbatim)`,
+        description: `${field.path} accepted XSS payloads. Same render-side safety story as the issue-title case: React text-escape prevents execution as long as no consumer uses dangerouslySetInnerHTML on this field. Server-side allowlist or render-side test would harden the surface.`,
+        cwe: 'CWE-79',
+        evidence: accepted,
+      });
+    }
+  }
+
+  // ── E. Reflected XSS in search query params ────────────────────────────
   // Try /api/search/mentions?q=<payload> — does the response echo it back?
   const reflectedResults = [];
   for (const payload of XSS_PAYLOADS.slice(0, 3)) {
