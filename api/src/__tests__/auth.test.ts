@@ -1,11 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock pool before importing auth middleware
-vi.mock('../db/client.js', () => ({
-  pool: {
-    query: vi.fn(),
-  },
-}));
+// Mock pool before importing auth middleware. The wrappers `query` and
+// `queryOne` delegate to `pool.query`, so we mock that and have the
+// wrappers reuse the same mock — keeps every existing `vi.mocked(pool.query)`
+// assertion intact.
+vi.mock('../db/client.js', () => {
+  const pool = { query: vi.fn() };
+  return {
+    pool,
+    query: async (text: string, params?: ReadonlyArray<unknown>) => {
+      const result = await pool.query(text, params);
+      return result.rows;
+    },
+    queryOne: async (text: string, params?: ReadonlyArray<unknown>) => {
+      const result = await pool.query(text, params);
+      return result.rows[0] ?? null;
+    },
+  };
+});
 
 import { authMiddleware } from '../middleware/auth.js';
 import { pool } from '../db/client.js';

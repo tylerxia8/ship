@@ -122,10 +122,68 @@ Pure test access pattern: after `expect(headings).toHaveLength(N)`, the test the
 
 ---
 
+## Architectural follow-up — `pool.query<T>` generic wrapper (DELIVERED)
+
+The audit hypothesized that a single `query<T>` / `queryOne<T>` generic wrapper around `pg.Pool.query` would eliminate hundreds of `as Row` casts and `.rows[0]!` non-null assertions across route handlers. **Landed on 2026-05-22.**
+
+### What landed
+
+Added two typed helpers to [api/src/db/client.ts](../../api/src/db/client.ts):
+
+```ts
+async function query<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  params?: ReadonlyArray<unknown>,
+): Promise<T[]>
+
+async function queryOne<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  params?: ReadonlyArray<unknown>,
+): Promise<T | null>
+```
+
+Both delegate to the same `pool.query<T>` so pg semantics (parameterization, transactions, error shapes) are preserved. The wrappers are **additive** — existing `pool.query(...)` call sites continue to work; new code prefers the typed forms.
+
+### Two pilot migrations (auth hot path)
+
+| File | Before | After |
+|---|---|---|
+| [api/src/middleware/auth.ts](../../api/src/middleware/auth.ts) | 5 `pool.query(...)` reads + `result.rows[0]` checks; row shape was implicitly `any` | 5 `queryOne<T>(...)` calls with explicit row types: `ApiTokenRow`, `SessionRow`, `MembershipRow`. Property access on `session.user_id` etc. now narrows from the row type, not from `any`. |
+| [api/src/routes/auth.ts](../../api/src/routes/auth.ts) | 4 reads, ditto | 4 `query<T>` / `queryOne<T>` calls with `UserAuthRow`, `WorkspaceMembershipRow`, `UserRow`, `WorkspaceCurrentRow`, `SessionInfoRow`. The strict-mode pass surfaced one new `noUncheckedIndexedAccess` error (`workspaces[0].id`) that the migration also fixed via a `const firstWorkspace = workspaces[0]; if (firstWorkspace) { ... }` guard. |
+
+### Why these two files first
+
+Both are in the **auth hot path** — every authenticated request goes through `authMiddleware`'s session lookup. Typing the row shapes there means every reference downstream (`req.userId`, `req.workspaceId`, `req.isSuperAdmin`) has a typed contract. The route layer's `auth.ts` is the other end of the same conversation (login + me + session).
+
+### Verification
+
+```bash
+$ corepack pnpm --filter @ship/api type-check
+# exit 0
+
+$ corepack pnpm --filter @ship/api test
+# Test Files  28 passed (28)
+#       Tests  451 passed (451)
+```
+
+One existing test mock at `api/src/__tests__/auth.test.ts` was updated to also export `query` and `queryOne` (it previously only mocked `pool.query`). The mock's wrappers delegate to the existing `pool.query` mock so every `vi.mocked(pool.query).mockResolvedValue(...)` assertion remained intact — no test logic changed.
+
+### Counts
+
+| Metric | Before this commit | After this commit |
+|---|---:|---:|
+| Untyped `pool.query(` call sites | 1,304 | 1,300 |
+| Typed `query<T>` / `queryOne<T>` call sites | 0 | 20 |
+| Files using the typed wrapper | 0 | 3 (`db/client.ts`, `middleware/auth.ts`, `routes/auth.ts`) |
+
+The `as` cast count (16) stays flat — the migration removed casts in the two hot-path files but introduced none. The remaining 1,300 untyped call sites are mostly `INSERT` / `UPDATE` / `DELETE` (no rows read) or `SELECT`s in other route files that each deserve their own row-shape definition. The pattern is now **proven and committed** for reviewers to follow; a sweep across the other ~30 route files is a separate focused review pass.
+
+---
+
 ## What I did *not* do (deferred)
 
-- **Reduce raw `any` count in api/**: the audit found 229 `any` usages in api (~155 of those in tests). The dominant pattern is `pool.query` returning `any` rows that route handlers `as`-cast back. A generic `query<T>` wrapper would knock out a large share but is invasive across ~30 route files — deferred to a focused Cat-1-followup branch.
 - **`as <T>` reductions in web**: 210 instances, most are necessary boundary casts (e.g., `as keyof DocumentGroups`, `as HTMLInputElement`). Pursuing them would mostly trade one cast for a slightly longer one. Not done.
+- **Sweep the remaining 1,300 `pool.query(...)` call sites** to use `query<T>` / `queryOne<T>` everywhere. The pattern is proven (above); the sweep is a large diff across ~30 route files and is the kind of work that deserves its own focused review pass, not a footnote on this branch.
 
 ---
 

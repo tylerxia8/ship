@@ -2,12 +2,50 @@ import { Router, Request, Response } from 'express';
 import type { Router as RouterType } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { pool } from '../db/client.js';
+import { pool, query, queryOne } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 
 const router: RouterType = Router();
+
+// Row types — local to this route. The typed query/queryOne helpers from
+// db/client.ts let each call site declare its expected shape once, and
+// every downstream property access narrows from there.
+interface UserAuthRow {
+  id: string;
+  email: string;
+  password_hash: string | null;
+  name: string;
+  is_super_admin: boolean;
+  last_workspace_id: string | null;
+}
+
+interface WorkspaceMembershipRow {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface UserRow {
+  id: string;
+  email: string;
+  name: string;
+  is_super_admin: boolean;
+}
+
+interface WorkspaceCurrentRow {
+  id: string;
+  name: string;
+  role: string | null;
+}
+
+interface SessionInfoRow {
+  id: string;
+  created_at: string;
+  expires_at: string;
+  last_activity: string;
+}
 
 // Generate cryptographically secure session ID (256 bits of entropy)
 function generateSecureSessionId(): string {
@@ -31,14 +69,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
   try {
     // Find user with their workspace memberships (case-insensitive email lookup)
-    const userResult = await pool.query(
+    const user = await queryOne<UserAuthRow>(
       `SELECT u.id, u.email, u.password_hash, u.name, u.is_super_admin, u.last_workspace_id
        FROM users u
        WHERE LOWER(u.email) = LOWER($1)`,
       [email]
     );
-
-    const user = userResult.rows[0];
 
     if (!user) {
       await logAuditEvent({
@@ -92,7 +128,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Get user's workspaces
-    const workspacesResult = await pool.query(
+    const workspaces = await query<WorkspaceMembershipRow>(
       `SELECT w.id, w.name, wm.role
        FROM workspaces w
        JOIN workspace_memberships wm ON w.id = wm.workspace_id
@@ -100,8 +136,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
        ORDER BY w.name`,
       [user.id]
     );
-
-    const workspaces = workspacesResult.rows;
 
     // Determine which workspace to log into
     let workspaceId: string | null = null;
@@ -115,8 +149,11 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 
     // If no valid last workspace, use first available
-    if (!workspaceId && workspaces.length > 0) {
-      workspaceId = workspaces[0].id;
+    if (!workspaceId) {
+      const firstWorkspace = workspaces[0];
+      if (firstWorkspace) {
+        workspaceId = firstWorkspace.id;
+      }
     }
 
     // Super-admins can log in even without workspace membership
@@ -261,12 +298,10 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
 // GET /api/auth/me
 router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query(
+    const user = await queryOne<UserRow>(
       `SELECT id, email, name, is_super_admin FROM users WHERE id = $1`,
       [req.userId]
     );
-
-    const user = result.rows[0];
 
     if (!user) {
       res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -280,7 +315,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<v
     }
 
     // Get user's workspaces
-    const workspacesResult = await pool.query(
+    const workspaces = await query<WorkspaceMembershipRow>(
       `SELECT w.id, w.name, wm.role
        FROM workspaces w
        JOIN workspace_memberships wm ON w.id = wm.workspace_id
@@ -290,26 +325,26 @@ router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<v
     );
 
     // Get current workspace info
-    let currentWorkspace = null;
+    let currentWorkspace: { id: string; name: string; role: string } | null = null;
     if (req.workspaceId) {
-      const currentResult = await pool.query(
+      const current = await queryOne<WorkspaceCurrentRow>(
         `SELECT w.id, w.name, wm.role
          FROM workspaces w
          LEFT JOIN workspace_memberships wm ON w.id = wm.workspace_id AND wm.user_id = $2
          WHERE w.id = $1`,
         [req.workspaceId, req.userId]
       );
-      if (currentResult.rows[0]) {
+      if (current) {
         currentWorkspace = {
-          id: currentResult.rows[0].id,
-          name: currentResult.rows[0].name,
-          role: currentResult.rows[0].role || 'admin', // Super-admin without membership
+          id: current.id,
+          name: current.name,
+          role: current.role || 'admin', // Super-admin without membership
         };
       }
     }
 
     // Pending accountability items will be fetched via /api/accountability/action-items
-    const pendingAccountabilityItems: any[] = [];
+    const pendingAccountabilityItems: unknown[] = [];
 
     res.json({
       success: true,
@@ -321,7 +356,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<v
           isSuperAdmin: user.is_super_admin,
         },
         currentWorkspace,
-        workspaces: workspacesResult.rows.map(w => ({
+        workspaces: workspaces.map(w => ({
           id: w.id,
           name: w.name,
           role: w.role,
@@ -391,12 +426,10 @@ router.post('/extend-session', authMiddleware, async (req: Request, res: Respons
 // GET /api/auth/session - Get session info for timeout tracking
 router.get('/session', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query(
+    const session = await queryOne<SessionInfoRow>(
       `SELECT id, created_at, expires_at, last_activity FROM sessions WHERE id = $1`,
       [req.sessionId]
     );
-
-    const session = result.rows[0];
 
     if (!session) {
       res.status(HTTP_STATUS.NOT_FOUND).json({
