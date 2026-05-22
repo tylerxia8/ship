@@ -6,21 +6,21 @@
 
 This is the reviewer's entry point. Everything else is one or two clicks away.
 
-**In a hurry? Read [AT_A_GLANCE.md](AT_A_GLANCE.md)** — all 7 categories on one page (baseline → target → delivered) plus the 8 brief-deliverable checklist. Come back here for deep dives.
+**In a hurry? Read [AT_A_GLANCE.md](AT_A_GLANCE.md)** — all 8 categories on one page (baseline → target → delivered) plus the 8 brief-deliverable checklist. Come back here for deep dives.
 
-**Want every brief metric, baseline + after, on one page each?** Read [audit/COMPREHENSIVE_AUDIT.md](audit/COMPREHENSIVE_AUDIT.md) — fills in the brief's "Audit Deliverable" tables row-by-row for all 7 categories, with explicit "not measured" labels where I have honest gaps.
+**Want every brief metric, baseline + after, on one page each?** Read [audit/COMPREHENSIVE_AUDIT.md](audit/COMPREHENSIVE_AUDIT.md) — fills in the brief's "Audit Deliverable" tables row-by-row for all 8 categories, with explicit "not measured" labels where I have honest gaps.
 
 ---
 
 ## TL;DR
 
-I inherited Ship — a U.S. Treasury project-management app — read it, diagnosed it across seven categories, then improved every category with measurable before/after proof. Every brief target is met; most by a wide margin. The improvements live on seven labeled branches off `shipshape/audit`, each one self-contained so you can read the diff for a single category without scanning the others.
+I inherited Ship — a U.S. Treasury project-management app — read it, diagnosed it across eight categories (the brief's 7 + the Cat 8 Security Audit addendum), then improved every category with measurable before/after proof. Every brief target is met; most by a wide margin. The improvements live on eight labeled branches off `shipshape/audit`, each one self-contained so you can read the diff for a single category without scanning the others.
 
 The audit gate (Tuesday hard deadline) is satisfied by [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md) — see [shipshape/audit/GATE_CHECKLIST.md](audit/GATE_CHECKLIST.md) for a 1-page index confirming all four gate components (methodology / baseline / weaknesses / severity ranking) are present for every category. Implementation is satisfied by the seven `shipshape/0N-<category>` branches indexed below.
 
 ---
 
-## Results — all 7 categories
+## Results — all 8 categories
 
 | # | Category | Brief target | Result | Branch | Headline commit |
 |---|---|---|---|---|---|
@@ -31,7 +31,7 @@ The audit gate (Tuesday hard deadline) is satisfied by [shipshape/audit/AUDIT_RE
 | 5 | Test Coverage | +3 meaningful tests OR fix 3 flakes | **+19 tests** across 3 previously-untested critical paths (extractText/hasContent helpers, date formatting utilities, the global error handler) | `shipshape/05-test-coverage` | [`5ee270f`](#) |
 | 6 | Runtime Errors | 3 fixes, ≥1 user-facing data-loss case | Global JSON error handler closes stack-trace leak on malformed JSON, sanitises payload-too-large to JSON 413, and replaces HTML 404 with JSON `{ NOT_FOUND }` on unmatched `/api/*` | `shipshape/06-runtime-errors` | [`0470de1`](#) |
 | 7 | Accessibility | +10 Lighthouse on worst page OR clear Critical/Serious on top 3 | **46 → 0 color-contrast violations** across all 12 audited routes (cleared everything, not just top 3); cross-checked with Lighthouse 13.3.0 — the two lowest-scoring routes (`/my-week`, `/dashboard`) went **96 → 100** | `shipshape/07-accessibility` | [`97a5eec`](#) + [`186ecf8`](#) |
-| 8 | Security Audit | Build a probe tool; fix ≥2 verified vulnerabilities with before/after proof | **Probe tool runnable** ([shipshape/security/probe.mjs](security/probe.mjs)) across 5 surfaces. **3 verified fixes; critical: 4 → 0**: (a) WebSocket process-crash on oversized/malformed frame (CWE-20 + CWE-400 — any authenticated user could DoS the API); (b) two transitive critical CVEs (fast-xml-parser CVE-2026-25896 + protobufjs CVE-2026-41242) bumped via `pnpm.overrides`; (c) body-parser stack-trace leak on malformed JSON (CWE-209) closed via global error handler. All 451 api unit tests still pass. | `shipshape/08-security` | [`1361c54`](#) + [`9cdf809`](#) + [`176ff29`](#) |
+| 8 | Security Audit | Build a probe tool; fix ≥2 verified vulnerabilities with before/after proof | **Probe tool runnable** ([shipshape/security/probe.mjs](security/probe.mjs)) across 5 surfaces. **5 verified fixes; critical: 4 → 0; both medium findings from the manual review also resolved**: (a) WebSocket process-crash on oversized/malformed frame (CWE-20 + CWE-400 — any authenticated user could DoS the API); (b) two transitive critical CVEs (fast-xml-parser CVE-2026-25896 + protobufjs CVE-2026-41242) bumped via `pnpm.overrides`; (c) body-parser stack-trace leak on malformed JSON (CWE-209) closed via global error handler; (d) WS Origin allow-list closes the CSWSH gap (CWE-346); (e) per-account login lockout closes the distributed credential stuffing gap (CWE-307). All 454 api unit tests still pass (451 baseline + 3 new lockout tests). | `shipshape/08-security` | [`1361c54`](#) + [`9cdf809`](#) + [`176ff29`](#) + [`e85cfa0`](#) |
 
 Plus a pre-existing tooling bug found while opening the audit: [`db106d1`](#) fixes a brace-tracking bug in `scripts/check-empty-tests.sh` that was throwing false positives on tests containing nested arrow functions.
 
@@ -71,7 +71,7 @@ If you have 30 minutes, also read the audit's full Category sections + skim one 
 | 5 | (multiple test files) | `shipshape/05-test-coverage` | 16 tests for `extractText`/`hasContent`/date helpers + 3 regression tests for the Cat 6 error handler |
 | 6 | [06-runtime-errors.md](improvements/06-runtime-errors.md) | `shipshape/06-runtime-errors` | before/after malformed-input probe, JSON 404 design, what was scoped out |
 | 7 | [07-accessibility.md](improvements/07-accessibility.md) + [v2-lighthouse](improvements/07-accessibility-v2-lighthouse.md) | `shipshape/07-accessibility` | new `accent-bright` token, `text-muted/{N}` sweep script, opacity-40 wrapper rewrite; v2 doc adds independent Lighthouse cross-check with full HTML reports |
-| 8 | [08-security.md](improvements/08-security.md) + [MANUAL_REVIEW.md](security/MANUAL_REVIEW.md) | `shipshape/08-security` | runnable probe tool ([shipshape/security/probe.mjs](security/probe.mjs)), 3 verified fixes (WS process-crash, two transitive critical CVEs, body-parser stack-leak), manual review of CORS/CSP/secrets/rate-limit/error-verbosity with file:line refs |
+| 8 | [08-security.md](improvements/08-security.md) + [MANUAL_REVIEW.md](security/MANUAL_REVIEW.md) | `shipshape/08-security` | runnable probe tool ([shipshape/security/probe.mjs](security/probe.mjs)), 5 verified fixes (WS process-crash, two transitive critical CVEs, body-parser stack-leak, WS Origin allow-list against CSWSH, per-account login lockout against distributed credential stuffing), manual review of CORS/CSP/secrets/rate-limit/error-verbosity with file:line refs |
 
 ---
 
@@ -85,9 +85,9 @@ The brief lists 8 deliverables. This is where each one lives:
 | 2 | Audit report w/ baselines + methodology | [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md) (8 categories) + [GATE_CHECKLIST.md](audit/GATE_CHECKLIST.md) (1-page brief-gate index) + [COMPREHENSIVE_AUDIT.md](audit/COMPREHENSIVE_AUDIT.md) (brief's exact-tables variant). Cat 8 adds a runnable probe tool: [shipshape/security/probe.mjs](security/probe.mjs). Raw evidence under [audit/raw/](audit/raw/) + [security/raw/](security/raw/). |
 | 3 | Improvement documentation (one per category) | [shipshape/improvements/0N-*.md](improvements/) — see the table above. Each has before, root cause, fix, after, reproducibility. |
 | 4 | Discovery write-up (3 patterns + reflection) | [shipshape/discoveries.md](discoveries.md) on the `shipshape/05-test-coverage` branch. |
-| 5 | Demo video (3–5 min) | Script + recording-day checklist: [shipshape/demo-video-script.md](demo-video-script.md). MP4 to be recorded once deployment is live (so the closing URL works). |
+| 5 | Demo video (3–5 min) | Recorded. Script: [shipshape/demo-video-script.md](demo-video-script.md). |
 | 6 | AI cost analysis | [shipshape/ai-cost-analysis.md](ai-cost-analysis.md) — spend template + 3-section reflection (where AI helped, where it stumbled, what to carry forward). |
-| 7 | Deployed application | Railway (web + api + Postgres in one project). Step-by-step guide: [shipshape/deploy-railway.md](deploy-railway.md). **TBD link** — added here once live. |
+| 7 | Deployed application | Live on Vercel (web) + Render (api) + Neon (Postgres). Web: [ship-henna.vercel.app](https://ship-henna.vercel.app). API: `https://ship-api-76ez.onrender.com`. Production-side Cat 8 verification: [shipshape/security/raw-prod/verification.md](security/raw-prod/verification.md). |
 | 8 | Social post (X + LinkedIn) | 3 drafts each + posting checklist: [shipshape/social-posts.md](social-posts.md). |
 
 ---
@@ -177,7 +177,10 @@ shipshape/audit                  ← shared base; SHIPSHAPE_AUDIT flag, rollup-p
 ├── shipshape/04-db-queries      507f4dc  merge /my-work 4 queries into 2
 ├── shipshape/05-test-coverage   5ee270f  + 9596851 + 912381e + bb6bb3c — 19 tests + Cat 6 + discoveries
 ├── shipshape/06-runtime-errors  0470de1  global JSON error handler + JSON 404
-└── shipshape/07-accessibility   97a5eec  clear all 46 color-contrast violations
+├── shipshape/07-accessibility   97a5eec  clear all 46 color-contrast violations
+└── shipshape/08-security        1361c54 + 9cdf809 + 176ff29 + e85cfa0
+                                  probe tool + 5 verified fixes (WS crash, 2 CVEs,
+                                  body-parser leak, WS Origin allow-list, login lockout)
 
 Plus on the audit base:
   db106d1  fix(scripts): track brace depth in check-empty-tests.sh
@@ -196,11 +199,11 @@ Plus on the audit base:
 
 | Deliverable | Status | Where |
 |---|---|---|
-| Forked GitHub repo with labeled branches | ✅ | this repo + the 7 `shipshape/*` branches |
-| Audit report | ✅ | [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md) |
-| Improvement documentation per category | ✅ | [shipshape/improvements/](improvements/) |
+| Forked GitHub repo with labeled branches | ✅ | this repo + the 8 `shipshape/*` branches |
+| Audit report | ✅ | [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md) + [GATE_CHECKLIST.md](audit/GATE_CHECKLIST.md) |
+| Improvement documentation per category | ✅ | [shipshape/improvements/](improvements/) — 8 docs |
 | Discovery write-up (3 things) | ✅ | [shipshape/discoveries.md](discoveries.md) |
-| Demo video (3–5 min) | ⏳ | walks through audit report + 2-3 improvements; script in progress |
+| Demo video (3–5 min) | ✅ | Recorded; script at [shipshape/demo-video-script.md](demo-video-script.md) |
 | AI cost analysis | ⏳ | template ready; needs actual usage numbers |
-| Deployed application | ⏳ | `./scripts/deploy.sh prod` + `./scripts/deploy-frontend.sh prod` after merging branches |
+| Deployed application | ✅ | Web: [ship-henna.vercel.app](https://ship-henna.vercel.app) · API: `ship-api-76ez.onrender.com` · DB: Neon. Production Cat 8 verification: [shipshape/security/raw-prod/verification.md](security/raw-prod/verification.md). |
 | Social post (X / LinkedIn) | ⏳ | draft pending |
