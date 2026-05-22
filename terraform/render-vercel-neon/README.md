@@ -96,67 +96,57 @@ diff <(grep -hE '^variable "' variables.tf | sed -E 's/variable "([^"]+)" \{/\1/
      <(grep -hoE 'var\.[a-z_]+' *.tf | sed 's/var\.//' | sort -u)
 ```
 
-## Runtime verification — `terraform init` + `terraform validate` clean on 2026-05-22
+## Runtime verification — `terraform apply` SUCCEEDED on 2026-05-22
 
-After the static-verification pass, I installed Terraform 1.15.4 via a streaming binary download and ran the full init + validate cycle. **Both passed.**
+After `terraform init` + `terraform validate` came back clean, this module ran end-to-end against real provider APIs and stood up the full stack. The Render-hosted API responded `HTTP 200` on `/health` against the Terraform-provisioned Neon Postgres database. Full evidence (resource IDs, error→fix iteration log, cost summary) lives at [shipshape/security/raw-prod/terraform-apply-evidence.md](../../shipshape/security/raw-prod/terraform-apply-evidence.md).
 
 ```
-$ terraform init
-Initializing provider plugins ...
-- Installed render-oss/render v1.8.0   (within ~> 1.4)
-- Installed vercel/vercel v2.15.1      (within ~> 2.0)
-- Installed kislerdm/neon v0.13.0      (within ~> 0.6)
-- Installed hashicorp/random v3.9.0    (within ~> 3.6)
-Terraform has been successfully initialized!
+$ terraform apply tfplan
+neon_project.ship: Creating...
+neon_project.ship: Creation complete after 4s [id=damp-wind-20568016]
+render_web_service.api: Creating...
+render_web_service.api: Creation complete after 4s [id=srv-d88bgo37uimc73bb1lvg]
+vercel_project.web: Creating...
+vercel_project.web: Creation complete after 3s [id=prj_V1M4R1YClxXMG7o3WFapkLmRqYkQ]
+vercel_project_domain.web: Creating...
+vercel_project_domain.web: Creation complete after 1s [id=ship-shipshape.vercel.app]
 
-$ terraform validate
-Success! The configuration is valid.
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
+
+Outputs:
+api_url     = "https://ship-shipshape-api.onrender.com"
+web_url     = "https://ship-shipshape.vercel.app"
+neon_project_id = "damp-wind-20568016"
 ```
 
-The committed [.terraform.lock.hcl](.terraform.lock.hcl) pins the verified provider versions and their package hashes so subsequent `terraform init` runs use the exact same providers (or fail loudly if they're tampered with).
+The resources were torn down with `terraform destroy` after capturing the apply log. Total cost for the apply→verify→destroy cycle: under $0.05 (Render's `starter` plan billed by the second).
 
-### One leaf-attribute fix landed during validate
+### Seven fixes landed during the iterative apply
 
-The validate pass surfaced exactly one of the three attributes the README previously flagged: `neon_branch.endpoint` does not exist on `kislerdm/neon v0.13.0`. Inspecting the actual provider schema revealed that **`neon_project` itself exports `connection_uri`** directly — no need to assemble the URL from role + branch attributes.
+Each one driven by a real provider-API error, not theoretical. All seven are now in the module with comments explaining why:
 
-Fix landed in `main.tf`:
-
-```diff
-- locals {
--   database_url = format(
--     "postgresql://%s:%s@%s/%s?sslmode=require",
--     neon_role.app.name,
--     neon_role.app.password,
--     neon_branch.main.endpoint, # ← did not exist
--     neon_database.ship.name,
--   )
-- }
-+ locals {
-+   database_url = neon_project.ship.connection_uri  # ← canonical attribute
-+ }
-```
-
-Simpler AND correct.
-
-### The other two attributes flagged in the earlier hedge
-
-| Attribute | Status | Notes |
+| # | API error | Fix |
 |---|---|---|
-| `neon_branch.endpoint` | ✅ Resolved (use `neon_project.connection_uri`) | This commit. |
-| `render_web_service.url` | ✅ Still works as written — `render-oss/render v1.8.0` exposes `url` on `render_web_service` | Validate pass confirms. |
-| `vercel_project.environment` | ✅ Still works as written — `vercel/vercel v2.15.1` accepts the list-of-objects shape used | Validate pass confirms. |
+| 1 | `org_id is required` (Neon) | New `variable "neon_org_id"`; wired into `neon_project.ship`. Lookup via `curl /api/v2/users/me/organizations`. |
+| 2 | `history retention exceeds maximum: 21600` (Neon) | `history_retention_seconds` 86400 → 21600 (free-tier ceiling; paid tiers allow 30 days). |
+| 3 | `branch already exists: main` (Neon) | Removed `neon_branch.main`, `neon_role.app`, `neon_database.ship` — Neon auto-creates all three. `connection_uri` comes off `neon_project` directly. |
+| 4 | `invalid ownerID: usr-xxx` (Render) | Pre-existing fields work; just user-supplied owner_id was wrong format. Use `curl /v1/owners` to get the correct `tea-xxx` ID. |
+| 5 | `Payment information is required` (Render) | Provider gap: `render-oss/render v1.8.0` only supports paid plans (`starter`+). Document with comment. |
+| 6 | `invalid_root_directory` (Vercel) | Removed `root_directory = "."`. Vercel rejects `"."`; default-omitted points at repo root which is what `vercel.json` expects. |
+| 7 | `api_url = "https://https://..."` (URL bug) | `render_web_service.url` already includes scheme. Removed `"https://"` prefix in outputs.tf + Vercel env vars (used `trimprefix()` for `wss://` swap). |
 
-### What `validate` still doesn't guarantee
+The three leaf attributes the earlier hedge flagged (`neon_branch.endpoint`, `render_web_service.url`, `vercel_project.environment`) all resolved as expected: the first via using `neon_project.connection_uri` instead, the other two were already correct in the provider versions installed.
 
-`terraform validate` checks configuration validity (attribute names, type compatibility, reference graph) but does NOT actually call the provider APIs. The next step — `terraform plan` against real provider credentials — would catch any runtime issues (auth, region availability, name collisions). That requires the user to supply credentials.
+### One non-blocking limitation surfaced
 
-When you `terraform init` for the first time, expect to potentially adjust:
+The `vercel_project` resource creates the project configuration but does not by itself trigger a first deployment. Vercel's first deploy fires when its GitHub App webhook receives a push event on the production branch — which requires the Vercel GitHub App to be installed on the target repo. During this apply window, the API came up but the Vercel-hosted frontend returned `DEPLOYMENT_NOT_FOUND` for the 5 minutes between apply and destroy.
 
-- **`neon_branch.endpoint`** — the connection-host attribute name may be `connection_uri`, `endpoint`, or `endpoints[0].host` depending on provider version. Inspect `terraform state show neon_branch.main` after the first apply and adjust [main.tf:60](main.tf#L60) accordingly.
-- **`render_web_service.url`** — Render's provider exposes the service URL as either `url` or `service_details[0].url`. Adjust [outputs.tf:8](outputs.tf#L8) if `terraform plan` errors on the reference.
-- **`vercel_project.environment`** — the env-var schema went through a list→set shape change across v1.x → v2.x. If `plan` errors on this, the registry docs at https://registry.terraform.io/providers/vercel/vercel/latest/docs/resources/project#environment will show the current shape.
+Three workarounds for production use:
+- Install the Vercel GitHub App on the target repo (one-time, UI step), OR
+- Add a `vercel_deployment` resource to the module to deploy via the Vercel API directly without webhooks, OR
+- Trigger via `vercel deploy --prod` from CI after `terraform apply`.
 
-These are surgical edits, not architectural rework. The provider blocks, resource graph, and `depends_on` order are correct; only the leaf attribute names may shift across provider versions.
+This is a Vercel/GitHub integration gap, not a defect in the module — the resource graph itself applied cleanly.
 
 ## Secrets
 
