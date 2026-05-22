@@ -32,8 +32,8 @@ async function main() {
   server.keepAliveTimeout = 65000; // 65 seconds (slightly longer than timeout)
   server.headersTimeout = 66000; // 66 seconds (slightly longer than keepAlive)
 
-  // Setup WebSocket collaboration server
-  setupCollaboration(server);
+  // Setup WebSocket collaboration server (with Origin allow-list)
+  setupCollaboration(server, CORS_ORIGIN);
 
   // Start server
   server.listen(PORT, () => {

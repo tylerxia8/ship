@@ -9,13 +9,15 @@
 
 ## Result
 
-**3 verified fixes; critical count 4 → 0; high count 30 → 24.** Three distinct vulnerability classes fixed, all verified by the probe tool:
+**5 verified fixes; critical count 4 → 0; high count 30 → 24.** Five distinct vulnerability classes fixed, all verified by tests or the probe tool. Fixes #4 and #5 close the two medium-severity findings the manual review surfaced (CSWSH + distributed credential stuffing).
 
 | Fix | Class | Before | After | Evidence |
 |---|---|---:|---:|---|
 | **#1** — WebSocket unhandled-error process crash | CWE-20 / CWE-400 (DoS) | 2 critical | 0 critical (1 ok + 1 low) | Probe finding IDs `ws-malformed-server-crash-*` replaced by `ws-malformed-*` (ok/low). Repro: send 11 MB frame OR text frame to authenticated WS → before: Node process exits with unhandled error event; after: server logs warning and stays up. |
 | **#2** — Two critical CVEs in transitive deps | CWE-94 / CWE-1333 | 2 critical (4 deps total flagged) | 0 critical (2 patched) | `pnpm audit` no longer reports `CVE-2026-25896` or `CVE-2026-41242`. Bump via `pnpm.overrides` in root `package.json`. |
 | **#3** — Body-parser stack-trace leak | CWE-209 (Information Exposure Through an Error Message) | 1 high (`error-stack-leak`) | 0 (`error-no-stack-leak` = ok) | `POST /api/issues` with non-JSON body previously returned Express's default HTML error page with the full Node.js stack including `node_modules/.pnpm/body-parser@…` file paths. Cherry-picked the global error handler from `shipshape/06-runtime-errors` (commit `0470de1`); same fix the Cat 6 work landed, now bundled with the Cat 8 deliverable so both the probe AND the manual review find the surface clean. |
+| **#4** — WebSocket cross-site hijacking (CSWSH) | CWE-346 (Origin Validation Error) | Medium — `MANUAL_REVIEW.md § 1` flagged no Origin check on WS upgrades | 0 (probe ID `ws-collab-rejects-evil-origin` + `ws-events-rejects-evil-origin` = ok) | Browser-issued WS upgrade carrying `Origin: https://evil.example.com` is now refused at the upgrade handshake (closeCode=1006). Verified by extended probe in [shipshape/security/raw-08sec-after-v2/report.md](../security/raw-08sec-after-v2/report.md). |
+| **#5** — Distributed credential stuffing (no per-account lockout) | CWE-307 (Improper Restriction of Excessive Authentication Attempts) | Medium — `MANUAL_REVIEW.md § 3` noted global IP-based rate limit (5/15min) does not defend a single account against many source IPs | 0 (3 unit tests prove lockout works) | After 10 failures on a given email — from any IP — the route returns `429 RATE_LIMITED` regardless of password correctness. Cleared on successful login. Verified by `api/src/routes/auth.test.ts > Per-account login lockout` (3 tests, all pass). |
 
 Raw before/after evidence: [raw/cat8-measurement/probe-before.json](raw/cat8-measurement/probe-before.json), [probe-after-v2.json](raw/cat8-measurement/probe-after-v2.json) (after fixes #1 + #2), and [probe-after-v3.json](raw/cat8-measurement/probe-after-v3.json) (after all three fixes — `error-stack-leak` flipped from `high` to `ok`).
 
@@ -348,6 +350,162 @@ Raw: [raw/cat8-measurement/probe-after-v3.json](raw/cat8-measurement/probe-after
 ### No tests broken
 
 The Cat 6 commit was previously test-validated on `shipshape/06-runtime-errors` (3 new regression tests added by Cat 5 specifically for the global error handler — see `api/src/__tests__/global-error-handler.test.ts`). On this branch, the same test transcript above (28 files / 451 tests pass) covers both Fix #1, #2, and the cherry-picked Fix #3 — no test regressed.
+
+---
+
+## Fix #4 — WebSocket cross-site hijacking / missing Origin allow-list (Medium → 0)
+
+### Vulnerability class
+
+CWE-346 (Origin Validation Error). Browser-issued WebSocket upgrade requests always send an `Origin` header. Without server-side validation, a malicious page on `evil.example.com` can open `new WebSocket(wss://victim/collaboration/...)`; the victim's session cookie is sent automatically (cookies are scoped to the target host, not the originating page), giving the attacker page authenticated read/write access to the document. The manual review flagged this as a medium-severity finding (`MANUAL_REVIEW.md § 1`).
+
+### Reproduction (before fix)
+
+```bash
+# Authenticated user logged into ship-henna.vercel.app — session cookie alive.
+# Attacker page on evil.example.com:
+new WebSocket('wss://ship-api-76ez.onrender.com/collaboration/wiki:<docId>')
+# Browser sends Origin: https://evil.example.com along with session_id cookie.
+# Server's session check passes (cookie is valid); upgrade completes.
+# Attacker page now reads/writes Yjs document state in real time.
+```
+
+### Fix applied
+
+[api/src/collaboration/index.ts](../../api/src/collaboration/index.ts) — added an `Origin` allow-list check ahead of the rate-limit and auth checks in `server.on('upgrade', ...)`:
+
+```ts
+function isAllowedWsOrigin(request: IncomingMessage, allowedOrigin: string): boolean {
+  const origin = request.headers.origin;
+  if (!origin) return true; // server-side client (curl, probe); no browser CSRF surface
+  const allowed = allowedOrigin.split(',').map((s) => s.trim().replace(/\/$/, ''));
+  const got = origin.trim().replace(/\/$/, '');
+  return allowed.includes(got);
+}
+
+export function setupCollaboration(server: Server, corsOrigin: string = 'http://localhost:5173') {
+  // ...
+  server.on('upgrade', async (request, socket, head) => {
+    if (!isAllowedWsOrigin(request, corsOrigin)) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+    // ... rest of handler
+  });
+}
+```
+
+The check is intentionally permissive for missing-Origin requests (server-to-server clients omit Origin and aren't subject to browser CSRF). It reuses the same allow-list (`CORS_ORIGIN` from env) that the HTTP `cors()` middleware uses, so there's one source of truth.
+
+### Evidence (after fix)
+
+Probe extended with two new checks (`shipshape/security/modules/websocket.mjs` § B.1). Re-run against patched local API:
+
+```json
+{ "id": "ws-collab-rejects-evil-origin",
+  "severity": "ok",
+  "title": "/collaboration WebSocket rejects malicious Origin header",
+  "evidence": { "openedSuccessfully": false, "closeCode": 1006, ... } }
+
+{ "id": "ws-events-rejects-evil-origin",
+  "severity": "ok",
+  "title": "/events WebSocket rejects malicious Origin header" }
+```
+
+Raw: [shipshape/security/raw-08sec-after-v2/report.md](../security/raw-08sec-after-v2/report.md).
+
+### No tests broken
+
+Type-check + all 454 unit tests (28 files) pass after this change — see test transcript below (combined with Fix #5).
+
+---
+
+## Fix #5 — Distributed credential stuffing (no per-account lockout) (Medium → 0)
+
+### Vulnerability class
+
+CWE-307 (Improper Restriction of Excessive Authentication Attempts). Ship's `loginLimiter` (`api/src/app.ts`) is keyed on the requesting IP at 5 failed attempts per 15 minutes. This defends against a single attacker IP guessing many passwords. It does **not** defend the inverse threat: a botnet of N source IPs each making 1 attempt against the same email — distributed credential stuffing — sails right past the IP limiter because no individual IP exceeds 5/15min.
+
+The manual review flagged this as medium-severity (`MANUAL_REVIEW.md § 3`): "rate-limit defends against single-source brute force, but not against distributed credential stuffing across many IPs against the same account."
+
+### Reproduction (before fix)
+
+Conceptual reproduction (a full proof-of-concept would require renting a residential proxy pool, which is out of scope):
+
+```bash
+# Per-IP rate limit is 5/15min. With 10,000 IPs each making 5 attempts:
+for ip in $RESIDENTIAL_PROXY_POOL; do
+  for guess in $TOP_5_PASSWORDS; do
+    curl -X POST https://victim/api/auth/login \
+         -H "X-Forwarded-For: $ip" \  # if upstream proxy is configured to trust this header
+         -d "{\"email\":\"victim@org.com\",\"password\":\"$guess\"}"
+  done
+done
+# Result: 50,000 guesses against one account; no rate limit ever triggers.
+```
+
+The unit-test reproduction is in `auth.test.ts > Per-account login lockout > locks out an email after 10 failures, even from a single IP`: 10 failed attempts from a single IP succeed in incrementing the per-account counter and the 11th attempt is rejected with 429 regardless of password correctness.
+
+### Fix applied
+
+[api/src/routes/auth.ts](../../api/src/routes/auth.ts) — added an in-memory per-account failure counter keyed on lowercased email. Triggers a 429 lockout independent of source IP:
+
+```ts
+const ACCOUNT_LOCKOUT = {
+  MAX_FAILURES: 10,
+  WINDOW_MS: 15 * 60 * 1000,
+};
+const failedLoginAttempts = new Map<string, number[]>();
+
+router.post('/login', async (req, res) => {
+  // ... validate email/password present ...
+
+  if (recentFailureCount(email) >= ACCOUNT_LOCKOUT.MAX_FAILURES) {
+    res.setHeader('Retry-After', Math.ceil(ACCOUNT_LOCKOUT.WINDOW_MS / 1000).toString());
+    res.status(429).json({
+      success: false,
+      error: { code: 'RATE_LIMITED', message: 'Too many failed login attempts for this account. Try again later.' },
+    });
+    return;
+  }
+
+  // ... DB lookup; on each of the 3 failure paths (user_not_found / piv_only_user / invalid_password)
+  //     call recordLoginFailure(email) BEFORE returning the 401 ...
+
+  // On successful auth (just before session creation):
+  clearLoginFailures(email);
+});
+```
+
+Trade-offs taken:
+- **In-memory** state. Acceptable on Render free-tier (single instance, single process). If we scale horizontally, move the counter to Postgres or Redis — the existing `audit_log` already records every `auth.login_failed` event, so a SQL `COUNT(*) WHERE action='auth.login_failed' AND details->>'email'=$1 AND created_at > now() - interval '15 minutes'` query is the obvious next step.
+- **No deliberate fuzz of the response** — locked-out accounts get a different status code (429 vs 401), which is a small information leak about valid emails. Accepted because: (a) the existing 401 vs 403 distinction (PIV-only message) already leaks the same signal, and (b) defending against username enumeration is a separate, much larger problem.
+- **Window = 15 min, max = 10**: matches `loginLimiter`'s window so locked-out users wait the same window the system already trains them to wait. 10 failures is more permissive than the global 5/IP, because a single human can plausibly fumble 6-7 times.
+
+### Evidence (after fix)
+
+Three new unit tests in `api/src/routes/auth.test.ts`, all green:
+
+```
+Per-account login lockout
+  ✓ locks out an email after 10 failures, even from a single IP
+  ✓ still blocks even with the correct password while locked out
+  ✓ treats email case-insensitively for lockout matching
+```
+
+Test #2 is the load-bearing one: after exhausting 10 wrong-password attempts, the 11th attempt with the **correct** password still returns 429 — proving the counter check runs *before* password verification, which is exactly the defense the brief asks for.
+
+```
+$ corepack pnpm --filter @ship/api test
+…
+ Test Files  28 passed (28)
+      Tests  454 passed (454)
+```
+
+### No tests broken
+
+The 451 baseline tests all pass; the 3 new tests bring the total to 454/454. Type-check across `api/web/shared` clean. The probe-tool counts the new lockout findings only when the auth probe can log in (i.e. with real seed creds) — for unauthenticated probe runs, the lockout's empirical proof lives in the unit tests.
 
 ---
 
