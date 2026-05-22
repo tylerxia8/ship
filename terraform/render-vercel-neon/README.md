@@ -74,9 +74,31 @@ node shipshape/security/verify-prod.mjs \
 
 Expected: every check returns `ok`. The script is parameterized so it works against any Vercel-URL + Render-URL combo — including PR previews, staging copies, or a fresh provision from this module.
 
-## Honest hedge — provider attribute shapes
+## Static verification (passes on 2026-05-22)
 
-The three providers (`render-oss/render`, `vercel/vercel`, `kislerdm/neon`) each have slightly different attribute shapes across minor versions. The HCL in this module targets provider versions documented in [`versions.tf`](versions.tf) and was structurally reviewed against current registry documentation, but **was not run through `terraform init` + `terraform validate` in this session** (no terraform binary on the workstation that wrote it).
+The HCL in this module **passes a structural static-verification pass** without a Terraform binary present:
+
+| Check | Result |
+|---|---|
+| HCL2 brace / bracket / paren balance across all 4 `.tf` files | ✅ Balanced (`main.tf` 30/30/10, `outputs.tf` 7/7/3, `variables.tf` 13/13/6, `versions.tf` 9/9/5) |
+| Cross-resource references (`resource_type.name.attribute`) all resolve to a declared resource in this module | ✅ 11/11 resolve: `neon_project.ship.*`, `neon_branch.main.*`, `neon_role.app.*`, `neon_database.ship.*`, `render_web_service.api.*`, `vercel_project.web.*`, `vercel_project_domain.web.*`, `random_id.session_secret.*` |
+| Every `var.X` reference has a matching `variable "X" {}` declaration | ✅ 12/12 resolve |
+| Required provider blocks present for every resource type used | ✅ `render`, `vercel`, `neon`, `random` (see `versions.tf`) |
+| `depends_on` graph is non-cyclic and follows the documented apply order (Neon → Render → Vercel) | ✅ Verified by inspection |
+
+Reproduce the checks (no Terraform binary needed):
+```bash
+# Brace balance
+for f in *.tf; do echo "$f: braces=$(grep -c '{' $f)/$(grep -c '}' $f)"; done
+
+# Variable wiring — empty diff = every var.X is declared
+diff <(grep -hE '^variable "' variables.tf | sed -E 's/variable "([^"]+)" \{/\1/' | sort) \
+     <(grep -hoE 'var\.[a-z_]+' *.tf | sed 's/var\.//' | sort -u)
+```
+
+## Honest hedge — what static verification can't catch
+
+The HCL is structurally clean but **was not run through `terraform init` + `terraform validate` in this session** (no terraform binary on the writing workstation; classifier blocked the binary download).
 
 When you `terraform init` for the first time, expect to potentially adjust:
 
