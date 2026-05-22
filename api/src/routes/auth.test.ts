@@ -364,6 +364,64 @@ describe('Auth API', () => {
     })
   })
 
+  describe('Per-account login lockout', () => {
+    // Verifies the in-memory failure counter added in shipshape/08-security to
+    // defend against distributed credential stuffing (the global IP-based
+    // login limiter doesn't help when each guess comes from a different IP).
+    it('locks out an email after 10 failures, even from a single IP', async () => {
+      const lockoutEmail = `lockout-${testRunId}@ship.local`
+      // Make 10 failed attempts (user does not exist → 401 each)
+      for (let i = 0; i < 10; i++) {
+        const r = await loginWithCsrf(lockoutEmail, 'whatever')
+        expect(r.status).toBe(401)
+      }
+      // 11th attempt: lockout should kick in regardless of password
+      const blocked = await loginWithCsrf(lockoutEmail, 'whatever')
+      expect(blocked.status).toBe(429)
+      expect(blocked.body.error.code).toBe('RATE_LIMITED')
+      expect(blocked.headers['retry-after']).toBeDefined()
+    })
+
+    it('still blocks even with the correct password while locked out', async () => {
+      // Create a real user so a correct password exists, then exhaust attempts
+      const realEmail = `lockout-real-${testRunId}@ship.local`
+      const realPwd = 'CorrectHorse-7777!'
+      const hash = await bcrypt.hash(realPwd, 10)
+      const u = await pool.query(
+        `INSERT INTO users (email, password_hash, name) VALUES ($1, $2, 'Lockout Real') RETURNING id`,
+        [realEmail, hash]
+      )
+      const uid = u.rows[0].id
+      await pool.query(
+        `INSERT INTO workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, 'member')`,
+        [testWorkspaceId, uid]
+      )
+      try {
+        for (let i = 0; i < 10; i++) {
+          const r = await loginWithCsrf(realEmail, 'wrong-password')
+          expect(r.status).toBe(401)
+        }
+        const blocked = await loginWithCsrf(realEmail, realPwd)
+        expect(blocked.status).toBe(429)
+      } finally {
+        await pool.query('DELETE FROM sessions WHERE user_id = $1', [uid])
+        await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [uid])
+        await pool.query('DELETE FROM users WHERE id = $1', [uid])
+      }
+    })
+
+    it('treats email case-insensitively for lockout matching', async () => {
+      const baseEmail = `lockout-case-${testRunId}@ship.local`
+      for (let i = 0; i < 10; i++) {
+        const r = await loginWithCsrf(baseEmail, 'wrong')
+        expect(r.status).toBe(401)
+      }
+      // 11th attempt using uppercase variant — should still be blocked
+      const blocked = await loginWithCsrf(baseEmail.toUpperCase(), 'wrong')
+      expect(blocked.status).toBe(429)
+    })
+  })
+
   describe('Session Security', () => {
     it('should generate unique session IDs for each login', async () => {
       // Login twice and verify different session IDs

@@ -14,6 +14,57 @@ function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// ── Per-account login lockout (defense vs. distributed credential stuffing) ──
+//
+// The global IP-based rate limit (5 logins / 15 min) defends against a single
+// IP guessing passwords for many accounts. It does NOT defend against the
+// inverse: many IPs each trying one credential pair against the same account.
+// This per-account counter caps failures per email regardless of source IP.
+//
+// In-memory only — acceptable for single-instance deployments. If we ever scale
+// horizontally, move this to Postgres or Redis. The brief doesn't require
+// distributed state and Render free-tier runs one instance.
+const ACCOUNT_LOCKOUT = {
+  MAX_FAILURES: 10,
+  WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+};
+const failedLoginAttempts = new Map<string, number[]>();
+
+function failureKey(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function recentFailureCount(email: string): number {
+  const key = failureKey(email);
+  const now = Date.now();
+  const arr = failedLoginAttempts.get(key) ?? [];
+  const recent = arr.filter((t) => now - t < ACCOUNT_LOCKOUT.WINDOW_MS);
+  if (recent.length !== arr.length) failedLoginAttempts.set(key, recent);
+  return recent.length;
+}
+
+function recordLoginFailure(email: string): void {
+  const key = failureKey(email);
+  const now = Date.now();
+  const arr = (failedLoginAttempts.get(key) ?? []).filter((t) => now - t < ACCOUNT_LOCKOUT.WINDOW_MS);
+  arr.push(now);
+  failedLoginAttempts.set(key, arr);
+}
+
+function clearLoginFailures(email: string): void {
+  failedLoginAttempts.delete(failureKey(email));
+}
+
+// Periodic cleanup so the Map doesn't grow unbounded.
+setInterval(() => {
+  const now = Date.now();
+  failedLoginAttempts.forEach((arr, key) => {
+    const recent = arr.filter((t) => now - t < ACCOUNT_LOCKOUT.WINDOW_MS);
+    if (recent.length === 0) failedLoginAttempts.delete(key);
+    else failedLoginAttempts.set(key, recent);
+  });
+}, 60_000);
+
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
@@ -24,6 +75,27 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       error: {
         code: ERROR_CODES.VALIDATION_ERROR,
         message: 'Email and password are required',
+      },
+    });
+    return;
+  }
+
+  // Per-account lockout: if this email has too many recent failures from
+  // ANY source, reject immediately without touching the password hash. This
+  // closes the distributed credential stuffing gap that the global IP rate
+  // limit leaves open.
+  if (recentFailureCount(email) >= ACCOUNT_LOCKOUT.MAX_FAILURES) {
+    await logAuditEvent({
+      action: 'auth.login_locked_out',
+      details: { email, reason: 'too_many_failures' },
+      req,
+    });
+    res.setHeader('Retry-After', Math.ceil(ACCOUNT_LOCKOUT.WINDOW_MS / 1000).toString());
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'RATE_LIMITED',
+        message: 'Too many failed login attempts for this account. Try again later.',
       },
     });
     return;
@@ -41,6 +113,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     const user = userResult.rows[0];
 
     if (!user) {
+      recordLoginFailure(email);
       await logAuditEvent({
         action: 'auth.login_failed',
         details: { email, reason: 'user_not_found' },
@@ -58,6 +131,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
     // Verify password (PIV-only users have null password_hash)
     if (!user.password_hash) {
+      recordLoginFailure(email);
       await logAuditEvent({
         action: 'auth.login_failed',
         details: { email, reason: 'piv_only_user' },
@@ -76,6 +150,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     const validPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!validPassword) {
+      recordLoginFailure(email);
       await logAuditEvent({
         action: 'auth.login_failed',
         details: { email, reason: 'invalid_password' },
@@ -137,6 +212,9 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
+
+    // Clear the per-account failure counter on successful authentication.
+    clearLoginFailures(email);
 
     // Session fixation prevention: Delete any existing session from this request
     const oldSessionId = req.cookies.session_id;

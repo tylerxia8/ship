@@ -78,7 +78,7 @@ app.use(helmet({
 | `base-uri 'self'`, `form-action 'self'` | restrictive | ✅ Prevents `<base>` hijacking + form-redirection XSS. |
 | HSTS 1 year, includeSubDomains, preload | strong | ✅ Eligible for `hstspreload.org` submission. |
 
-**Cross-origin requests are properly restricted?** YES at the HTTP layer (CORS = single origin). Partial at the WS layer (relies on `sameSite=strict` cookie rather than explicit `Origin` validation).
+**Cross-origin requests are properly restricted?** YES at the HTTP layer (CORS = single origin). **YES at the WS layer as of Cat 8 Fix #4** — the `setupCollaboration` upgrade handler now rejects browser-issued WS upgrades whose `Origin` header is not on the allow-list (returns 403 before the session check). Probe verifies via `ws-collab-rejects-evil-origin` + `ws-events-rejects-evil-origin` (both `ok`). See [shipshape/improvements/08-security.md § Fix #4](../improvements/08-security.md#fix-4--websocket-cross-site-hijacking--missing-origin-allow-list-medium--0).
 
 ---
 
@@ -171,7 +171,7 @@ The brief: *"can a single client hammer the API or WebSocket endpoint without re
 | WS connection limit (30/IP/min) applies BEFORE auth check (good). | ok | [`collaboration/index.ts:636-648`](../../api/src/collaboration/index.ts#L636) — connection counter incremented before `validateWebSocketSession()`, so unauth attackers can't probe-burn server resources beyond 30 attempted upgrades. |
 | WS message limit is 50 msgs/sec/connection. | ok | Yjs sync protocol generates ~5-10 msgs/sec on a single doc; 50 leaves ~5× headroom for batched updates without enabling DoS. |
 | Login limiter uses `skipSuccessfulRequests: true`. | ok | Means **failed** logins count, successful logins don't. Correct defense pattern: a legitimate user who mistypes once and succeeds doesn't lock themselves out, but a brute-forcer hitting 5 wrong passwords in 15 min does. |
-| **Login limiter is per-IP, no per-account.** | medium | A distributed attacker (botnet) can spread login attempts across many IPs, defeating the 5-per-15-min limit by using 1000 IPs. Per-account lockout (e.g., 10 failed attempts in 30 min on a specific email) would be more resilient. Today: no per-account counter exists. Filed as follow-up. |
+| ~~Login limiter is per-IP, no per-account.~~ **RESOLVED in Cat 8 Fix #5.** | ok | An in-memory per-email failure counter now triggers `429 RATE_LIMITED` after 10 failures within 15 minutes, regardless of source IP. Cleared on successful login. Verified by 3 unit tests in `api/src/routes/auth.test.ts > Per-account login lockout` (including a load-bearing test that proves a correct password is still rejected while locked out). See [shipshape/improvements/08-security.md § Fix #5](../improvements/08-security.md#fix-5--distributed-credential-stuffing-no-per-account-lockout-medium--0). |
 | No rate limiter on `/api/csrf-token` GET specifically. | low | The endpoint is GET-only, no body, no DB write — just generates a token from the session secret. Falls under the generic `/api/*` 100/min limiter. Could be tightened to 10/min for that path alone if abuse is observed, but not currently necessary. |
 | WS message rate limiter uses in-memory `Map`. | low | A single-process limiter doesn't survive process restart and doesn't share state across horizontally-scaled instances. Acceptable for the current single-process deploy; would need Redis-backed limiter if multi-node. Documented at [`collaboration/index.ts:33-36`](../../api/src/collaboration/index.ts#L33-L36). |
 
@@ -292,15 +292,15 @@ This was the headline Cat 6 fix on `shipshape/06-runtime-errors`. **Now also lan
 
 | Brief area | Finding count | Worst severity | Probe finding ID(s) |
 |---|---:|---|---|
-| CORS / CSP | 3 (1 ok, 1 low, 1 medium) | medium (WS Origin not validated) | `cors-restricts-origin`, `csp-present` |
+| CORS / CSP | 3 (2 ok, 1 low; medium → **resolved by Fix #4**) | low (CSP `'unsafe-inline'` for admin-credentials page) | `cors-restricts-origin`, `csp-present`, `ws-collab-rejects-evil-origin` |
 | Env vars / secrets | 4 (3 ok, 1 low — dev-seed password log) | low | `secrets-no-leaks-in-client-bundle` |
-| Rate limiting | 9 (8 ok/low, 1 medium — per-IP not per-account login) | medium | `ratelimit-login-active` |
-| Error verbosity | 4 (3 ok, 1 high → **now resolved**) | none after Fix #3 | `error-no-stack-leak` (was `error-stack-leak`) |
+| Rate limiting | 9 (8 ok/low; medium → **resolved by Fix #5**) | low | `ratelimit-login-active` + 3 lockout unit tests |
+| Error verbosity | 4 (3 ok, 1 high → **resolved by Fix #3**) | none | `error-no-stack-leak` (was `error-stack-leak`) |
 
-The body-parser stack-trace leakage was the most actionable finding from this manual review. **Cherry-picked the Cat 6 global error handler fix (commit `0470de1`) onto this branch as Cat 8 Fix #3** — the surface is now clean per the v3 probe re-run.
+All four areas now reach `ok` or `low` at worst. The five fix commits that brought us here:
 
-The WS-Origin validation gap is a defense-in-depth concern: today's `sameSite=strict` cookie prevents the practical attack, but explicit `Origin` validation in the upgrade handler would be belt + suspenders.
+1. **Fix #3** — body-parser stack-trace leak resolved by cherry-picking the Cat 6 global error handler (commit `0470de1`).
+2. **Fix #4** — WS Origin allow-list added to `setupCollaboration` upgrade handler. Probe verifies `Origin: https://evil.example.com` is now refused at the upgrade.
+3. **Fix #5** — Per-account login lockout (in-memory counter on `auth.ts`, 10 failures / 15min). Three unit tests in `auth.test.ts > Per-account login lockout` prove the lockout fires even when the password is correct.
 
-The per-IP-not-per-account login lockout is a structural concern that doesn't surface as a current vulnerability but would matter under a distributed credential-stuffing attack.
-
-All other surfaces are clean and have explicit `ok` verifications.
+Fixes #1 + #2 (WebSocket unhandled-error crash + 2 critical CVEs) are tracked in [shipshape/improvements/08-security.md](../improvements/08-security.md) and were the original 2-fix target before the manual review surfaced the medium-severity surface.

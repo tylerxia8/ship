@@ -619,12 +619,36 @@ export function broadcastToUser(userId: string, eventType: string, data?: Record
 // DDoS protection: Max WebSocket message size (10MB, matches REST API limit)
 const MAX_WS_MESSAGE_SIZE = 10 * 1024 * 1024;
 
-export function setupCollaboration(server: Server) {
+// Cross-site WebSocket hijacking defense.
+// Browsers always send Origin on WS upgrades. Reject upgrades whose Origin
+// doesn't match the configured CORS origin — same allow-list applied to
+// HTTP routes via the cors() middleware. Server-side clients (probes, CLIs)
+// usually omit Origin entirely; allow those through because cookies aren't
+// auto-attached server-side so there's no CSRF risk.
+function isAllowedWsOrigin(request: IncomingMessage, allowedOrigin: string): boolean {
+  const origin = request.headers.origin;
+  if (!origin) return true; // server-side client; no browser CSRF surface
+  // Normalize: trim trailing slash; comma-separated list also supported.
+  const allowed = allowedOrigin.split(',').map((s) => s.trim().replace(/\/$/, ''));
+  const got = origin.trim().replace(/\/$/, '');
+  return allowed.includes(got);
+}
+
+export function setupCollaboration(server: Server, corsOrigin: string = 'http://localhost:5173') {
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_MESSAGE_SIZE });
   const eventsWss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_MESSAGE_SIZE });
 
   server.on('upgrade', async (request, socket, head) => {
     const url = new URL(request.url || '', `http://${request.headers.host}`);
+
+    // Origin allow-list check — must run before auth so we reject
+    // CSWSH (cross-site WS hijack) attempts even from authenticated
+    // browser sessions that have a session_id cookie.
+    if (!isAllowedWsOrigin(request, corsOrigin)) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
 
     // Handle /events WebSocket for real-time notifications
     if (url.pathname === '/events') {

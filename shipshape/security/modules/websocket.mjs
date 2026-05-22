@@ -54,6 +54,61 @@ export async function runWebSocketProbe(config) {
     });
   }
 
+  // ── B.1. CSWSH defense: cross-origin WS upgrade must be rejected ───────
+  // Browser-issued WS upgrades always carry an Origin header. An attacker
+  // page on evil.example.com that opens `new WebSocket(ws://victim/...)`
+  // would send Origin: https://evil.example.com along with the victim's
+  // session cookies. The server MUST reject by Origin before honoring the
+  // upgrade. Verified by setting Origin explicitly on a probe upgrade.
+  const evilOriginCollab = await probeWebSocket(
+    `${wsBase}/collaboration/wiki:00000000-0000-0000-0000-000000000000`,
+    { headers: { Origin: 'https://evil.example.com' } }
+  );
+  if (evilOriginCollab.closeCode === 1006 || evilOriginCollab.gotErrorBeforeOpen) {
+    findings.push({
+      surface: 'websocket',
+      id: 'ws-collab-rejects-evil-origin',
+      severity: 'ok',
+      title: '/collaboration WebSocket rejects malicious Origin header',
+      description: `Upgrade carrying Origin: https://evil.example.com was refused at handshake (closeCode=${evilOriginCollab.closeCode}). CSWSH defense in place.`,
+      evidence: evilOriginCollab,
+    });
+  } else {
+    findings.push({
+      surface: 'websocket',
+      id: 'ws-collab-accepts-evil-origin',
+      severity: 'high',
+      title: '/collaboration WebSocket accepted upgrade from evil.example.com',
+      description: 'Server returned a successful WS handshake to an upgrade carrying Origin: https://evil.example.com. Any malicious site can open authenticated WS to a victim user — cross-site WebSocket hijacking (CSWSH).',
+      cwe: 'CWE-346 (Origin Validation Error)',
+      evidence: evilOriginCollab,
+    });
+  }
+
+  const evilOriginEvents = await probeWebSocket(`${wsBase}/events`, {
+    headers: { Origin: 'https://evil.example.com' },
+  });
+  if (evilOriginEvents.closeCode === 1006 || evilOriginEvents.gotErrorBeforeOpen) {
+    findings.push({
+      surface: 'websocket',
+      id: 'ws-events-rejects-evil-origin',
+      severity: 'ok',
+      title: '/events WebSocket rejects malicious Origin header',
+      description: `Upgrade carrying Origin: https://evil.example.com was refused (closeCode=${evilOriginEvents.closeCode}).`,
+      evidence: evilOriginEvents,
+    });
+  } else {
+    findings.push({
+      surface: 'websocket',
+      id: 'ws-events-accepts-evil-origin',
+      severity: 'high',
+      title: '/events WebSocket accepted upgrade from evil.example.com',
+      description: 'Server upgraded /events for a request whose Origin header was evil.example.com. Notifications stream is reachable from cross-site contexts.',
+      cwe: 'CWE-346 (Origin Validation Error)',
+      evidence: evilOriginEvents,
+    });
+  }
+
   // ── C. Unknown WS path → server destroys socket (no 5xx, no panic) ─────
   const unknownPath = await probeWebSocket(`${wsBase}/this-is-not-a-real-ws-endpoint`);
   if (unknownPath.closeCode === 1006 || unknownPath.gotErrorBeforeOpen) {
