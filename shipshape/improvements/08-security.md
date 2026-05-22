@@ -153,7 +153,24 @@ Both critical findings cleared. Server remains responsive across hundreds of mal
 
 ### No tests broken
 
-Existing test suite (api unit + e2e) does not exercise this code path; the only behavior change is "process no longer crashes on bad input." A regression test could be added at the API-integration level (open a real WS, send oversized payload, assert server still responds within 2 s) — filed as follow-up.
+**Empirically verified, not just claimed.** The full api unit suite ran clean on this branch (`shipshape/08-security` HEAD = `0de375c` at the time of the test run):
+
+```
+$ corepack pnpm --filter @ship/api test
+…
+ Test Files  28 passed (28)
+      Tests  451 passed (451)
+   Start at  20:22:38
+   Duration  108.40s
+```
+
+Full transcript: [raw/cat8-measurement/test-suite-after-fixes.txt](raw/cat8-measurement/test-suite-after-fixes.txt). Type-check also clean across all 3 workspaces (`pnpm type-check`: 0 errors in api / web / shared).
+
+The `auth.test.ts` "Auth middleware error" line in stderr is an *expected* error from a test that intentionally simulates a DB connection failure to verify the 500 response shape — the test itself passes.
+
+Why are existing tests unaffected: the fix adds error-handling code paths (ws.on('error') listener + try/catch) but doesn't change any behavior in the success path. Tests that don't trigger malformed-WS input therefore see no behavior change.
+
+**Regression coverage going forward:** the probe tool itself acts as a regression test — `node shipshape/security/probe.mjs` against the deployed instance will detect immediately if the WS crash returns (probe finding `ws-malformed-11-mb-binary-payload` would flip from `ok` back to `critical`). A unit-level regression test inside `api/src/collaboration/__tests__/` is filed as a follow-up.
 
 ---
 
@@ -214,7 +231,15 @@ The probe's deps surface drops from `4 critical` to `0 critical`. The two specif
 
 ### No tests broken
 
-`pnpm install` after the override succeeds with no resolver errors. `pnpm --filter @ship/api type-check` passes. The two bumped packages are minor-version increments within the same major (5.x → 5.x, 7.x → 7.x), so API surface is unchanged.
+**Empirically verified.** Same test-suite run that covers Fix #1 also covers this fix (both are on the same `shipshape/08-security` HEAD):
+
+```
+$ corepack pnpm --filter @ship/api test
+ Test Files  28 passed (28)
+      Tests  451 passed (451)
+```
+
+Full transcript: [raw/cat8-measurement/test-suite-after-fixes.txt](raw/cat8-measurement/test-suite-after-fixes.txt). `pnpm install` after the override succeeds with no resolver errors. Type-check clean across all 3 workspaces. The two bumped packages are minor-version increments within the same major (5.x → 5.x, 7.x → 7.x), so the JavaScript API surface they expose is unchanged — and no test or production code calls the bumped packages directly anyway (both are transitive deps consumed by AWS SDK / testcontainers, which already wrap them).
 
 ---
 
