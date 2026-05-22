@@ -1,0 +1,89 @@
+# =============================================================================
+# Production-mirror compose — exercises the multi-stage Dockerfile that runs
+# on Render in production. This is what the live ship-api-76ez.onrender.com
+# image looks like under the hood.
+#
+# Why this file exists (separate from docker-compose.local.yml):
+#   - docker-compose.local.yml uses Dockerfile.dev (Vite dev server + tsx watch).
+#   - This file uses the multi-stage prod Dockerfile + Postgres pinned to the
+#     same major version as Neon (Postgres 16). NODE_ENV=production triggers
+#     the same code paths the live Render service runs.
+#
+# Usage:
+#   docker compose -f docker-compose.prod-mirror.yml up --build
+#
+# The api container will:
+#   1. Wait for postgres healthy
+#   2. Run `node dist/db/migrate.js` (same migrate command as Render)
+#   3. Start `node dist/index.js` on PORT=8080 (matches Render's $PORT)
+#
+# Smoke-test the running stack:
+#   curl http://localhost:8080/health
+#   curl -sS -o /dev/null -w '%{http_code}\n' -X POST \
+#     -H 'Content-Type: application/json' -d 'not-json' \
+#     http://localhost:8080/api/issues
+#   # → 400 (Cat 6 + Cat 8 Fix #3 — sanitized envelope, no stack leak)
+#
+# To stop and remove volumes:
+#   docker compose -f docker-compose.prod-mirror.yml down -v
+# =============================================================================
+
+services:
+  postgres:
+    # Neon production runs Postgres 16; mirror that exactly so any
+    # Postgres-version-sensitive code (e.g. JSONB operators) behaves the
+    # same locally as in prod.
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ship_prod_mirror
+      POSTGRES_USER: ship
+      POSTGRES_PASSWORD: ship_prod_mirror_password
+    ports:
+      # Use 5434 to avoid collision with both native PostgreSQL (5432) and
+      # the dev-compose Postgres (5433).
+      - "5434:5432"
+    volumes:
+      - postgres_prod_mirror_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ship -d ship_prod_mirror"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      # Multi-stage prod Dockerfile — same image Render builds + runs.
+      dockerfile: Dockerfile
+    ports:
+      # 8080 matches the EXPOSE in Dockerfile and Render's default $PORT.
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://ship:ship_prod_mirror_password@postgres:5432/ship_prod_mirror
+      # SESSION_SECRET in this file is a LOCAL-MIRROR-ONLY value. Production
+      # uses a real secret from Render's env vars (SSM in the AWS path).
+      SESSION_SECRET: prod-mirror-local-only-secret-not-for-real-deploys
+      # Cat 8 Fix #4 — the WS Origin allow-list reads this env. To exercise
+      # the same code path Render runs, set this to whatever origin the web
+      # frontend will use to call this API. The default below matches the
+      # Vite dev server so you can point a local web build at this stack.
+      CORS_ORIGIN: http://localhost:5173
+      # Cookie SameSite resolution honors COOKIE_SAMESITE if set. Matches
+      # api/src/config/cookie-options.ts (commit 14522db trimming + lowercasing).
+      COOKIE_SAMESITE: none
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Lightweight liveness check — the prod image's CMD already runs migrate
+    # before the server, so /health responds shortly after container start.
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 30s
+
+volumes:
+  postgres_prod_mirror_data:

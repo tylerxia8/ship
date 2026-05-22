@@ -281,5 +281,5 @@ Every improvement branch is rooted at `shipshape/audit`, so this command shows *
 | 4 | Discovery write-up (3 patterns + reflection) | ✅ [discoveries.md](discoveries.md) |
 | 5 | Demo video (3–5 min) | ✅ Recorded; script at [demo-video-script.md](demo-video-script.md) |
 | 6 | AI cost analysis | ✅ [ai-cost-analysis.md](ai-cost-analysis.md) |
-| 7 | Deployed application | ✅ Live on Vercel + Render + Neon — web: [ship-henna.vercel.app](https://ship-henna.vercel.app) · api: `ship-api-76ez.onrender.com`. Production Cat 8 verification: [security/raw-prod/verification.md](security/raw-prod/verification.md). |
+| 7 | Deployed application | ✅ Live on Vercel + Render + Neon — web: [ship-henna.vercel.app](https://ship-henna.vercel.app) · api: `ship-api-76ez.onrender.com`. Production Cat 8 verification: [security/raw-prod/verification.md](security/raw-prod/verification.md). Codified as Terraform at [../terraform/render-vercel-neon/](../terraform/render-vercel-neon/) and as a production-mirror compose at [../docker-compose.prod-mirror.yml](../docker-compose.prod-mirror.yml). |
 | 8 | Social post (X + LinkedIn) | ✅ 3 drafts each in [social-posts.md](social-posts.md); to be posted after deploy |
