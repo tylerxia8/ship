@@ -15,6 +15,70 @@ const router: RouterType = Router();
 // Inferred project status type
 type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';
 
+// -----------------------------------------------------------------------------
+// Inferred-status LATERAL join (Cat 4 follow-up — rewrites the correlated
+// subquery the Cat 4 audit explicitly named as the preserved follow-up).
+//
+// Three places previously embedded the same correlated subquery inline in the
+// SELECT clause: the list endpoint, the detail-by-id endpoint, and the update
+// endpoint's re-query. Each subquery executed once per project row, which the
+// audit identified as the 596-buffer-hit cost at seeded volume.
+//
+// The LATERAL rewrite extracts the subquery into a LEFT JOIN LATERAL with a
+// single-row aggregate result. Row-count semantics are preserved (the inner
+// aggregate always returns exactly one row, joined ON true gives 1 outer row
+// = 1 joined row). The planner sees the join shape explicitly instead of
+// having to recognize the correlated subquery pattern.
+//
+// Use BOTH constants together in a query:
+//   SELECT (${INFERRED_STATUS_LATERAL.expr}) AS inferred_status, ...
+//   FROM documents d
+//   ${INFERRED_STATUS_LATERAL.join}
+//   WHERE d.workspace_id = $1 ...
+// -----------------------------------------------------------------------------
+const INFERRED_STATUS_LATERAL = {
+  // FROM-clause join. References outer columns d.workspace_id and d.id —
+  // that's the LATERAL part (without LATERAL, the inner SELECT couldn't see
+  // outer references).
+  join: `
+    LEFT JOIN LATERAL (
+      SELECT
+        CASE MAX(
+          CASE
+            -- Compute sprint timing: current=3, future=2, past=1
+            WHEN CURRENT_DATE BETWEEN
+              (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
+              AND (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7 + 6)
+            THEN 3  -- current sprint
+            WHEN CURRENT_DATE < (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
+            THEN 2  -- future sprint
+            ELSE 1  -- past sprint
+          END
+        )
+        WHEN 3 THEN 'active'
+        WHEN 2 THEN 'planned'
+        ELSE NULL  -- past allocations don't count
+        END AS status
+      FROM documents sprint
+      JOIN workspaces w ON w.id = sprint.workspace_id
+      WHERE sprint.document_type = 'sprint'
+        AND sprint.workspace_id = d.workspace_id
+        AND (sprint.properties->>'project_id')::uuid = d.id
+        AND jsonb_array_length(COALESCE(sprint.properties->'assignee_ids', '[]'::jsonb)) > 0
+    ) sprint_status_lateral ON true
+  `,
+  // SELECT-clause expression — wraps the LATERAL's status with the archived
+  // and completed precedence rules. Backlog is the fallback when no sprint
+  // allocation exists.
+  expr: `
+    CASE
+      WHEN d.archived_at IS NOT NULL THEN 'archived'
+      WHEN d.properties->>'plan_validated' IS NOT NULL THEN 'completed'
+      ELSE COALESCE(sprint_status_lateral.status, 'backlog')
+    END
+  `,
+};
+
 // Helper to extract project from row with computed ice_score
 function extractProjectFromRow(row: any) {
   const props = row.properties || {};
@@ -340,48 +404,9 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       orderByClause = `d.${sortField} ${sortDir}`;
     }
 
-    // Subquery to compute inferred status based on sprint allocations
-    // Priority: archived > completed (retro done) > active (current sprint allocation) > planned (future allocation) > backlog
-    // Sprint timing is computed from sprint_number + workspace.sprint_start_date:
-    //   - current: today is within the sprint's 7-day window
-    //   - future: sprint hasn't started yet
-    //   - past: sprint window has passed
-    // Allocations are tracked via sprint documents with properties.project_id
-    const inferredStatusSubquery = `
-      CASE
-        WHEN d.archived_at IS NOT NULL THEN 'archived'
-        WHEN d.properties->>'plan_validated' IS NOT NULL THEN 'completed'
-        ELSE COALESCE(
-          (
-            SELECT
-              CASE MAX(
-                CASE
-                  -- Compute sprint timing: current=3, future=2, past=1
-                  WHEN CURRENT_DATE BETWEEN
-                    (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
-                    AND (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7 + 6)
-                  THEN 3  -- current sprint
-                  WHEN CURRENT_DATE < (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
-                  THEN 2  -- future sprint
-                  ELSE 1  -- past sprint
-                END
-              )
-              WHEN 3 THEN 'active'
-              WHEN 2 THEN 'planned'
-              ELSE NULL  -- past allocations don't count
-              END
-            FROM documents sprint
-            JOIN workspaces w ON w.id = sprint.workspace_id
-            WHERE sprint.document_type = 'sprint'
-              AND sprint.workspace_id = d.workspace_id
-              AND (sprint.properties->>'project_id')::uuid = d.id
-              AND jsonb_array_length(COALESCE(sprint.properties->'assignee_ids', '[]'::jsonb)) > 0
-          ),
-          'backlog'
-        )
-      END
-    `;
-
+    // Inferred status — see INFERRED_STATUS_LATERAL constant at top of file
+    // for the LATERAL join rewrite (replaces what was three inline correlated
+    // subqueries).
     let query = `
       SELECT d.id, d.title, d.properties, prog_da.related_id as program_id, d.archived_at, d.created_at, d.updated_at,
              d.converted_from_id,
@@ -393,10 +418,11 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
              (SELECT COUNT(*) FROM documents i
               JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
               WHERE i.document_type = 'issue') as issue_count,
-             (${inferredStatusSubquery}) as inferred_status
+             (${INFERRED_STATUS_LATERAL.expr}) as inferred_status
       FROM documents d
       LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
       LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
+      ${INFERRED_STATUS_LATERAL.join}
       WHERE d.workspace_id = $1 AND d.document_type = 'project'
         AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
     `;
@@ -425,41 +451,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-    // Same inferred status subquery as list endpoint (allocation-based)
-    const inferredStatusSubquery = `
-      CASE
-        WHEN d.archived_at IS NOT NULL THEN 'archived'
-        WHEN d.properties->>'plan_validated' IS NOT NULL THEN 'completed'
-        ELSE COALESCE(
-          (
-            SELECT
-              CASE MAX(
-                CASE
-                  WHEN CURRENT_DATE BETWEEN
-                    (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
-                    AND (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7 + 6)
-                  THEN 3  -- current sprint
-                  WHEN CURRENT_DATE < (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
-                  THEN 2  -- future sprint
-                  ELSE 1  -- past sprint
-                END
-              )
-              WHEN 3 THEN 'active'
-              WHEN 2 THEN 'planned'
-              ELSE NULL  -- past allocations don't count
-              END
-            FROM documents sprint
-            JOIN workspaces w ON w.id = sprint.workspace_id
-            WHERE sprint.document_type = 'sprint'
-              AND sprint.workspace_id = d.workspace_id
-              AND (sprint.properties->>'project_id')::uuid = d.id
-              AND jsonb_array_length(COALESCE(sprint.properties->'assignee_ids', '[]'::jsonb)) > 0
-          ),
-          'backlog'
-        )
-      END
-    `;
-
+    // Inferred status via shared LATERAL join (see INFERRED_STATUS_LATERAL at top of file)
     const result = await pool.query(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id, d.archived_at, d.created_at, d.updated_at,
               d.converted_to_id, d.converted_from_id,
@@ -471,10 +463,11 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
               (SELECT COUNT(*) FROM documents i
                JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
                WHERE i.document_type = 'issue') as issue_count,
-              (${inferredStatusSubquery}) as inferred_status
+              (${INFERRED_STATUS_LATERAL.expr}) as inferred_status
        FROM documents d
        LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
+       ${INFERRED_STATUS_LATERAL.join}
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
       [id, workspaceId, userId, isAdmin]
@@ -789,40 +782,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     // Re-query to get full project with owner info and inferred status (allocation-based)
-    const updateInferredStatusSubquery = `
-      CASE
-        WHEN d.archived_at IS NOT NULL THEN 'archived'
-        WHEN d.properties->>'plan_validated' IS NOT NULL THEN 'completed'
-        ELSE COALESCE(
-          (
-            SELECT
-              CASE MAX(
-                CASE
-                  WHEN CURRENT_DATE BETWEEN
-                    (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
-                    AND (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7 + 6)
-                  THEN 3  -- current sprint
-                  WHEN CURRENT_DATE < (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
-                  THEN 2  -- future sprint
-                  ELSE 1  -- past sprint
-                END
-              )
-              WHEN 3 THEN 'active'
-              WHEN 2 THEN 'planned'
-              ELSE NULL  -- past allocations don't count
-              END
-            FROM documents sprint
-            JOIN workspaces w ON w.id = sprint.workspace_id
-            WHERE sprint.document_type = 'sprint'
-              AND sprint.workspace_id = d.workspace_id
-              AND (sprint.properties->>'project_id')::uuid = d.id
-              AND jsonb_array_length(COALESCE(sprint.properties->'assignee_ids', '[]'::jsonb)) > 0
-          ),
-          'backlog'
-        )
-      END
-    `;
-
+    // Uses shared INFERRED_STATUS_LATERAL constant from top of file.
     const result = await pool.query(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id, d.archived_at, d.created_at, d.updated_at,
               d.converted_from_id,
@@ -834,10 +794,11 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
               (SELECT COUNT(*) FROM documents i
                JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
                WHERE i.document_type = 'issue') as issue_count,
-              (${updateInferredStatusSubquery}) as inferred_status
+              (${INFERRED_STATUS_LATERAL.expr}) as inferred_status
        FROM documents d
        LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
+       ${INFERRED_STATUS_LATERAL.join}
        WHERE d.id = $1 AND d.document_type = 'project'`,
       [id]
     );
