@@ -23,6 +23,7 @@ This report's mission is diagnosis. Each category section follows the brief's te
 | 5 | Test Coverage & Quality | **866 E2E** (71 files), **447 API unit** (28 files), **151 web unit** (16 files) — total ~1,464 | +3 meaningful tests on untested paths, or fix 3 flakes w/ RCA |
 | 6 | Runtime Errors | **Stack trace leaked** to client on malformed JSON (Express default handler). 3 of 7 malformed-input probes succeeded silently. XSS-shaped title accepted verbatim. API tests slow-fail 54 min when Postgres is down. | 3 fixes, ≥1 real data-loss scenario |
 | 7 | Accessibility | **5 of 12 routes have a serious violation**: color-contrast across **46 total nodes** on `dashboard`, `my-week`, `projects`, `team/allocation`, `team/status`. 0 critical, 0 moderate, 0 minor. 7 routes are clean. Directly contradicts the WCAG 2.1 AA badge. | +10 Lighthouse on worst page or all Critical/Serious on top 3 |
+| 8 | Security Audit | Probe tool ([shipshape/security/probe.mjs](../security/probe.mjs)) runnable in one command. **4 critical findings**: 2× WebSocket process-crash on oversized/malformed frame (CWE-20 + CWE-400, production DoS by any authenticated user); 2× transitive-dep critical CVEs (fast-xml-parser CVE-2026-25896 via AWS SDK; protobufjs CVE-2026-41242 dev-only). **30 high** (mostly dep CVEs). CORS / CSP / secrets / rate-limit / error-verbosity all clean. | Fix at least 2 verified vulnerabilities w/ before/after proof |
 
 ---
 
@@ -733,9 +734,109 @@ A measurement-methodology finding from the Phase B re-run: Lighthouse scored `/s
 
 ---
 
+## Category 8 — Security Audit
+
+### Methodology
+
+The brief for Category 8 requires a **runnable security probe tool** as a deliverable, not optional. I built one under [shipshape/security/probe.mjs](../security/probe.mjs) — single command, no third-party deps, five surfaces:
+
+| Module | What it probes | Surface label |
+|---|---|---|
+| `auth.mjs` | 9 protected routes hit without credentials; session-token entropy + format; logout invalidation; malformed-cookie rejection; super-admin route exposure | `auth` |
+| `input.mjs` | 5 stored-XSS payloads in `POST /api/issues` title; 4 time-based SQL injection payloads (≥4 s response delta = pg_sleep executed); oversized input at 10 KB / 100 KB / 1 MB; reflected XSS in `/api/search/mentions` | `input` |
+| `websocket.mjs` | `/events` + `/collaboration` upgrade requires auth; unknown WS path rejection; authenticated collab WS: 64-byte random binary, 11 MB binary, text frame to binary endpoint, with `/health` poll after each to detect process crash | `websocket` |
+| `deps.mjs` | `corepack pnpm audit --json` parsed; advisories bucketed by severity; CVE + vulnerable/patched ranges captured per finding | `deps` |
+| `manual.mjs` | CORS preflight from `https://evil.example.com`; CSP header anti-pattern scan; `web/dist` greped for AWS keys / GitHub PATs / PEM private keys / DB URLs / SESSION_SECRET literals; login rate-limit probe (12 failed attempts); error-verbosity probe (stack-trace leakage on 3 error-eliciting requests) | `manual-cors`, `manual-csp`, `manual-secrets`, `manual-ratelimit`, `manual-error-verbosity` |
+
+Findings graded per the [severity rubric above](#severity-rubric): `critical / high / medium / low / info / ok`. An `ok` is a positive result — the surface was actively probed and behaved correctly. Surfaces that aren't probed don't get an `ok` finding, so `ok` count is meaningful signal.
+
+Reproducible:
+```bash
+# Dev servers up (api on :3000, web on :5173)
+pnpm dev
+
+node shipshape/security/probe.mjs
+# Writes shipshape/security/raw/report.json + report.md
+# Exit code 0 = clean, 2 = critical/high present (CI-friendly).
+```
+
+Raw output for the baseline run: [shipshape/security/raw/report-before-fixes.json](../security/raw/report-before-fixes.json) (+ `.md`).
+
+### Baseline (probe v1.0.0, against `shipshape/audit` HEAD)
+
+**95 findings total.** Breakdown by severity:
+
+| Severity | Count | Top instance |
+|---|---:|---|
+| 🔴 critical | **4** | WS frame > 10 MB crashes the Node process (CWE-20 + CWE-400) |
+| 🟠 high | **30** | Mostly transitive dep CVEs (undici, vite, minimatch, path-to-regexp ReDoS, etc.) |
+| 🟡 medium | **1** | `/api/search/mentions` echoes raw query (CWE-79 reflected, low practical risk due to JSON content-type + React escape) |
+| ⚪ low | **2** | XSS-shaped strings stored verbatim (rendered safely by React); WS silently accepts random 64-byte binary |
+| 🔵 info | **6** | Probe-tool stubs (super-admin route access via super-admin session, etc.) |
+| 🟢 ok | **11** | Auth requirements, malformed-session rejection, logout invalidation, SQL-injection inertness, oversized-input rejection, CORS restricted, CSP present, no secrets in client bundle, login rate-limit active, error responses sanitized |
+
+### Top findings ranked by impact (audit-window state, before fixes)
+
+1. **🔴 critical — `ws-malformed-server-crash-11-mb-binary-payload`** (production DoS). Authenticated client sends an 11 MB binary frame to `/collaboration/wiki:<docId>`. The `ws` library emits `error` on the WebSocket; **Ship's collab handler doesn't attach an `error` listener**, so Node's EventEmitter default rethrows → process crash. Subsequent requests fail with `ECONNREFUSED` until tsx watch restarts. **Severity: high** — exploitable by any logged-in user.
+
+2. **🔴 critical — `ws-malformed-server-crash-text-frame-to-binary-yjs-endpoint`** (same vulnerability class, different code path). Text frame's UTF-8 bytes reach `decoding.readVarUint` in `handleMessage`; throws; uncaught; process crash. **Severity: high.**
+
+3. **🔴 critical — `[fast-xml-parser] CVE-2026-25896`** entity encoding bypass. Transitive via `@aws-sdk/xml-builder` → production chain (Ship's api uses AWS SDK for SSM + Bedrock). **Severity: high.**
+
+4. **🔴 critical — `[protobufjs] CVE-2026-41242`** arbitrary code execution. Transitive via `testcontainers` → `dockerode` → `@grpc/grpc-js`. **Dev-only path** (test infrastructure); production runtime isn't affected. **Severity: medium** (positive direction — limited blast radius), but the CVE itself is graded critical by the upstream advisory.
+
+5. **🟠 high — 25 dep CVEs total**, dominated by ReDoS in tooling: `minimatch` × 4 (in vite + tsx chains), `path-to-regexp` × 2 (in express), `picomatch` × 2, `undici` × 3 (in fetch internals), `vite`, `rollup`, `svgo`, `hono`, `fast-uri`, `lodash` (code injection via `_.template`). _(Severity: high in aggregate; individual instances vary from high to medium given most are dev-tooling.)_
+
+6. **🟡 medium — `input-xss-reflected`** in `/api/search/mentions`. Query parameter echoed verbatim in the JSON response. Browsers won't execute (JSON content-type + React escape), but non-browser consumers could mishandle. _(Severity: low.)_
+
+### Manual review results
+
+Of the four required manual-review checks from the brief, the probe automated all four:
+
+| Manual check | Result | Severity |
+|---|---|---|
+| CORS configuration | ✅ restricts origin to configured `CORS_ORIGIN` env (not `*`, not echo-from-request) | ok |
+| CSP configuration | ⚪ present via helmet; includes `'unsafe-inline'` for styles (acceptable for TipTap/USWDS); no `'unsafe-eval'`, no wildcard `default-src` | low |
+| Secrets in client bundle | ✅ scanned `web/dist` (assets + html); zero matches for AWS keys, GitHub PATs, PEM keys, DB URLs, or SESSION_SECRET literals | ok |
+| Rate limiting (login endpoint) | ✅ `5 failed attempts / 15 min` window kicks in at attempt 5 with HTTP 429 | ok |
+| Error message verbosity | ✅ probed 3 error shapes (non-JSON body, unknown route, invalid UUID path); none returned stack traces or internal paths to clients — structured envelopes only | ok |
+
+### Findings ranked by severity (audit-window)
+
+Top tier:
+1. WS process-crash on oversized binary — **high** (any authenticated user can DoS the server)
+2. WS process-crash on text frame — **high** (same root cause as #1)
+3. fast-xml-parser entity encoding bypass — **high** (production path via AWS SDK)
+4. 25 transitive dep CVEs at high severity — **medium aggregate** (mostly dev-tooling ReDoS)
+5. protobufjs RCE CVE — **medium** (dev-only path; production not exposed)
+6. Reflected query echo in search — **low** (JSON + React render)
+7. CSP includes `unsafe-inline` for styles — **low** (acceptable concession)
+
+Positive findings (the surface is correctly defended):
+- 9 unauth route probes all returned 401 (`auth-unauthenticated-access` = ok)
+- Session tokens are 64 hex chars / 256 bits of entropy
+- Logout actually invalidates the session
+- Malformed cookies rejected
+- WS upgrade requires auth on both `/events` and `/collaboration`
+- SQL injection payloads are inert (parameterized queries)
+- Oversized JSON inputs rejected at 400/413
+- CORS restricted; CSP present; no secrets in bundle; rate limiting active; error envelopes sanitized
+
+### Improvement target (per brief)
+
+> Fix at least 2 verified vulnerabilities with before/after proof. Each fix must include: the vulnerability class, the reproduction steps used to confirm it, the fix applied, and evidence that the fix works.
+
+Target picks (executed on `shipshape/08-security`):
+1. **WS unhandled-error process crash** — collapses both critical WS findings (#1 + #2 above) into one root-cause fix. Two-layer defense in [api/src/collaboration/index.ts](../../api/src/collaboration/index.ts): `ws.on('error', ...)` listeners on both `WebSocketServer` connection handlers + try/catch around `handleMessage()`.
+2. **Two transitive critical CVEs** — `fast-xml-parser 5.3.4 → 5.8.0` (CVE-2026-25896) + `protobufjs 7.5.4 → 7.6.0` (CVE-2026-41242). Applied via `pnpm.overrides` in root [package.json](../../package.json) — bypasses upstream pins.
+
+Both fixes verified by re-running the probe: **4 critical → 0 critical**, full evidence at [shipshape/improvements/raw/cat8-measurement/probe-{before,after}.json](../improvements/raw/cat8-measurement/). Full write-up in [shipshape/improvements/08-security.md](../improvements/08-security.md).
+
+---
+
 ## Status
 
-All 7 categories baselined. No outstanding blockers.
+All 8 categories baselined. No outstanding blockers.
 
 ### How to reproduce
 
