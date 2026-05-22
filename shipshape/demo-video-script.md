@@ -1,6 +1,6 @@
 # ShipShape — Demo Video Script (3–5 min)
 
-**Target length:** 4:00 (gives buffer to land at 3:30–5:00 with light editing)
+**Target length:** 4:30 (gives buffer to land at 3:30–5:00 with light editing). Covers all 8 categories at a headline level (Cat 3 + Cat 4 + Cat 7 + Cat 8) plus discipline + honest hedges.
 **Format:** screen recording with voice-over. Browser + terminal + VS Code on-screen.
 **Recording tool:** OBS (free) on Windows, or QuickTime if on Mac.
 **Resolution:** 1080p, 30fps. Mic input only — turn system audio off so background noise from the dev servers isn't captured.
@@ -18,6 +18,8 @@
    - `shipshape/improvements/raw/perf-after-v2/_summary.txt` open in VS Code (after-state)
    - `shipshape/audit/raw/bundle-stats.html` open in a browser tab (before treemap)
    - `shipshape/improvements/raw/lighthouse/before/dashboard.report.html` + `after/dashboard.report.html` in two browser tabs side-by-side
+   - `shipshape/security/raw-prod/verification.md` open in VS Code (Cat 8 production verification — 12/12 ok)
+   - A terminal tab cd'd to the repo root, ready to run `node shipshape/security/probe.mjs --api=http://localhost:3000 --web=http://localhost:5173` live on-camera
 3. **Have these git commands ready to paste:**
    - `git log --oneline shipshape/audit..shipshape/03-api-perf` (shows the API-perf branch's commits)
    - `git diff --stat shipshape/audit shipshape/03-api-perf -- 'api/src/**'` (file-by-file change)
@@ -29,10 +31,10 @@
 
 ### [0:00–0:20] Cold open — what this is
 
-**On screen:** SUBMISSION.md scrolled to the "Results — all 7 categories" table.
+**On screen:** SUBMISSION.md scrolled to the "Results — all 8 categories" table.
 
 **Say:**
-> "I'm Tyler Xia. For the past 6 days I audited a U.S. Treasury project-management app called Ship — about 60,000 lines of TypeScript across an Express API, a React/Vite frontend, and Postgres — and shipped seven measured improvements across the categories the brief defined. This video walks through the audit findings and the headline result for each category. Everything you see is reproducible — the commands are in the docs and the raw measurement output is committed under `shipshape/audit/raw/` and `shipshape/improvements/raw/`."
+> "I'm Tyler Xia. For the past 7 days I audited a U.S. Treasury project-management app called Ship — about 60,000 lines of TypeScript across an Express API, a React/Vite frontend, and Postgres — and shipped eight measured improvements: the brief's seven categories plus a Cat 8 security addendum that came mid-week. This video walks through the audit findings and the headline result for each category. Everything you see is reproducible — the commands are in the docs and the raw measurement output is committed under `shipshape/audit/raw/` and `shipshape/improvements/raw/`."
 
 ---
 
@@ -41,13 +43,13 @@
 **On screen:** `shipshape/audit/GATE_CHECKLIST.md` (the 1-page index).
 
 **Say:**
-> "Before any fix, the brief required a written audit covering methodology, baseline numbers, weaknesses, and severity ranking for all seven categories. That's in `AUDIT_REPORT.md` — 450 lines — and there's a one-page checklist that maps each category to where those four components live. Diagnosis comes before treatment. The audit branch contains zero production-code changes except a single measurement instrumentation flag in `app.ts` that bypasses the dev rate limiter so load tests reflect handler latency, not 429 responses."
+> "Before any fix, the brief required a written audit covering methodology, baseline numbers, weaknesses, and severity ranking for all eight categories — the original seven plus the security addendum. That's in `AUDIT_REPORT.md` — 450 lines — and there's a one-page checklist that maps each category to where those four components live. Diagnosis comes before treatment. The audit branch contains zero production-code changes except a single measurement instrumentation flag in `app.ts` that bypasses the dev rate limiter so load tests reflect handler latency, not 429 responses."
 
 ---
 
-### [0:45–2:30] Three headline results
+### [0:45–3:05] Four headline results
 
-For each category, ~30 seconds. Show the before number, then the after number, then *one* sentence on the root cause.
+For each category, ~30 seconds. Show the before number, then the after number, then *one* sentence on the root cause. Cat 8 gets ~40s because the probe-in-action visual is worth the extra time.
 
 #### Cat 3 — API perf (0:45–1:15)
 
@@ -63,39 +65,49 @@ For each category, ~30 seconds. Show the before number, then the after number, t
 **Say:**
 > "DB queries: the `/api/dashboard/my-work` endpoint fired four separate Postgres queries — workspace, issues, projects, sprints — for one page render. Collapsed those into a single SQL `UNION ALL` with a discriminator column and a typed JS dispatch on the client side. **Four queries to two — a 50% reduction.** Then on a separate `shipshape/04b-functional-indexes` branch I added partial B-tree indexes on `properties->>'state'` and `properties->>'assignee_id'` and the planner switched from a Seq Scan to a Bitmap Index Scan on the issues-by-state query — textbook plan change documented in the improvement doc."
 
-#### Cat 7 — Accessibility (1:50–2:30)
+#### Cat 7 — Accessibility (1:50–2:25)
 
 **On screen:** Lighthouse before/after dashboard reports side-by-side. Highlight `dashboard.report.html` showing 96 → 100.
 
 **Say:**
-> "Accessibility: 46 nodes failing the `color-contrast` rule across 5 of the 12 audited routes — a direct contradiction of the README's WCAG 2.1 AA badge. Three root causes: an `accent` color token that worked as a button background but failed as text on dark, `text-muted/50` alpha modifiers that crossed the contrast line, and an `opacity-40` wrapper on future-week standup rows. Cleared all 46 with two automated sweeps and one manual fix. Cross-checked with Lighthouse — the two lowest-scoring routes both went **from 96 to 100.**"
+> "Accessibility: 46 nodes failing the `color-contrast` rule across 5 of the 12 audited routes — a direct contradiction of the README's WCAG 2.1 AA badge. Three root causes: an `accent` color token that worked as a button background but failed as text on dark, `text-muted/50` alpha modifiers that crossed the contrast line, and an `opacity-40` wrapper on future-week standup rows. Cleared all 46. Cross-checked with Lighthouse — the two lowest-scoring routes both went **from 96 to 100.**"
+
+#### Cat 8 — Security audit (2:25–3:05)
+
+**On screen, sequence:**
+1. Terminal — run `node shipshape/security/probe.mjs --api=http://localhost:3000 --web=http://localhost:5173`. Let the surface progress markers print live (`▶ auth` → `▶ input` → `▶ websocket` → `▶ deps` → `▶ manual`). Catch the summary line `critical: 0  high: 24  ...` on camera.
+2. Cut to VS Code showing `shipshape/security/raw-prod/verification.md` — scroll past the 12 `✓ [ok]` lines verifying production.
+3. Briefly show `git log --oneline shipshape/08-security` — the headline commit chain (`1361c54` probe + 2 fixes → `9cdf809` brief-gap closures → `176ff29` Fix #3 → `e85cfa0` Fix #4 + #5).
+
+**Say:**
+> "Security: the brief added an eighth category requiring a runnable probe tool and at least two verified vulnerability fixes. The probe lives at `shipshape/security/probe.mjs` — one command, five surfaces, zero external runtime dependencies. Running it on the audit baseline surfaced four critical findings. Two were WebSocket process-crash paths — any authenticated user could DoS the entire API server with one oversized or malformed frame. The `ws` library was emitting an unhandled `error` event that escalated to `uncaughtException` and crashed the Node process. The other two were transitive critical CVEs that `pnpm audit` flagged in `fast-xml-parser` and `protobufjs`. Five verified fixes total: WS error listeners close the DoS, `pnpm.overrides` patches the CVEs, a global Express error handler ends a body-parser stack-trace leak, a WS Origin allow-list closes the cross-site WebSocket hijack vector, and a per-account login lockout closes the distributed credential-stuffing gap. **Critical findings: 4 → 0. All 454 unit tests still pass.** Same probe against the live Render deploy — 12 of 12 production checks `ok`."
 
 ---
 
-### [2:30–3:15] Discipline: one branch per category, no `--no-verify`
+### [3:05–3:35] Discipline: one branch per category, no `--no-verify`
 
 **On screen:** `git branch -a | grep shipshape` output, then `git log --oneline shipshape/audit..shipshape/03-api-perf`.
 
 **Say:**
-> "Each improvement lives on its own branch off `shipshape/audit`, so a reviewer can `git diff shipshape/audit shipshape/03-api-perf` and see only the API-perf change. No cross-category mixing. Pre-commit hooks ran clean on every commit — I never used `git commit --no-verify`, which the project's `CLAUDE.md` explicitly forbids. When the `check-empty-tests.sh` hook was itself buggy and rejected legitimate tests, I fixed the hook and documented it as a Cat-6 finding rather than bypassing it. That's commit `db106d1`."
+> "Each improvement lives on its own branch off `shipshape/audit` — eight branches, one per category — so a reviewer can `git diff shipshape/audit shipshape/03-api-perf` and see only the API-perf change. No cross-category mixing. Pre-commit hooks ran clean on every commit — I never used `git commit --no-verify`, which the project's `CLAUDE.md` explicitly forbids. When the `check-empty-tests.sh` hook was itself buggy and rejected legitimate tests, I fixed the hook and documented it as a Cat-6 finding rather than bypassing it."
 
 ---
 
-### [3:15–3:45] Honest hedges
+### [3:35–4:05] Honest hedges
 
-**On screen:** scroll to the "Honest framing — what this does not claim" section of any improvement doc; pick `07-accessibility-v2-lighthouse.md`.
+**On screen:** scroll to the "Honest hedges" section of `shipshape/SUBMISSION.md`.
 
 **Say:**
-> "Two honest hedges. One: the `/api/issues` endpoint regressed slightly at higher seed volume because the response is still 256 KB without pagination — adding `LIMIT`/cursor pagination is the right next step and is called out in the follow-up list. Two: the `/login` route still has a missing `<main>` landmark in Lighthouse — out of scope for the contrast fix, called out as a documented follow-up. I'd rather flag the residual than pretend it's clean."
+> "Three honest hedges. One: seed volume is around 250 documents instead of the brief's stated 500-plus — most categories aren't volume-sensitive but two specific Cat 3 numbers would look more dramatic at 500. Two: the `/login` route still has a missing `<main>` landmark in Lighthouse — out of scope for the contrast fix, called out as a documented follow-up. Three: the `terraform/render-vercel-neon/` module that codifies the live deploy wasn't `terraform init`'d in this session because no Terraform binary was on the writing workstation; the README enumerates the three leaf attributes most likely to need surgical adjustment on first apply. I'd rather flag the residuals than pretend everything is clean."
 
 ---
 
-### [3:45–4:00] Close
+### [4:05–4:25] Close
 
-**On screen:** browser at the deployed URL (or, if recording before deploy, the SUBMISSION.md top page).
+**On screen:** browser at `https://ship-henna.vercel.app` showing the live deploy login page.
 
 **Say:**
-> "Everything is at `<deployed-railway-url>` and the code at `github.com/tylerxia8/ship`. Entry point is `shipshape/SUBMISSION.md`. Thanks."
+> "Live at `ship-henna.vercel.app`, code at `github.com/tylerxia8/ship`. Reviewer entry point is `shipshape/SUBMISSION.md` — that file deep-links into the audit report, all eight improvement docs, the security probe, the discoveries, and the production-verification artifact. Thanks."
 
 ---
 
@@ -111,6 +123,7 @@ For each category, ~30 seconds. Show the before number, then the after number, t
 ## What NOT to include
 
 - Don't read the AI cost analysis on camera. It's a separate written deliverable.
-- Don't walk through every category. Three headlines + the discipline section is enough to convey what's interesting; reviewers can read the docs.
+- Don't walk through every category. Four headlines (Cat 3 / 4 / 7 / 8) + the discipline section is enough to convey what's interesting; reviewers can read the docs for Cat 1 / 2 / 5 / 6.
 - Don't apologize for the audio quality unless it's genuinely unintelligible. Just record again if it is.
 - Don't try to demo a feature in the deployed app. The audit is the deliverable; user-flow demos are scope creep for this format.
+- For Cat 8: don't try to live-reproduce the WS process-crash on camera. The before-fix repro requires running the older audit-baseline branch, which means stopping the dev server, checking out `shipshape/audit`, starting it again — three context switches that eat 90 seconds. Show the probe report instead; let the artifact carry the proof.
