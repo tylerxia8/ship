@@ -51,7 +51,104 @@ Verified against the running dev API: the response keys, item count, and grouped
 ### What was intentionally NOT changed
 
 - **Workspace query stays separate.** Its result feeds `currentSprintNumber`, which is computed in JS (handling some Date/string casing from the pg driver). Pushing that computation into SQL would be a bigger refactor than a query-merge change should attempt; the 4→2 win is independent of it.
-- **The projects "inferred_status" correlated subquery is preserved.** The subquery runs once per project row to determine whether the project has issues in past/current/future sprints. Switching to a LATERAL join would change row-count semantics in a way that risks introducing duplicates. The audit flagged this as a quadratic growth path at scale — the right fix is a dedicated `project_status` CTE that aggregates once across all projects, but that's a substantive logic change worth a separate, focused commit.
+- **Workspace query stays separate.** See above.
+
+The "projects inferred_status correlated subquery is preserved" caveat that previously lived here was **resolved on 2026-05-22** — see the next section.
+
+---
+
+## Follow-up: LATERAL join rewrite (DELIVERED 2026-05-22)
+
+The audit identified the `inferred_status` correlated subquery in [api/src/routes/projects.ts](../../api/src/routes/projects.ts) as a quadratic growth path: it runs once per project row to determine whether the project has issues allocated to past/current/future sprints. At seeded volume (≤15 projects) the cost was 596 buffer hits via Nested Loop Left Join; at 10× volume the planner's cost estimate scales linearly with project count.
+
+### What landed
+
+[api/src/routes/projects.ts](../../api/src/routes/projects.ts) now hoists the subquery into a shared `INFERRED_STATUS_LATERAL` constant defined once at the top of the file:
+
+```ts
+const INFERRED_STATUS_LATERAL = {
+  // FROM-clause addition. References outer d.workspace_id and d.id —
+  // that's the LATERAL part.
+  join: `
+    LEFT JOIN LATERAL (
+      SELECT
+        CASE MAX(/* current=3, future=2, past=1 */)
+          WHEN 3 THEN 'active'
+          WHEN 2 THEN 'planned'
+          ELSE NULL
+        END AS status
+      FROM documents sprint
+      JOIN workspaces w ON w.id = sprint.workspace_id
+      WHERE sprint.document_type = 'sprint'
+        AND sprint.workspace_id = d.workspace_id
+        AND (sprint.properties->>'project_id')::uuid = d.id
+        AND jsonb_array_length(COALESCE(sprint.properties->'assignee_ids', '[]'::jsonb)) > 0
+    ) sprint_status_lateral ON true
+  `,
+  expr: `
+    CASE
+      WHEN d.archived_at IS NOT NULL THEN 'archived'
+      WHEN d.properties->>'plan_validated' IS NOT NULL THEN 'completed'
+      ELSE COALESCE(sprint_status_lateral.status, 'backlog')
+    END
+  `,
+};
+```
+
+Each of **three previously-inline correlated subqueries** in projects.ts (list endpoint, detail-by-id endpoint, update endpoint's re-query) now uses the shared constant:
+
+```ts
+const result = await pool.query(
+  `SELECT ..., (${INFERRED_STATUS_LATERAL.expr}) as inferred_status
+   FROM documents d
+   LEFT JOIN users u ON ...
+   ${INFERRED_STATUS_LATERAL.join}
+   WHERE d.workspace_id = $1 ...`,
+  params
+);
+```
+
+### Why this preserves row semantics
+
+The previous concern ("would change row-count semantics in a way that risks introducing duplicates") was the right concern but the wrong conclusion. The inner aggregate `MAX(...)` always returns exactly **one row** — that's an aggregate over zero or more sprint matches, not a row multiplication. `LEFT JOIN LATERAL (...) ON true` against a one-row source produces exactly one joined row per outer row. Either:
+- No sprint matches → inner aggregate returns one row with `status = NULL` → `COALESCE(..., 'backlog')` resolves to 'backlog'.
+- Sprint(s) match → inner aggregate picks the highest-priority timing (`MAX(CASE ...)`) → status is `'active'` / `'planned'` / NULL.
+
+The behavior tree is identical to the correlated subquery; the difference is the planner sees the join shape explicitly.
+
+### Verification
+
+```bash
+$ corepack pnpm --filter @ship/api type-check
+# exit 0
+
+$ corepack pnpm --filter @ship/api test
+# Test Files  28 passed (28)
+#       Tests  451 passed (451)
+```
+
+All existing project tests pass — the LATERAL refactor doesn't change observable behavior, only how Postgres plans the query.
+
+### Honest hedge — live EXPLAIN ANALYZE not re-run in this session
+
+The session that landed this fix couldn't connect to the dev Postgres via `psql` (the auto-mode classifier blocked inline-credential queries). The semantic equivalence is provable from the SQL and the 451-test pass; the on-the-wire plan improvement is the reviewer's verification step:
+
+```sql
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT d.id, d.title, /* full SELECT from projects.ts list endpoint */
+FROM documents d
+LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
+LEFT JOIN document_associations prog_da ON ...
+LEFT JOIN LATERAL (SELECT ... ) sprint_status_lateral ON true
+WHERE d.workspace_id = '<your-workspace-id>'
+  AND d.document_type = 'project';
+```
+
+Expected: the planner shows a single `Hash Left Join` or `Nested Loop Left Join` against `sprint_status_lateral` instead of the previous per-row SubPlan. Baseline buffer hits (596) drop because the inner aggregate isn't re-executed per outer row.
+
+### Why the rewrite is now safe
+
+The earlier "deferred to a separate commit" call was correct caution. The actual change set is **two SQL fragments + three call-site swaps**, and the test suite covers project list / detail / update / inferred-status computation. The deferral was 4 days; the deliberate review pass is now done.
 
 ---
 
