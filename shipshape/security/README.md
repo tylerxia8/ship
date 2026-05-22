@@ -2,6 +2,8 @@
 
 A single-command security probe for a running Ship instance. Built as the Category 8 deliverable.
 
+The brief asks for two complementary deliverables under Cat 8: this **probe tool** (automated, runnable against any live instance) and a **manual review** (code-read documentation). The manual review lives next to this file at [MANUAL_REVIEW.md](MANUAL_REVIEW.md) and covers the four brief-specified areas (CORS+CSP, env+secrets, rate limiting, error verbosity) with file:line refs into the actual source.
+
 ## What it does
 
 Actively probes the running app across five surfaces and writes a JSON + Markdown report:
