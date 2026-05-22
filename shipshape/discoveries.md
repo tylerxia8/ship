@@ -151,6 +151,67 @@ The corollary is to **resist** the temptation to put this in a JSONB metadata bl
 
 ---
 
+## 4. Bridge REST writers and CRDT writers with a one-shot conversion + client cache-bust signal
+
+**What it is**
+
+Ship has two ways content gets written: the REST endpoints (`POST /api/documents` sets `content` as TipTap JSON directly) and the WebSocket collaboration server (Yjs operations apply to a `Y.Doc` and serialize to `yjs_state` blob). These produce different bytes for the same document. When a client opens a doc whose content was last written via REST, the server has to (a) detect it, (b) convert JSON → Yjs once, (c) tell the *client* to throw away its IndexedDB cache before sync — otherwise the client's stale Yjs state would merge with the freshly converted server state and overwrite the REST changes.
+
+**Where**
+
+[api/src/collaboration/index.ts:191-279](api/src/collaboration/index.ts#L191-L279). The pattern is three coordinated pieces:
+
+```ts
+// 1. Module-level set tracks which docs need a cache-clear on next connect.
+const freshFromJsonDocs = new Set<string>();
+
+async function getOrCreateDoc(docName: string): Promise<Y.Doc> {
+  // ...
+  if (result.rows[0]?.yjs_state) {
+    // Preferred path: Yjs state was already persisted; just load.
+    Y.applyUpdate(doc, result.rows[0].yjs_state);
+  } else if (result.rows[0]?.content) {
+    // Fallback: a REST write was the last writer. Convert JSON → Yjs ONCE.
+    jsonToYjs(doc, fragment, jsonContent);
+    freshFromJsonDocs.add(docName);          // ← mark for cache-clear signal
+    schedulePersist(docName, doc);           // ← write back as yjs_state
+  }
+}
+```
+
+```ts
+// 2. When a client connects, if this doc was just converted, send a synthetic
+//    `messageClearCache` frame BEFORE the normal sync handshake.
+if (freshFromJsonDocs.has(docName)) {
+  const clearCacheEncoder = encoding.createEncoder();
+  encoding.writeVarUint(clearCacheEncoder, messageClearCache);  // varuint = 3
+  ws.send(encoding.toUint8Array(clearCacheEncoder));
+  freshFromJsonDocs.delete(docName);  // ← one-shot: next connection doesn't need it
+}
+```
+
+The client side ([web/src/components/.../useCollaboration](web/src/components/Editor.tsx) consumes `messageClearCache=3` and calls `indexedDB.deleteDatabase(<doc-name>)` before letting Yjs's sync protocol run.
+
+**Why it matters**
+
+This is the bug that every "we'll add CRDT collab later" project hits eventually:
+
+1. **You can't just convert JSON → Yjs on every read.** That throws away every collaboration session in progress (clients hold their own Yjs state and would diff against a freshly-minted server state with new opIDs).
+2. **You can't just convert once and forget.** Clients that previously edited this doc still have the *pre-conversion* Yjs state in IndexedDB. When they reconnect, Yjs's sync protocol will helpfully merge their stale ops into the freshly converted server doc — and the user's REST edit silently reverts to what was there before.
+3. **You can't trust the client to know it's stale.** The client doesn't have visibility into what wrote the database last; only the server does.
+
+Ship solves it by inventing a custom Yjs message type (`messageClearCache = 3`, sitting alongside the protocol's standard `messageSync = 0` and `messageAwareness = 1`) and burning it once per stale doc. The `Set<string>` is the minimum state needed. The `one-shot` semantic (delete after send) means a doc that's been opened once doesn't need the signal again — subsequent clients sync against the now-canonical `yjs_state`.
+
+**How I'd apply this**
+
+Three reusable parts:
+
+- **Source-of-truth rotation.** Any system where multiple writers produce different on-disk encodings of the same logical content (e.g. JSON store + columnar analytics store, or REST + CRDT) needs an explicit "the canonical writer just changed; downstream caches are stale" signal. Ship's signal is server → client; the same pattern works server → analytics, or primary → replica.
+- **Inventing a protocol message vs. piggybacking on existing ones.** I would have been tempted to use a 4xx WebSocket close code to force the client to reconnect and resync. Ship's choice — a new Yjs message type at the application layer — is better: the client *stays connected*, the cache clears, the existing reconnection logic doesn't get involved, the close-code namespace stays clean for actual errors.
+- **One-shot state with explicit deletion.** `freshFromJsonDocs.add()` + `freshFromJsonDocs.delete()` is a deliberately ephemeral signal — not stored in the DB, not replayed across server restarts. The cost of "lost signal on restart" is acceptable: the next client gets `yjs_state` (which exists because `schedulePersist` ran), and the bridge from JSON has already been crossed once. I'd reach for this `Set<string>` pattern for any signal whose value is "fix the next consumer; no need to remember after that."
+
+---
+
 ## Honorable mentions (didn't pick, but worth keeping)
 
 These three are also new to me; I just couldn't fit them under the format above. Stashing them so I don't forget:
