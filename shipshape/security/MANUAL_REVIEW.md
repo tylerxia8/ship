@@ -282,9 +282,9 @@ app.use((err, req, res, next) => {
 });
 ```
 
-This was the headline Cat 6 fix on `shipshape/06-runtime-errors`. It's not landed on this branch (`shipshape/08-security` branches from `shipshape/audit`, not from `06-runtime-errors`), so the leak is present here exactly as observed at audit time.
+This was the headline Cat 6 fix on `shipshape/06-runtime-errors`. **Now also landed on `shipshape/08-security`** as Cat 8 Fix #3 via cherry-pick of commit `0470de1` — see [shipshape/improvements/08-security.md § Fix #3](../improvements/08-security.md). Post-fix re-probe shows `error-no-stack-leak` = **ok**. Raw: [probe-after-v3.json](../improvements/raw/cat8-measurement/probe-after-v3.json).
 
-**Do error responses leak stack traces, SQL, or internal paths?** **Stack traces and internal paths: yes** (one specific gap — the missing global handler). **SQL: no** (pg errors are caught in handlers). **Other internals: no** (route 5xx responses use sanitized envelopes).
+**Do error responses leak stack traces, SQL, or internal paths?** **No** (after Fix #3). Pre-fix the body-parser path leaked stack + file paths; post-fix all error shapes return structured envelopes. **SQL: no** (pg errors caught in handlers). **Other internals: no** (route 5xx responses use sanitized envelopes).
 
 ---
 
@@ -295,9 +295,9 @@ This was the headline Cat 6 fix on `shipshape/06-runtime-errors`. It's not lande
 | CORS / CSP | 3 (1 ok, 1 low, 1 medium) | medium (WS Origin not validated) | `cors-restricts-origin`, `csp-present` |
 | Env vars / secrets | 4 (3 ok, 1 low — dev-seed password log) | low | `secrets-no-leaks-in-client-bundle` |
 | Rate limiting | 9 (8 ok/low, 1 medium — per-IP not per-account login) | medium | `ratelimit-login-active` |
-| Error verbosity | 4 (1 ok, 3 high) | **high** (body-parser stack leak) | `error-stack-leak` |
+| Error verbosity | 4 (3 ok, 1 high → **now resolved**) | none after Fix #3 | `error-no-stack-leak` (was `error-stack-leak`) |
 
-The body-parser stack-trace leakage is the most actionable finding from the manual review — it's a real, exploitable information disclosure that confirms (and broadens) Cat 6's earlier finding. The Cat 6 fix on `shipshape/06-runtime-errors` resolves it; cherry-picking that one commit to `shipshape/08-security` (or wherever a security-focused branch lives) would close the gap.
+The body-parser stack-trace leakage was the most actionable finding from this manual review. **Cherry-picked the Cat 6 global error handler fix (commit `0470de1`) onto this branch as Cat 8 Fix #3** — the surface is now clean per the v3 probe re-run.
 
 The WS-Origin validation gap is a defense-in-depth concern: today's `sameSite=strict` cookie prevents the practical attack, but explicit `Origin` validation in the upgrade handler would be belt + suspenders.
 

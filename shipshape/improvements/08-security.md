@@ -9,14 +9,15 @@
 
 ## Result
 
-**Critical count 4 → 0.** Two distinct vulnerability classes fixed, both verified by the probe tool:
+**3 verified fixes; critical count 4 → 0; high count 30 → 24.** Three distinct vulnerability classes fixed, all verified by the probe tool:
 
 | Fix | Class | Before | After | Evidence |
 |---|---|---:|---:|---|
 | **#1** — WebSocket unhandled-error process crash | CWE-20 / CWE-400 (DoS) | 2 critical | 0 critical (1 ok + 1 low) | Probe finding IDs `ws-malformed-server-crash-*` replaced by `ws-malformed-*` (ok/low). Repro: send 11 MB frame OR text frame to authenticated WS → before: Node process exits with unhandled error event; after: server logs warning and stays up. |
 | **#2** — Two critical CVEs in transitive deps | CWE-94 / CWE-1333 | 2 critical (4 deps total flagged) | 0 critical (2 patched) | `pnpm audit` no longer reports `CVE-2026-25896` or `CVE-2026-41242`. Bump via `pnpm.overrides` in root `package.json`. |
+| **#3** — Body-parser stack-trace leak | CWE-209 (Information Exposure Through an Error Message) | 1 high (`error-stack-leak`) | 0 (`error-no-stack-leak` = ok) | `POST /api/issues` with non-JSON body previously returned Express's default HTML error page with the full Node.js stack including `node_modules/.pnpm/body-parser@…` file paths. Cherry-picked the global error handler from `shipshape/06-runtime-errors` (commit `0470de1`); same fix the Cat 6 work landed, now bundled with the Cat 8 deliverable so both the probe AND the manual review find the surface clean. |
 
-Raw before/after evidence: [raw/cat8-measurement/probe-before.json](raw/cat8-measurement/probe-before.json) and [raw/cat8-measurement/probe-after.json](raw/cat8-measurement/probe-after.json).
+Raw before/after evidence: [raw/cat8-measurement/probe-before.json](raw/cat8-measurement/probe-before.json), [probe-after-v2.json](raw/cat8-measurement/probe-after-v2.json) (after fixes #1 + #2), and [probe-after-v3.json](raw/cat8-measurement/probe-after-v3.json) (after all three fixes — `error-stack-leak` flipped from `high` to `ok`).
 
 The brief separates Cat 8 into two deliverables — the **probe tool** (automated) and the **manual review** (code reading). The manual review is at [shipshape/security/MANUAL_REVIEW.md](../security/MANUAL_REVIEW.md) and covers each of the four brief-specified areas (CORS + CSP, env + secrets, rate limiting, error verbosity) with line-anchored references into the actual source. Where the manual review and the probe agree, both are cited; where they diverge, both are documented.
 
@@ -240,6 +241,113 @@ $ corepack pnpm --filter @ship/api test
 ```
 
 Full transcript: [raw/cat8-measurement/test-suite-after-fixes.txt](raw/cat8-measurement/test-suite-after-fixes.txt). `pnpm install` after the override succeeds with no resolver errors. Type-check clean across all 3 workspaces. The two bumped packages are minor-version increments within the same major (5.x → 5.x, 7.x → 7.x), so the JavaScript API surface they expose is unchanged — and no test or production code calls the bumped packages directly anyway (both are transitive deps consumed by AWS SDK / testcontainers, which already wrap them).
+
+---
+
+## Fix #3 — Body-parser stack-trace leak (High → 0)
+
+### Vulnerability class
+
+CWE-209 (Information Exposure Through an Error Message). The manual review (`MANUAL_REVIEW.md § 4`) caught this as a real **high**-severity finding on the audit-baseline state, and the probe's `manual-error-verbosity` module flagged it as `error-stack-leak` with severity `high`.
+
+### Reproduction (before fix)
+
+```bash
+$ curl -X POST http://localhost:3000/api/issues \
+       -H 'Content-Type: application/json' \
+       -d 'this-is-not-json'
+
+HTTP/1.1 400 Bad Request
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Error</title></head>
+<body>
+<pre>SyntaxError: Unexpected token 't', "this-is-not-json" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (C:\Users\tyler\ship\node_modules\.pnpm\body-parser@1.20.4\node_modules\body-parser\lib\types\json.js:169:10)
+    ...
+```
+
+The HTML response leaks:
+- The error class name (`SyntaxError`)
+- The full Node.js stack trace
+- **Absolute file paths** including the exact `.pnpm` install dir + the installed body-parser version (`1.20.4`) — useful intel for CVE-targeting
+
+Root cause: [api/src/app.ts](../../api/src/app.ts) on the audit-baseline state has no global Express error handler (no `app.use((err, req, res, next) => {…})`). When `body-parser` throws a `SyntaxError`, Express's built-in default handler renders the HTML+stack page.
+
+### Fix applied
+
+Cherry-picked commit [`0470de1`](https://github.com/tylerxia8/ship/commit/0470de1) from `shipshape/06-runtime-errors`. The same fix the Cat 6 work landed for the runtime-errors deliverable now bundles with the Cat 8 deliverable too — so a reviewer who clones `shipshape/08-security` and runs the probe sees the surface clean.
+
+The fix adds three pieces to [api/src/app.ts](../../api/src/app.ts):
+
+```ts
+// 1. JSON 404 for unmatched /api/* routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.originalUrl}` },
+  });
+});
+
+// 2. Global error handler (4-arg signature — Express recognizes by arity)
+app.use((err, req, res, _next) => {
+  console.error('[error-handler]', err);
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Request body is not valid JSON' },
+    });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Request body exceeds size limit' },
+    });
+  }
+  // Other 4xx errors with err.expose !== false pass through (http-errors style)
+  // Everything else collapses to a generic 500 — no internals leaked
+  const status = (err.status && err.status >= 400 && err.status < 500) ? err.status : 500;
+  const message = (status < 500 && err.expose !== false) ? err.message : 'Internal server error';
+  res.status(status).json({
+    success: false,
+    error: { code: status >= 500 ? 'INTERNAL_ERROR' : 'VALIDATION_ERROR', message },
+  });
+});
+```
+
+### Evidence (after fix)
+
+Same probe + reproduction post-fix:
+
+```bash
+$ curl -X POST http://localhost:3000/api/issues \
+       -H 'Content-Type: application/json' \
+       -d 'this-is-not-json'
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/json; charset=utf-8
+
+{"success":false,"error":{"code":"VALIDATION_ERROR","message":"Request body is not valid JSON"}}
+```
+
+Structured envelope, no stack trace, no file paths, no version disclosure. Probe v3 result:
+
+```json
+{
+  "id": "error-no-stack-leak",
+  "severity": "ok",
+  "title": "Error responses do not leak stack traces or internal paths to clients"
+}
+```
+
+Raw: [raw/cat8-measurement/probe-after-v3.json](raw/cat8-measurement/probe-after-v3.json).
+
+### No tests broken
+
+The Cat 6 commit was previously test-validated on `shipshape/06-runtime-errors` (3 new regression tests added by Cat 5 specifically for the global error handler — see `api/src/__tests__/global-error-handler.test.ts`). On this branch, the same test transcript above (28 files / 451 tests pass) covers both Fix #1, #2, and the cherry-picked Fix #3 — no test regressed.
 
 ---
 
