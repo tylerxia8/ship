@@ -304,42 +304,58 @@ function getAwareness(docName: string, doc: Y.Doc): awarenessProtocol.Awareness 
 }
 
 function handleMessage(ws: WebSocket, message: Uint8Array, docName: string, doc: Y.Doc, aw: awarenessProtocol.Awareness) {
-  const decoder = decoding.createDecoder(message);
-  const messageType = decoding.readVarUint(decoder);
+  // Defense in depth: the y-protocols decoders throw on malformed input
+  // (truncated varuint, unknown message type, garbage bytes from a text frame).
+  // Without this try/catch, a throw escapes ws.on('message') → bubbles to ws's
+  // internal error event → if no 'error' listener on the socket, Node crashes
+  // the whole process. Catch + log + close with code 1008 (policy violation).
+  try {
+    const decoder = decoding.createDecoder(message);
+    const messageType = decoding.readVarUint(decoder);
 
-  switch (messageType) {
-    case messageSync: {
-      const encoder = encoding.createEncoder();
-      encoding.writeVarUint(encoder, messageSync);
-      // Pass ws as origin so broadcast excludes the sender
-      syncProtocol.readSyncMessage(decoder, encoder, doc, ws);
+    switch (messageType) {
+      case messageSync: {
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, messageSync);
+        // Pass ws as origin so broadcast excludes the sender
+        syncProtocol.readSyncMessage(decoder, encoder, doc, ws);
 
-      if (encoding.length(encoder) > 1) {
-        ws.send(encoding.toUint8Array(encoder));
-      }
-      break;
-    }
-    case messageAwareness: {
-      const awarenessData = decoding.readVarUint8Array(decoder);
-
-      // Extract the actual client's awarenessClientId from the update
-      // This is critical for proper cleanup on disconnect - the server was
-      // previously storing doc.clientID (server's ID) instead of the client's
-      // actual awareness clientID, causing stale states on page refresh.
-      // Format: [numStates, ...for each: clientId, clock, stateJson]
-      const conn = conns.get(ws);
-      if (conn) {
-        const updateDecoder = decoding.createDecoder(awarenessData);
-        const numStates = decoding.readVarUint(updateDecoder);
-        if (numStates > 0) {
-          const clientId = decoding.readVarUint(updateDecoder);
-          conn.awarenessClientId = clientId;
+        if (encoding.length(encoder) > 1) {
+          ws.send(encoding.toUint8Array(encoder));
         }
+        break;
       }
+      case messageAwareness: {
+        const awarenessData = decoding.readVarUint8Array(decoder);
 
-      awarenessProtocol.applyAwarenessUpdate(aw, awarenessData, ws);
-      break;
+        // Extract the actual client's awarenessClientId from the update
+        // This is critical for proper cleanup on disconnect - the server was
+        // previously storing doc.clientID (server's ID) instead of the client's
+        // actual awareness clientID, causing stale states on page refresh.
+        // Format: [numStates, ...for each: clientId, clock, stateJson]
+        const conn = conns.get(ws);
+        if (conn) {
+          const updateDecoder = decoding.createDecoder(awarenessData);
+          const numStates = decoding.readVarUint(updateDecoder);
+          if (numStates > 0) {
+            const clientId = decoding.readVarUint(updateDecoder);
+            conn.awarenessClientId = clientId;
+          }
+        }
+
+        awarenessProtocol.applyAwarenessUpdate(aw, awarenessData, ws);
+        break;
+      }
+      default:
+        // Unknown message type — drop silently. The Yjs sync protocol only
+        // defines messageSync (0) and messageAwareness (1).
+        break;
     }
+  } catch (err) {
+    // Log once; don't crash the process. Close the offending socket with
+    // policy-violation code so the client knows the frame was rejected.
+    console.warn(`[Collaboration] dropped malformed message on ${docName}:`, err instanceof Error ? err.message : err);
+    try { ws.close(1008, 'Malformed message'); } catch { /* socket already closed */ }
   }
 }
 
@@ -681,6 +697,18 @@ export function setupCollaboration(server: Server) {
   });
 
   wss.on('connection', async (ws: WebSocket, _request: IncomingMessage, docName: string, sessionData: { userId: string; workspaceId: string }) => {
+    // CRITICAL: attach an 'error' listener BEFORE any other handlers. The ws
+    // library emits 'error' on the WebSocket (not just the server) when it
+    // hits malformed frames or payloads exceeding maxPayload. Without a
+    // listener, Node's EventEmitter default kicks in: re-throw → unhandled
+    // error → process crash. Any authenticated user could DoS the API with
+    // one >10 MB WS frame. Verified by shipshape/security/probe.mjs.
+    ws.on('error', (err) => {
+      console.warn(`[Collaboration] ws error on ${docName}:`, err instanceof Error ? err.message : err);
+      // ws library typically closes the socket after emitting 'error' itself
+      // — we only need to log so the event has a handler. No re-throw.
+    });
+
     const doc = await getOrCreateDoc(docName);
     const aw = getAwareness(docName, doc);
 
@@ -787,6 +815,13 @@ export function setupCollaboration(server: Server) {
 
   // Handle events WebSocket connections (for real-time notifications)
   eventsWss.on('connection', (ws: WebSocket, sessionData: { userId: string; workspaceId: string }) => {
+    // CRITICAL: same as the collab WSS — attach an 'error' listener to prevent
+    // process crash on malformed frames / oversized payloads. See the comment
+    // on the wss connection handler above.
+    ws.on('error', (err) => {
+      console.warn(`[Events] ws error for user ${sessionData.userId}:`, err instanceof Error ? err.message : err);
+    });
+
     eventConns.set(ws, { userId: sessionData.userId, workspaceId: sessionData.workspaceId });
     console.log(`[Events] User ${sessionData.userId} connected (${eventConns.size} total connections)`);
 

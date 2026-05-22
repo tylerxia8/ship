@@ -1,0 +1,1692 @@
+{
+  "target": {
+    "api": "http://localhost:3000",
+    "web": "http://localhost:5173"
+  },
+  "scannedAt": "2026-05-21T23:03:04.404Z",
+  "probeVersion": "1.0.0",
+  "findings": [
+    {
+      "surface": "websocket",
+      "id": "ws-malformed-server-crash-11-mb-binary-payload",
+      "severity": "critical",
+      "title": "Server unhealthy after sending 11 MB binary payload on WS",
+      "description": "Sent 11 MB binary payload; /health failed/timed out immediately after. Likely server crash or hang triggered by the malformed frame.",
+      "cwe": "CWE-20 (Improper Input Validation)",
+      "evidence": {
+        "frameRejected": true,
+        "closeCode": 1009,
+        "serverAliveAfter": false
+      }
+    },
+    {
+      "surface": "websocket",
+      "id": "ws-malformed-server-crash-text-frame-to-binary-yjs-endpoint",
+      "severity": "critical",
+      "title": "Server unhealthy after sending text frame to binary Yjs endpoint on WS",
+      "description": "Sent text frame to binary Yjs endpoint; /health failed/timed out immediately after. Likely server crash or hang triggered by the malformed frame.",
+      "cwe": "CWE-20 (Improper Input Validation)",
+      "evidence": {
+        "frameRejected": true,
+        "closeCode": 1006,
+        "serverAliveAfter": false
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113568",
+      "severity": "critical",
+      "title": "[fast-xml-parser] fast-xml-parser has an entity encoding bypass via regex injection in DOCTYPE entity names",
+      "description": "# Entity encoding bypass via regex injection in DOCTYPE entity names\n\n## Summary\n\nA dot (`.`) in a DOCTYPE entity name is treated as a regex wildcard during entity replacement, allowing an attacker to shadow built-in XML entities (`&lt;`, `&gt;`, `&amp;`, `&quot;`, `&apos;`) with arbitrary values. This bypasses entity encoding and leads to XSS when parsed output is rendered.\n\n## Details\n\nThe fix for CVE-2023-34104 addressed some regex metacharacters in entity names but missed `.` (period), which is valid in XML names per the W3C spec.\n\nIn `DocTypeReader.js`, entity names are passed directly to `RegExp()`:\n\n```js\nentities[entityName] = {\n    regx: RegExp(`&${entityName};`, \"g\"),\n    val: val\n};\n```\n\nAn entity named `l.` produces the regex `/&l.;/g` where `.` matches **any character**, including the `t` in `&lt;`. Since DOCTYPE entities are replaced before built-in entities, this shadows `&lt;` entirely.\n\nThe same issue exists in `OrderedObjParser.js:81` (`addExternalEntities`), and in t",
+      "cve": "CVE-2026-25896",
+      "cwe": [
+        "CWE-185"
+      ],
+      "remediation": "Upgrade to version 5.3.5 or later",
+      "evidence": {
+        "module": "fast-xml-parser",
+        "vulnerable_versions": ">=5.0.0 <5.3.5",
+        "patched_versions": ">=5.3.5",
+        "url": "https://github.com/advisories/GHSA-m7jm-9gc2-mpf2"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1117571",
+      "severity": "critical",
+      "title": "[protobufjs] Arbitrary code execution in protobufjs",
+      "description": "## Summary\n\nprotobufjs could execute generated JavaScript code derived from protobuf schema metadata. When loading a crafted JSON descriptor, schema-controlled type names and type references could reach runtime code generation without sufficient validation.\n\n## Impact\n\nAn attacker who can provide a malicious protobuf definition or JSON descriptor to an application may be able to execute arbitrary JavaScript in the context of the process using protobufjs.\n\nThis requires control over the protobuf schema or descriptor being loaded. Applications that only decode messages using trusted, application-defined schemas are not directly affected by this issue.\n\n## Preconditions\n\n- The application must allow an attacker to control or influence a protobuf definition or JSON descriptor.\n- The application must load that definition through protobufjs reflection APIs such as descriptor loading.\n- The affected generated-code path must be reached, for example by performing an operation on the loaded type",
+      "cve": "CVE-2026-41242",
+      "cwe": [
+        "CWE-94"
+      ],
+      "remediation": "Upgrade to version 7.5.5 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<7.5.5",
+        "patched_versions": ">=7.5.5",
+        "url": "https://github.com/advisories/GHSA-xq3m-2v4x-88gg"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113461",
+      "severity": "high",
+      "title": "[minimatch] minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+      "description": "### Summary\n`minimatch` is vulnerable to Regular Expression Denial of Service (ReDoS) when a glob pattern contains many consecutive `*` wildcards followed by a literal character that doesn't appear in the test string. Each `*` compiles to a separate `[^/]*?` regex group, and when the match fails, V8's regex engine backtracks exponentially across all possible splits.\n\nThe time complexity is O(4^N) where N is the number of `*` characters. With N=15, a single `minimatch()` call takes ~2 seconds. With N=34, it hangs effectively forever.\n\n\n### Details\n_Give all details on the vulnerability. Pointing to the incriminated source code is very helpful for the maintainer._\n\n### PoC\nWhen minimatch compiles a glob pattern, each `*` becomes `[^/]*?` in the generated regex. For a pattern like `***************X***`:\n\n```\n/^(?!\\.)[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?X[^/]*?[^/]*?[^/]*?$/\n```\n\nWhen the test string doesn't contain `X`, the regex engine",
+      "cve": "CVE-2026-26996",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 5.1.7 or later",
+      "evidence": {
+        "module": "minimatch",
+        "vulnerable_versions": ">=5.0.0 <5.1.7",
+        "patched_versions": ">=5.1.7",
+        "url": "https://github.com/advisories/GHSA-3ppc-4f35-3m26"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113465",
+      "severity": "high",
+      "title": "[minimatch] minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+      "description": "### Summary\n`minimatch` is vulnerable to Regular Expression Denial of Service (ReDoS) when a glob pattern contains many consecutive `*` wildcards followed by a literal character that doesn't appear in the test string. Each `*` compiles to a separate `[^/]*?` regex group, and when the match fails, V8's regex engine backtracks exponentially across all possible splits.\n\nThe time complexity is O(4^N) where N is the number of `*` characters. With N=15, a single `minimatch()` call takes ~2 seconds. With N=34, it hangs effectively forever.\n\n\n### Details\n_Give all details on the vulnerability. Pointing to the incriminated source code is very helpful for the maintainer._\n\n### PoC\nWhen minimatch compiles a glob pattern, each `*` becomes `[^/]*?` in the generated regex. For a pattern like `***************X***`:\n\n```\n/^(?!\\.)[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?[^/]*?X[^/]*?[^/]*?[^/]*?$/\n```\n\nWhen the test string doesn't contain `X`, the regex engine",
+      "cve": "CVE-2026-26996",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 9.0.6 or later",
+      "evidence": {
+        "module": "minimatch",
+        "vulnerable_versions": ">=9.0.0 <9.0.6",
+        "patched_versions": ">=9.0.6",
+        "url": "https://github.com/advisories/GHSA-3ppc-4f35-3m26"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113515",
+      "severity": "high",
+      "title": "[rollup] Rollup 4 has Arbitrary File Write via Path Traversal",
+      "description": "### Summary\nThe Rollup module bundler (specifically v4.x and present in current source) is vulnerable to an Arbitrary File Write via Path Traversal. Insecure file name sanitization in the core engine allows an attacker to control output filenames (e.g., via CLI named inputs, manual chunk aliases, or malicious plugins) and use traversal sequences (`../`) to overwrite files anywhere on the host filesystem that the build process has permissions for. This can lead to persistent Remote Code Execution (RCE) by overwriting critical system or user configuration files.\n\n### Details\nThe vulnerability is caused by the combination of two flawed components in the Rollup core:\n\n1.  **Improper Sanitization**: In `src/utils/sanitizeFileName.ts`, the `INVALID_CHAR_REGEX` used to clean user-provided names for chunks and assets excludes the period (`.`) and forward/backward slashes (`/`, `\\`). \n    ```typescript\n    // src/utils/sanitizeFileName.ts (Line 3)\n    const INVALID_CHAR_REGEX = /[\\u0000-\\u001F\"",
+      "cve": "CVE-2026-27606",
+      "cwe": [
+        "CWE-22"
+      ],
+      "remediation": "Upgrade to version 4.59.0 or later",
+      "evidence": {
+        "module": "rollup",
+        "vulnerable_versions": ">=4.0.0 <4.59.0",
+        "patched_versions": ">=4.59.0",
+        "url": "https://github.com/advisories/GHSA-mw96-cpmx-2vgc"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113540",
+      "severity": "high",
+      "title": "[minimatch] minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+      "description": "### Summary\n\n`matchOne()` performs unbounded recursive backtracking when a glob pattern contains multiple non-adjacent `**` (GLOBSTAR) segments and the input path does not match. The time complexity is O(C(n, k)) -- binomial -- where `n` is the number of path segments and `k` is the number of globstars. With k=11 and n=30, a call to the default `minimatch()` API stalls for roughly 5 seconds. With k=13, it exceeds 15 seconds. No memoization or call budget exists to bound this behavior.\n\n---\n\n### Details\n\nThe vulnerable loop is in `matchOne()` at [`src/index.ts#L960`](https://github.com/isaacs/minimatch/blob/v10.2.2/src/index.ts#L960):\n\n```typescript\nwhile (fr < fl) {\n  ..\n  if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {\n    ..\n    return true\n  }\n  ..\n  fr++\n}\n```\n\nWhen a GLOBSTAR is encountered, the function tries to match the remaining pattern against every suffix of the remaining file segments. Each `**` multiplies the number of recursive calls by the number of rema",
+      "cve": "CVE-2026-27903",
+      "cwe": [
+        "CWE-407"
+      ],
+      "remediation": "Upgrade to version 5.1.8 or later",
+      "evidence": {
+        "module": "minimatch",
+        "vulnerable_versions": ">=5.0.0 <5.1.8",
+        "patched_versions": ">=5.1.8",
+        "url": "https://github.com/advisories/GHSA-7r86-cg39-jmmj"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113544",
+      "severity": "high",
+      "title": "[minimatch] minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+      "description": "### Summary\n\n`matchOne()` performs unbounded recursive backtracking when a glob pattern contains multiple non-adjacent `**` (GLOBSTAR) segments and the input path does not match. The time complexity is O(C(n, k)) -- binomial -- where `n` is the number of path segments and `k` is the number of globstars. With k=11 and n=30, a call to the default `minimatch()` API stalls for roughly 5 seconds. With k=13, it exceeds 15 seconds. No memoization or call budget exists to bound this behavior.\n\n---\n\n### Details\n\nThe vulnerable loop is in `matchOne()` at [`src/index.ts#L960`](https://github.com/isaacs/minimatch/blob/v10.2.2/src/index.ts#L960):\n\n```typescript\nwhile (fr < fl) {\n  ..\n  if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {\n    ..\n    return true\n  }\n  ..\n  fr++\n}\n```\n\nWhen a GLOBSTAR is encountered, the function tries to match the remaining pattern against every suffix of the remaining file segments. Each `**` multiplies the number of recursive calls by the number of rema",
+      "cve": "CVE-2026-27903",
+      "cwe": [
+        "CWE-407"
+      ],
+      "remediation": "Upgrade to version 9.0.7 or later",
+      "evidence": {
+        "module": "minimatch",
+        "vulnerable_versions": ">=9.0.0 <9.0.7",
+        "patched_versions": ">=9.0.7",
+        "url": "https://github.com/advisories/GHSA-7r86-cg39-jmmj"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113548",
+      "severity": "high",
+      "title": "[minimatch] minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions",
+      "description": "### Summary\n\nNested `*()` extglobs produce regexps with nested unbounded quantifiers (e.g. `(?:(?:a|b)*)*`), which exhibit catastrophic backtracking in V8. With a 12-byte pattern `*(*(*(a|b)))` and an 18-byte non-matching input, `minimatch()` stalls for over 7 seconds. Adding a single nesting level or a few input characters pushes this to minutes. This is the most severe finding: it is triggered by the default `minimatch()` API with no special options, and the minimum viable pattern is only 12 bytes. The same issue affects `+()` extglobs equally.\n\n---\n\n### Details\n\nThe root cause is in `AST.toRegExpSource()` at [`src/ast.ts#L598`](https://github.com/isaacs/minimatch/blob/v10.2.2/src/ast.ts#L598). For the `*` extglob type, the close token emitted is `)*` or `)?`, wrapping the recursive body in `(?:...)*`. When extglobs are nested, each level adds another `*` quantifier around the previous group:\n\n```typescript\n: this.type === '*' && bodyDotAllowed ? `)?`\n: `)${this.type}`\n```\n\nThis prod",
+      "cve": "CVE-2026-27904",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 5.1.8 or later",
+      "evidence": {
+        "module": "minimatch",
+        "vulnerable_versions": ">=5.0.0 <5.1.8",
+        "patched_versions": ">=5.1.8",
+        "url": "https://github.com/advisories/GHSA-23c5-xmqv-rm74"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113552",
+      "severity": "high",
+      "title": "[minimatch] minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions",
+      "description": "### Summary\n\nNested `*()` extglobs produce regexps with nested unbounded quantifiers (e.g. `(?:(?:a|b)*)*`), which exhibit catastrophic backtracking in V8. With a 12-byte pattern `*(*(*(a|b)))` and an 18-byte non-matching input, `minimatch()` stalls for over 7 seconds. Adding a single nesting level or a few input characters pushes this to minutes. This is the most severe finding: it is triggered by the default `minimatch()` API with no special options, and the minimum viable pattern is only 12 bytes. The same issue affects `+()` extglobs equally.\n\n---\n\n### Details\n\nThe root cause is in `AST.toRegExpSource()` at [`src/ast.ts#L598`](https://github.com/isaacs/minimatch/blob/v10.2.2/src/ast.ts#L598). For the `*` extglob type, the close token emitted is `)*` or `)?`, wrapping the recursive body in `(?:...)*`. When extglobs are nested, each level adds another `*` quantifier around the previous group:\n\n```typescript\n: this.type === '*' && bodyDotAllowed ? `)?`\n: `)${this.type}`\n```\n\nThis prod",
+      "cve": "CVE-2026-27904",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 9.0.7 or later",
+      "evidence": {
+        "module": "minimatch",
+        "vulnerable_versions": ">=9.0.0 <9.0.7",
+        "patched_versions": ">=9.0.7",
+        "url": "https://github.com/advisories/GHSA-23c5-xmqv-rm74"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113569",
+      "severity": "high",
+      "title": "[fast-xml-parser] fast-xml-parser affected by DoS through entity expansion in DOCTYPE (no expansion limit)",
+      "description": "### Summary\nThe XML parser can be forced to do an unlimited amount of entity expansion. With a very small XML input, it’s possible to make the parser spend seconds or even minutes processing a single request, effectively freezing the application.\n\n### Details\nThere is a check in `DocTypeReader.js` that tries to prevent entity expansion attacks by rejecting entities that reference other entities (it looks for & inside entity values). This does stop classic “Billion Laughs” payloads.\n\nHowever, it doesn’t stop a much simpler variant.\n\nIf you define one large entity that contains only raw text (no & characters) and then reference it many times, the parser will happily expand it every time. There is no limit on how large the expanded result can become, or how many replacements are allowed.\n\nThe problem is in `replaceEntitiesValue()` inside `OrderedObjParser.js`. It repeatedly runs `val.replace()` in a loop, without any checks on total output size or execution cost. As the entity grows or th",
+      "cve": "CVE-2026-26278",
+      "cwe": [
+        "CWE-776"
+      ],
+      "remediation": "Upgrade to version 5.3.6 or later",
+      "evidence": {
+        "module": "fast-xml-parser",
+        "vulnerable_versions": ">=5.0.0 <5.3.6",
+        "patched_versions": ">=5.3.6",
+        "url": "https://github.com/advisories/GHSA-jmr7-xgp7-cmfj"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114006",
+      "severity": "high",
+      "title": "[hono] Hono vulnerable to arbitrary file access via serveStatic vulnerability ",
+      "description": "## Summary\n\nWhen using `serveStatic` together with route-based middleware protections (e.g. `app.use('/admin/*', ...)`), inconsistent URL decoding allowed protected static resources to be accessed without authorization.\n\nThe router used `decodeURI`, while `serveStatic` used `decodeURIComponent`. This mismatch allowed paths containing encoded slashes (`%2F`) to bypass middleware protections while still resolving to the intended filesystem path.\n\n\n## Details\n\nThe routing layer preserved `%2F` as a literal string, while `serveStatic` decoded it into `/` before resolving the file path.\n\nExample:\n\nRequest: `/admin%2Fsecret.html`\n\n- Router sees: `/admin%2Fsecret.html` → does not match `/admin/*`\n- Static handler resolves: `/admin/secret.html`\n\nAs a result, static files under the configured static root could be served without triggering route-based protections.\n\nThis only affects applications that both:\n\n- Protect subpaths using route-based middleware, and\n- Serve files from the same static r",
+      "cve": "CVE-2026-29045",
+      "cwe": [
+        "CWE-177"
+      ],
+      "remediation": "Upgrade to version 4.12.4 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.4",
+        "patched_versions": ">=4.12.4",
+        "url": "https://github.com/advisories/GHSA-q5qw-h33p-qvwr"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114151",
+      "severity": "high",
+      "title": "[svgo] SVGO DoS through entity expansion in DOCTYPE (Billion Laughs)",
+      "description": "### Summary\n\nSVGO accepts XML with custom entities, without guards against entity expansion or recursion. This can result in a small XML file (811 bytes) stalling the application and even crashing the Node.js process with `JavaScript heap out of memory`.\n\n### Details\n\nThe upstream XML parser ([sax](https://www.npmjs.com/package/sax)) doesn't interpret custom XML entities by default. We pattern matched custom XML entities from the `DOCTYPE`, inserting them into `parser.ENTITIES`, and enabled `unparsedEntities`. This gives us the desired behavior of supporting SVGs with entities declared in the `DOCTYPE`.\n\nHowever, entities can reference other entities, which can enable small SVGs to explode exponentially when we try to parse them.\n\n#### Proof of Concept\n\n```js\nimport { optimize } from 'svgo';\n\n/** Presume that this string was obtained in some other way, such as network. */\nconst original = `\n  <?xml version=\"1.0\"?>\n  <!DOCTYPE lolz [\n  <!ENTITY lol \"lol\">\n  <!ELEMENT lolz (#PCDATA)>\n  <",
+      "cve": "CVE-2026-29074",
+      "cwe": [
+        "CWE-776"
+      ],
+      "remediation": "Upgrade to version 3.3.3 or later",
+      "evidence": {
+        "module": "svgo",
+        "vulnerable_versions": ">=3.0.0 <3.3.3",
+        "patched_versions": ">=3.3.3",
+        "url": "https://github.com/advisories/GHSA-xpqw-6gx7-v673"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114170",
+      "severity": "high",
+      "title": "[@hono/node-server] @hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware",
+      "description": "## Summary\n\nWhen using @hono/node-server's static file serving together with route-based middleware protections (e.g. protecting `/admin/*`), inconsistent URL decoding can allow protected static resources to be accessed without authorization.\n\nIn particular, paths containing encoded slashes (`%2F`) may be evaluated differently by routing/middleware matching versus static file path resolution, enabling a bypass where middleware does not run but the static file is still served.\n\n## Details\n\nThe routing layer and the node-server static handler normalize request paths differently. The router preserves `%2F` as a literal string when matching routes, while the static handler decodes `%2F` into `/` before resolving the filesystem path.\n\nExample request:\n\n- `/admin%2Fsecret.html`\n\nThis may:\n- fail to match middleware intended for `/admin/*`, but\n- still be resolved by the static handler as `/admin/secret.html` under the configured static root.\n\nThis does not allow access outside the configured",
+      "cve": "CVE-2026-29087",
+      "cwe": [
+        "CWE-863"
+      ],
+      "remediation": "Upgrade to version 1.19.10 or later",
+      "evidence": {
+        "module": "@hono/node-server",
+        "vulnerable_versions": "<1.19.10",
+        "patched_versions": ">=1.19.10",
+        "url": "https://github.com/advisories/GHSA-wc8c-qw6v-h7f6"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114194",
+      "severity": "high",
+      "title": "[express-rate-limit] express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network",
+      "description": "## Summary\n\nThe default `keyGenerator` in express-rate-limit applies IPv6 subnet masking (`/56` by default) to all addresses that `net.isIPv6()` returns true for. This includes IPv4-mapped IPv6 addresses (`::ffff:x.x.x.x`), which Node.js returns as `request.ip` on dual-stack servers.\n\nBecause the first 80 bits of all IPv4-mapped addresses are zero, a `/56` (or any `/32` to `/80`) subnet mask produces the same network key (`::/56`) for **every** IPv4 client. This collapses all IPv4 traffic into a single rate-limit bucket: one client exhausting the limit causes HTTP 429 for all other IPv4 clients.\n\n## Details\n\n### Root Cause\n\nIn `source/ip-key-generator.ts`:\n\n```typescript\nexport function ipKeyGenerator(ip: string, ipv6Subnet: number | false = 56) {\n  if (ipv6Subnet && isIPv6(ip)) {\n    return `${new Address6(`${ip}/${ipv6Subnet}`).startAddress().correctForm()}/${ipv6Subnet}`\n  }\n  return ip\n}\n```\n\n`net.isIPv6('::ffff:192.168.1.1')` returns `true`, so IPv4-mapped addresses enter the subn",
+      "cve": "CVE-2026-30827",
+      "cwe": [
+        "CWE-770"
+      ],
+      "remediation": "Upgrade to version 8.2.2 or later",
+      "evidence": {
+        "module": "express-rate-limit",
+        "vulnerable_versions": ">=8.2.0 <8.2.2",
+        "patched_versions": ">=8.2.2",
+        "url": "https://github.com/advisories/GHSA-46wh-pxpv-q5gq"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114526",
+      "severity": "high",
+      "title": "[flatted] flatted vulnerable to unbounded recursion DoS in parse() revive phase",
+      "description": "## Summary\n\nflatted's `parse()` function uses a recursive `revive()` phase to resolve circular references in deserialized JSON. When given a crafted payload with deeply nested or self-referential `$` indices, the recursion depth is unbounded, causing a stack overflow that crashes the Node.js process.\n\n## Impact\n\nDenial of Service (DoS). Any application that passes untrusted input to `flatted.parse()` can be crashed by an unauthenticated attacker with a single request.\n\nflatted has ~87M weekly npm downloads and is used as the circular-JSON serialization layer in many caching and logging libraries.\n\n## Proof of Concept\n\n```javascript\nconst flatted = require('flatted');\n\n// Build deeply nested circular reference chain\nconst depth = 20000;\nconst arr = new Array(depth + 1);\narr[0] = '{\"a\":\"1\"}';\nfor (let i = 1; i <= depth; i++) {\n  arr[i] = `{\"a\":\"${i + 1}\"}`;\n}\narr[depth] = '{\"a\":\"leaf\"}';\n\nconst payload = JSON.stringify(arr);\nflatted.parse(payload); // RangeError: Maximum call stack size ",
+      "cve": "CVE-2026-32141",
+      "cwe": [
+        "CWE-674"
+      ],
+      "remediation": "Upgrade to version 3.4.0 or later",
+      "evidence": {
+        "module": "flatted",
+        "vulnerable_versions": "<3.4.0",
+        "patched_versions": ">=3.4.0",
+        "url": "https://github.com/advisories/GHSA-25h7-pfq9-p65f"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114591",
+      "severity": "high",
+      "title": "[undici] Undici: Malicious WebSocket 64-bit length overflows parser and crashes the client",
+      "description": "### Impact\nA server can reply with a WebSocket frame using the 64-bit length form and an extremely large length. undici's ByteParser overflows internal math, ends up in an invalid state, and throws a fatal TypeError that terminates the process. \n\n### Patches\n\n\n Patched in the undici version v7.24.0 and v6.24.0. Users should upgrade to this version or later.\n\n### Workarounds\n\nThere are no workarounds.",
+      "cve": "CVE-2026-1528",
+      "cwe": [
+        "CWE-248",
+        "CWE-1284"
+      ],
+      "remediation": "Upgrade to version 7.24.0 or later",
+      "evidence": {
+        "module": "undici",
+        "vulnerable_versions": ">=7.0.0 <7.24.0",
+        "patched_versions": ">=7.24.0",
+        "url": "https://github.com/advisories/GHSA-f269-vfmq-vjvj"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114637",
+      "severity": "high",
+      "title": "[undici] Undici has Unbounded Memory Consumption in WebSocket permessage-deflate Decompression",
+      "description": "## Description\n\nThe undici WebSocket client is vulnerable to a denial-of-service attack via unbounded memory consumption during permessage-deflate decompression. When a WebSocket connection negotiates the permessage-deflate extension, the client decompresses incoming compressed frames without enforcing any limit on the decompressed data size. A malicious WebSocket server can send a small compressed frame (a \"decompression bomb\") that expands to an extremely large size in memory, causing the Node.js process to exhaust available memory and crash or become unresponsive.\n\nThe vulnerability exists in the `PerMessageDeflate.decompress()` method, which accumulates all decompressed chunks in memory and concatenates them into a single Buffer without checking whether the total size exceeds a safe threshold.\n\n## Impact\n\n- Remote denial of service against any Node.js application using undici's WebSocket client\n- A single compressed WebSocket frame of ~6 MB can decompress to ~1 GB or more\n- Memory ",
+      "cve": "CVE-2026-1526",
+      "cwe": [
+        "CWE-409"
+      ],
+      "remediation": "Upgrade to version 7.24.0 or later",
+      "evidence": {
+        "module": "undici",
+        "vulnerable_versions": ">=7.0.0 <7.24.0",
+        "patched_versions": ">=7.24.0",
+        "url": "https://github.com/advisories/GHSA-vrm6-8vpv-qv8q"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114639",
+      "severity": "high",
+      "title": "[undici] Undici has Unhandled Exception in WebSocket Client Due to Invalid server_max_window_bits Validation",
+      "description": "### Impact\n\nThe undici WebSocket client is vulnerable to a denial-of-service attack due to improper validation of the `server_max_window_bits` parameter in the permessage-deflate extension. When a WebSocket client connects to a server, it automatically advertises support for permessage-deflate compression. A malicious server can respond with an out-of-range `server_max_window_bits` value (outside zlib's valid range of 8-15). When the server subsequently sends a compressed frame, the client attempts to create a zlib InflateRaw instance with the invalid windowBits value, causing a synchronous RangeError exception that is not caught, resulting in immediate process termination.\n\nThe vulnerability exists because:\n\n1. The `isValidClientWindowBits()` function only validates that the value contains ASCII digits, not that it falls within the valid range 8-15\n2. The `createInflateRaw()` call is not wrapped in a try-catch block\n3. The resulting exception propagates up through the call stack and c",
+      "cve": "CVE-2026-2229",
+      "cwe": [
+        "CWE-248"
+      ],
+      "remediation": "Upgrade to version 7.24.0 or later",
+      "evidence": {
+        "module": "undici",
+        "vulnerable_versions": ">=7.0.0 <7.24.0",
+        "patched_versions": ">=7.24.0",
+        "url": "https://github.com/advisories/GHSA-v9p9-hfj2-hcw8"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115339",
+      "severity": "high",
+      "title": "[fast-xml-parser] fast-xml-parser affected by numeric entity expansion bypassing all entity expansion limits (incomplete fix for CVE-2026-26278)",
+      "description": "## Summary\n\nThe fix for CVE-2026-26278 added entity expansion limits (`maxTotalExpansions`, `maxExpandedLength`, `maxEntityCount`, `maxEntitySize`) to prevent XML entity expansion Denial of Service. However, these limits are only enforced for DOCTYPE-defined entities. **Numeric character references** (`&#NNN;` and `&#xHH;`) and standard XML entities (`&lt;`, `&gt;`, etc.) are processed through a separate code path that does NOT enforce any expansion limits.\n\nAn attacker can use massive numbers of numeric entity references to completely bypass all configured limits, causing excessive memory allocation and CPU consumption.\n\n## Affected Versions\n\nfast-xml-parser v5.x through v5.5.3 (and likely v5.5.5 on npm)\n\n## Root Cause\n\nIn `src/xmlparser/OrderedObjParser.js`, the `replaceEntitiesValue()` function has two separate entity replacement loops:\n\n1. **Lines 638-670**: DOCTYPE entities — expansion counting with `entityExpansionCount` and `currentExpandedLength` tracking. This was the CVE-2026",
+      "cve": "CVE-2026-33036",
+      "cwe": [
+        "CWE-776"
+      ],
+      "remediation": "Upgrade to version 5.5.6 or later",
+      "evidence": {
+        "module": "fast-xml-parser",
+        "vulnerable_versions": ">=5.0.0 <5.5.6",
+        "patched_versions": ">=5.5.6",
+        "url": "https://github.com/advisories/GHSA-8gc5-j5rx-235r"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115357",
+      "severity": "high",
+      "title": "[flatted] Prototype Pollution via parse() in NodeJS flatted",
+      "description": "---\n  **Summary**\n\n  The parse() function in flatted can use attacker-controlled string values from the parsed JSON as direct array index\n  keys, without validating that they are numeric. Since the internal input buffer is a JavaScript Array, accessing it\n  with the key \"\\_\\_proto\\_\\_\" returns Array.prototype via the inherited getter. This object is then treated as a legitimate\n   parsed value and assigned as a property of the output object, effectively leaking a live reference to Array.prototype\n   to the consumer. Any code that subsequently writes to that property will pollute the global prototype.\n\n  ---\n  **Root Cause**\n\n  File: esm/index.js:29 (identical in cjs/index.js)\n```\n  const resolver = (input, lazy, parsed, $) => output => {\n    for (let ke = keys(output), {length} = ke, y = 0; y < length; y++) {\n      const k = ke[y];\n      const value = output[k];    \n      if (value instanceof Primitive) {\n        const tmp = input[value];      // Bug is here\n```\n\nNo validation that val",
+      "cve": "CVE-2026-33228",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 3.4.2 or later",
+      "evidence": {
+        "module": "flatted",
+        "vulnerable_versions": "<=3.4.1",
+        "patched_versions": ">=3.4.2",
+        "url": "https://github.com/advisories/GHSA-rf6f-7fwh-wjgh"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115527",
+      "severity": "high",
+      "title": "[path-to-regexp] path-to-regexp vulnerable to Regular Expression Denial of Service via multiple route parameters",
+      "description": "### Impact\n\nA bad regular expression is generated any time you have three or more parameters within a single segment, separated by something that is not a period (`.`). For example, `/:a-:b-:c` or `/:a-:b-:c-:d`. The backtrack protection added in `path-to-regexp@0.1.12` only prevents ambiguity for two parameters. With three or more, the generated lookahead does not block single separator characters, so capture groups overlap and cause catastrophic backtracking.\n\n### Patches\n\nUpgrade to [path-to-regexp@0.1.13](https://github.com/pillarjs/path-to-regexp/releases/tag/v.0.1.13)\n\nCustom regex patterns in route definitions (e.g., `/:a-:b([^-/]+)-:c([^-/]+)`) are not affected because they override the default capture group.\n\n### Workarounds\n\nAll versions can be patched by providing a custom regular expression for parameters after the first in a single segment. As long as the custom regular expression does not match the text before the parameter, you will be safe. For example, change `/:a-:b-:",
+      "cve": "CVE-2026-4867",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 0.1.13 or later",
+      "evidence": {
+        "module": "path-to-regexp",
+        "vulnerable_versions": "<0.1.13",
+        "patched_versions": ">=0.1.13",
+        "url": "https://github.com/advisories/GHSA-37ch-88jc-xwx2"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115552",
+      "severity": "high",
+      "title": "[picomatch] Picomatch has a ReDoS vulnerability via extglob quantifiers",
+      "description": "### Impact\n`picomatch` is vulnerable to Regular Expression Denial of Service (ReDoS) when processing crafted extglob patterns. Certain patterns using extglob quantifiers such as `+()` and `*()`, especially when combined with overlapping alternatives or nested extglobs, are compiled into regular expressions that can exhibit catastrophic backtracking on non-matching input.\n\nExamples of problematic patterns include `+(a|aa)`, `+(*|?)`, `+(+(a))`, `*(+(a))`, and `+(+(+(a)))`. In local reproduction, these patterns caused multi-second event-loop blocking with relatively short inputs. For example, `+(a|aa)` compiled to `^(?:(?=.)(?:a|aa)+)$` and took about 2 seconds to reject a 41-character non-matching input, while nested patterns such as `+(+(a))` and `*(+(a))` took around 29 seconds to reject a 33-character input on a modern M1 MacBook.\n\nApplications are impacted when they allow untrusted users to supply glob patterns that are passed to `picomatch` for compilation or matching. In those cas",
+      "cve": "CVE-2026-33671",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 2.3.2 or later",
+      "evidence": {
+        "module": "picomatch",
+        "vulnerable_versions": "<2.3.2",
+        "patched_versions": ">=2.3.2",
+        "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115554",
+      "severity": "high",
+      "title": "[picomatch] Picomatch has a ReDoS vulnerability via extglob quantifiers",
+      "description": "### Impact\n`picomatch` is vulnerable to Regular Expression Denial of Service (ReDoS) when processing crafted extglob patterns. Certain patterns using extglob quantifiers such as `+()` and `*()`, especially when combined with overlapping alternatives or nested extglobs, are compiled into regular expressions that can exhibit catastrophic backtracking on non-matching input.\n\nExamples of problematic patterns include `+(a|aa)`, `+(*|?)`, `+(+(a))`, `*(+(a))`, and `+(+(+(a)))`. In local reproduction, these patterns caused multi-second event-loop blocking with relatively short inputs. For example, `+(a|aa)` compiled to `^(?:(?=.)(?:a|aa)+)$` and took about 2 seconds to reject a 41-character non-matching input, while nested patterns such as `+(+(a))` and `*(+(a))` took around 29 seconds to reject a 33-character input on a modern M1 MacBook.\n\nApplications are impacted when they allow untrusted users to supply glob patterns that are passed to `picomatch` for compilation or matching. In those cas",
+      "cve": "CVE-2026-33671",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 4.0.4 or later",
+      "evidence": {
+        "module": "picomatch",
+        "vulnerable_versions": ">=4.0.0 <4.0.4",
+        "patched_versions": ">=4.0.4",
+        "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115573",
+      "severity": "high",
+      "title": "[path-to-regexp] path-to-regexp vulnerable to Denial of Service via sequential optional groups",
+      "description": "### Impact\n\nA bad regular expression is generated any time you have multiple sequential optional groups (curly brace syntax), such as `{a}{b}{c}:z`. The generated regex grows exponentially with the number of groups, causing denial of service.\n\n### Patches\n\nFixed in version 8.4.0.\n\n### Workarounds\n\nLimit the number of sequential optional groups in route patterns. Avoid passing user-controlled input as route patterns.",
+      "cve": "CVE-2026-4926",
+      "cwe": [
+        "CWE-400",
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 8.4.0 or later",
+      "evidence": {
+        "module": "path-to-regexp",
+        "vulnerable_versions": ">=8.0.0 <8.4.0",
+        "patched_versions": ">=8.4.0",
+        "url": "https://github.com/advisories/GHSA-j3q9-mxjg-w52f"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115806",
+      "severity": "high",
+      "title": "[lodash] lodash vulnerable to Code Injection via `_.template` imports key names",
+      "description": "### Impact\n\nThe fix for [CVE-2021-23337](https://github.com/advisories/GHSA-35jh-r3h4-6jhm) added validation for the `variable` option in `_.template` but did not apply the same validation to `options.imports` key names. Both paths flow into the same `Function()` constructor sink.\n\nWhen an application passes untrusted input as `options.imports` key names, an attacker can inject default-parameter expressions that execute arbitrary code at template compilation time.\n\nAdditionally, `_.template` uses `assignInWith` to merge imports, which enumerates inherited properties via `for..in`. If `Object.prototype` has been polluted by any other vector, the polluted keys are copied into the imports object and passed to `Function()`.\n\n### Patches\n\nUsers should upgrade to version 4.18.0.\n\nThe fix applies two changes:\n1. Validate `importsKeys` against the existing `reForbiddenIdentifierChars` regex (same check already used for the `variable` option)\n2. Replace `assignInWith` with `assignWith` when mer",
+      "cve": "CVE-2026-4800",
+      "cwe": [
+        "CWE-94"
+      ],
+      "remediation": "Upgrade to version 4.18.0 or later",
+      "evidence": {
+        "module": "lodash",
+        "vulnerable_versions": ">=4.0.0 <=4.17.23",
+        "patched_versions": ">=4.18.0",
+        "url": "https://github.com/advisories/GHSA-r5fr-rjxr-66jc"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116234",
+      "severity": "high",
+      "title": "[vite] Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket",
+      "description": "### Summary\n\n[`server.fs`](https://vite.dev/config/server-options#server-fs-strict) check was not enforced to the `fetchModule` method that is exposed in Vite dev server's WebSocket. \n\n### Impact\n\nOnly apps that match the following conditions are affected:\n\n- explicitly exposes the Vite dev server to the network (using `--host` or [`server.host` config option](https://vitejs.dev/config/server-options.html#server-host))\n- WebSocket is not disabled by `server.ws: false`\n\nArbitrary files on the server (development machine, CI environment, container, etc.) can be exposed.\n\n### Details\n\nIf it is possible to connect to the Vite dev server’s WebSocket **without an `Origin` header**, an attacker can invoke `fetchModule` via the custom WebSocket event `vite:invoke` and combine `file://...` with `?raw` (or `?inline`) to retrieve the contents of arbitrary files on the server as a JavaScript string (e.g., `export default \"...\"`).\n\nThe access control enforced in the HTTP request path (such as `serv",
+      "cve": "CVE-2026-39363",
+      "cwe": [
+        "CWE-200",
+        "CWE-306"
+      ],
+      "remediation": "Upgrade to version 6.4.2 or later",
+      "evidence": {
+        "module": "vite",
+        "vulnerable_versions": ">=6.0.0 <=6.4.1",
+        "patched_versions": ">=6.4.2",
+        "url": "https://github.com/advisories/GHSA-p9ff-h696-f583"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1117870",
+      "severity": "high",
+      "title": "[fast-uri] fast-uri vulnerable to path traversal via percent-encoded dot segments",
+      "description": "### Impact\n\n`fast-uri` v3.1.0 and earlier decodes percent-encoded path separators (`%2F`) and dot segments (`%2E`) before applying dot-segment removal in `normalize()` and `equal()`. This makes encoded path data behave like real `/` and `..`, so distinct URIs collapse onto the same normalized path.\n\nFor example, `http://example.com/public/%2e%2e/admin` normalizes to `http://example.com/admin`, and `equal()` considers them the same URI.\n\nApplications that normalize or compare attacker-controlled URLs to enforce path-based policy can be bypassed. A path that looks confined under an allowed prefix can normalize to a different location.\n\n### Patches\n\nUpgrade to `fast-uri` >= 3.1.1.\n\n### Workarounds\n\nNone. Upgrade to the patched version.",
+      "cve": "CVE-2026-6321",
+      "cwe": [
+        "CWE-22"
+      ],
+      "remediation": "Upgrade to version 3.1.1 or later",
+      "evidence": {
+        "module": "fast-uri",
+        "vulnerable_versions": "<=3.1.0",
+        "patched_versions": ">=3.1.1",
+        "url": "https://github.com/advisories/GHSA-q3j6-qgpj-74h6"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1117884",
+      "severity": "high",
+      "title": "[fast-uri] fast-uri vulnerable to host confusion via percent-encoded authority delimiters",
+      "description": "### Impact\n\n`fast-uri` v3.1.1 and earlier decodes percent-encoded authority delimiters (`%40` as `@`, `%3A` as `:`) inside the host component and serializes them back as raw characters. This changes the URI structure, turning a hostname into userinfo plus a different host.\n\nFor example, `http://trusted.com%40evil.com/` normalizes to `http://trusted.com@evil.com/`, which reparses as host `evil.com` with userinfo `trusted.com`.\n\nApplications that normalize untrusted URLs before host allowlist checks, redirect validation, or outbound request routing can be steered to a different authority than the original URL appeared to contain.\n\n### Patches\n\nUpgrade to `fast-uri` >= 3.1.2.\n\n### Workarounds\n\nNone. Upgrade to the patched version.",
+      "cve": "CVE-2026-6322",
+      "cwe": [
+        "CWE-436"
+      ],
+      "remediation": "Upgrade to version 3.1.2 or later",
+      "evidence": {
+        "module": "fast-uri",
+        "vulnerable_versions": "<=3.1.1",
+        "patched_versions": ">=3.1.2",
+        "url": "https://github.com/advisories/GHSA-v39h-62p7-jpjc"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118641",
+      "severity": "high",
+      "title": "[protobufjs] protobuf.js: Code injection through bytes field defaults in generated toObject code",
+      "description": "## Summary\n\nprotobufjs generated JavaScript for `toObject` conversion could include an unsafe expression derived from a schema-controlled `bytes` field default value. A crafted descriptor with a non-string default value for a `bytes` field could cause attacker-controlled code to be emitted into the generated conversion function.\n\n## Impact\n\nAn attacker who can provide or influence a protobuf descriptor may be able to execute arbitrary JavaScript in the context of the process using protobufjs.\n\nThis requires the application to load an attacker-controlled schema or descriptor and then convert a message of the affected type with defaults enabled. Applications that only use trusted, application-defined schemas are not directly affected by this issue.\n\n## Preconditions\n\n- The application must allow an attacker to control or influence a protobuf JSON descriptor or equivalent reflected schema.\n- The descriptor must define a `bytes` field with an attacker-controlled default value.\n- The applic",
+      "cve": "CVE-2026-44293",
+      "cwe": [
+        "CWE-94"
+      ],
+      "remediation": "Upgrade to version 7.5.6 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<=7.5.5",
+        "patched_versions": ">=7.5.6",
+        "url": "https://github.com/advisories/GHSA-66ff-xgx4-vchm"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118928",
+      "severity": "high",
+      "title": "[protobufjs] protobuf.js: Code generation gadget after prototype pollution",
+      "description": "## Summary\n\nprotobufjs used plain objects with inherited prototypes for internal type lookup tables used by generated encode and decode functions. If `Object.prototype` had already been polluted, those lookup tables could resolve attacker-controlled inherited properties as valid protobuf type information.\n\nThis could cause attacker-controlled strings to be emitted into generated JavaScript code.\n\n## Impact\n\nAn attacker who can first trigger a prototype pollution vulnerability may be able to influence generated protobufjs encode or decode functions in a way that can lead to arbitrary JavaScript execution.\n\nThis issue requires a separate prototype pollution primitive before protobufjs is invoked.\n\nApplications without a reachable prototype pollution primitive are not directly exploitable through this issue alone.\n\n## Preconditions\n\n- The application or one of its dependencies must allow an attacker to pollute `Object.prototype`.\n- The polluted property must affect protobufjs internal typ",
+      "cve": "CVE-2026-44291",
+      "cwe": [
+        "CWE-94",
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 7.5.6 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<=7.5.5",
+        "patched_versions": ">=7.5.6",
+        "url": "https://github.com/advisories/GHSA-75px-5xx7-5xc7"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118930",
+      "severity": "high",
+      "title": "[protobufjs] protobuf.js: Process-wide denial of service through unsafe option paths",
+      "description": "## Summary\n\nprotobufjs allowed certain schema option paths to traverse through inherited object properties while applying options. A crafted protobuf schema or JSON descriptor could cause option handling to write to properties on global JavaScript constructors, corrupting process-wide built-in functionality.\n\n## Impact\n\nAn attacker who can provide or influence protobuf schemas or JSON descriptors may be able to corrupt built-in process state in a way that causes subsequent application code or protobufjs code to fail. This can result in a persistent denial of service for the lifetime of the affected process.\n\nThis issue affects applications that parse or load protobuf schemas or descriptors from untrusted sources. Applications that use bundled, generated, or otherwise trusted schemas to decode untrusted protobuf message payloads are not directly affected.\n\nThe issue is not known to allow code execution by itself.\n\n## Preconditions\n\n- The application must allow an attacker to control or ",
+      "cve": "CVE-2026-44290",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 7.5.6 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<=7.5.5",
+        "patched_versions": ">=7.5.6",
+        "url": "https://github.com/advisories/GHSA-jvwf-75h9-cwgg"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118932",
+      "severity": "high",
+      "title": "[protobufjs] protobuf.js: Denial of service through unbounded protobuf recursion",
+      "description": "## Summary\n\nprotobufjs could recurse without a depth limit while decoding nested protobuf data. This affected both skipping unknown group fields and generated decoding of nested message fields.\n\nA crafted protobuf binary payload could cause the JavaScript call stack to be exhausted during decoding.\n\n## Impact\n\nAn attacker who can provide protobuf binary data decoded by an application may be able to crash the process or otherwise cause decoding to fail with a stack overflow.\n\nThis affects applications that decode untrusted protobuf binary input with affected versions.\n\n## Preconditions\n\n- The application must decode protobuf binary data influenced by an attacker.\n- The crafted input must contain deeply nested protobuf structures, such as nested group tags or nested message fields.\n- The affected decoder path must process the crafted input.\n\n## Workarounds\n\nAvoid decoding untrusted protobuf binary data with affected versions. If immediate upgrade is not possible, reject excessively neste",
+      "cve": "CVE-2026-44289",
+      "cwe": [
+        "CWE-674"
+      ],
+      "remediation": "Upgrade to version 7.5.6 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<=7.5.5",
+        "patched_versions": ">=7.5.6",
+        "url": "https://github.com/advisories/GHSA-685m-2w69-288q"
+      }
+    },
+    {
+      "surface": "input",
+      "id": "input-xss-reflected",
+      "severity": "medium",
+      "title": "Search response echoes raw query (reflected XSS surface)",
+      "description": "3 payloads were echoed verbatim in the search response. Since the response is JSON and Ship's web renders results via React (which escapes), the risk is low in the browser — but a third-party consumer of the API could interpret the JSON differently.",
+      "evidence": [
+        {
+          "payload": "<script>alert(1)</script>",
+          "status": 200,
+          "reflectedVerbatim": true
+        },
+        {
+          "payload": "<img src=x onerror=alert(1)>",
+          "status": 200,
+          "reflectedVerbatim": true
+        },
+        {
+          "payload": "javascript:alert(1)",
+          "status": 200,
+          "reflectedVerbatim": true
+        }
+      ]
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1112455",
+      "severity": "medium",
+      "title": "[lodash] Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions",
+      "description": "### Impact\n\nLodash versions 4.0.0 through 4.17.22 are vulnerable to prototype pollution in the `_.unset` and `_.omit` functions. An attacker can pass crafted paths which cause Lodash to delete methods from global prototypes. \n\nThe issue permits deletion of properties but does not allow overwriting their original behavior.  \n\n### Patches\n\nThis issue is patched on 4.17.23.",
+      "cve": "CVE-2025-13465",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 4.17.23 or later",
+      "evidence": {
+        "module": "lodash",
+        "vulnerable_versions": ">=4.0.0 <=4.17.22",
+        "patched_versions": ">=4.17.23",
+        "url": "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113190",
+      "severity": "medium",
+      "title": "[markdown-it] markdown-it is has a Regular Expression Denial of Service (ReDoS)",
+      "description": "Versions of the package markdown-it from 13.0.0 and before 14.1.1 are vulnerable to Regular Expression Denial of Service (ReDoS) due to the use of the regex /\\*+$/ in the linkify function. An attacker can supply a long sequence of * characters followed by a non-matching character, which triggers excessive backtracking and may lead to a denial-of-service condition.",
+      "cve": "CVE-2026-2327",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 14.1.1 or later",
+      "evidence": {
+        "module": "markdown-it",
+        "vulnerable_versions": ">=13.0.0 <14.1.1",
+        "patched_versions": ">=14.1.1",
+        "url": "https://github.com/advisories/GHSA-38c4-r59v-3vqw"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113715",
+      "severity": "medium",
+      "title": "[ajv] ajv has ReDoS when using `$data` option",
+      "description": "ajv (Another JSON Schema Validator) through version 8.17.1 is vulnerable to Regular Expression Denial of Service (ReDoS) when the `$data` option is enabled. The pattern keyword accepts runtime data via JSON Pointer syntax (`$data` reference), which is passed directly to the JavaScript `RegExp()` constructor without validation. An attacker can inject a malicious regex pattern (e.g., `\\\"^(a|a)*$\\\"`) combined with crafted input to cause catastrophic backtracking. A 31-character payload causes approximately 44 seconds of CPU blocking, with each additional character doubling execution time. This enables complete denial of service with a single HTTP request against any API using ajv with `$data`: true for dynamic schema validation.",
+      "cve": "CVE-2025-69873",
+      "cwe": [
+        "CWE-400",
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 8.18.0 or later",
+      "evidence": {
+        "module": "ajv",
+        "vulnerable_versions": ">=7.0.0-alpha.0 <8.18.0",
+        "patched_versions": ">=8.18.0",
+        "url": "https://github.com/advisories/GHSA-2g4f-4pwh-qvx6"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114004",
+      "severity": "medium",
+      "title": "[hono] Hono Vulnerable to Cookie Attribute Injection via Unsanitized domain and path in setCookie()",
+      "description": "## Summary\n\nThe `setCookie()` utility did not validate semicolons (`;`), carriage returns (`\\r`), or newline characters (`\\n`) in the `domain` and `path` options when constructing the `Set-Cookie` header.\n\nBecause cookie attributes are delimited by semicolons, this could allow injection of additional cookie attributes if untrusted input was passed into these fields.\n\n## Details\n\n`setCookie()` builds the `Set-Cookie` header by concatenating option values. While the cookie value itself is URL-encoded, the `domain` and `path` options were previously interpolated without rejecting unsafe characters.\n\nIncluding `;`, `\\r`, or `\\n` in these fields could result in unintended additional attributes (such as `SameSite`, `Secure`, `Domain`, or `Path`) being appended to the cookie header.\n\nModern runtimes prevent full header injection via CRLF, so this issue is limited to attribute-level manipulation within a single `Set-Cookie` header.\n\nThe issue has been fixed by rejecting these characters in the",
+      "cve": "CVE-2026-29086",
+      "cwe": [
+        "CWE-113",
+        "CWE-1113"
+      ],
+      "remediation": "Upgrade to version 4.12.4 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.4",
+        "patched_versions": ">=4.12.4",
+        "url": "https://github.com/advisories/GHSA-5pq2-9x2x-5p6w"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114005",
+      "severity": "medium",
+      "title": "[hono] Hono Vulnerable to SSE Control Field Injection via CR/LF in writeSSE()",
+      "description": "## Summary\n\nWhen using `streamSSE()` in Streaming Helper, the `event`, `id`, and `retry` fields were not validated for carriage return (`\\r`) or newline (`\\n`) characters.\n\nBecause the SSE protocol uses line breaks as field delimiters, this could allow injection of additional SSE fields within the same event frame if untrusted input was passed into these fields.\n\n## Details\n\nThe SSE helper builds event frames by joining lines with `\\n`. While multi-line `data:` fields are handled according to the SSE specification, the `event`, `id`, and `retry` fields previously allowed raw values without rejecting embedded CR/LF characters.\n\nIncluding CR/LF in these control fields could allow unintended additional fields (such as `data:`, `id:`, or `retry:`) to be injected into the event stream.\n\nThe issue has been fixed by rejecting CR/LF characters in these fields.\n\n## Impact\n\nAn attacker could manipulate the structure of SSE event frames if an application passed user-controlled input directly into",
+      "cve": "CVE-2026-29085",
+      "cwe": [
+        "CWE-74"
+      ],
+      "remediation": "Upgrade to version 4.12.4 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.4",
+        "patched_versions": ">=4.12.4",
+        "url": "https://github.com/advisories/GHSA-p6xx-57qc-3wxr"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114341",
+      "severity": "medium",
+      "title": "[hono] Hono vulnerable to Prototype Pollution possible through __proto__ key allowed in parseBody({ dot: true })",
+      "description": "## Summary\n\nWhen using `parseBody({ dot: true })` in HonoRequest, specially crafted form field names such as `__proto__.x` could create objects containing a `__proto__` property.\n\nIf the parsed result is later merged into regular JavaScript objects using unsafe merge patterns, this may lead to prototype pollution in the target object.\n\n## Details\n\nThe `parseBody({ dot: true })` feature supports dot notation to construct nested objects from form field names.\n\nIn previous versions, the `__proto__` path segment was not filtered. As a result, specially crafted keys such as `__proto__.x` could produce objects containing `__proto__` properties.\n\nWhile this behavior does not directly modify `Object.prototype` within Hono itself, it may become exploitable if the parsed result is later merged into regular JavaScript objects using unsafe merge patterns.\n\n## Impact\n\nApplications that merge parsed form data into regular objects using unsafe patterns (for example recursive deep merge utilities) may",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 4.12.7 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.7",
+        "patched_versions": ">=4.12.7",
+        "url": "https://github.com/advisories/GHSA-v8w9-8mx6-g223"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114593",
+      "severity": "medium",
+      "title": "[undici] Undici has an HTTP Request/Response Smuggling issue",
+      "description": "### Impact\n\nUndici allows duplicate HTTP `Content-Length` headers when they are provided in an array with case-variant names (e.g., `Content-Length` and `content-length`). This produces malformed HTTP/1.1 requests with multiple conflicting `Content-Length` values on the wire.\n\n**Who is impacted:**\n  - Applications using `undici.request()`, `undici.Client`, or similar low-level APIs with headers passed as flat arrays\n  - Applications that accept user-controlled header names without case-normalization\n\n**Potential consequences:**\n  - **Denial of Service**: Strict HTTP parsers (proxies, servers) will reject requests with duplicate `Content-Length` headers (400 Bad Request)\n  - **HTTP Request Smuggling**: In deployments where an intermediary and backend interpret duplicate headers inconsistently (e.g., one uses the first value, the other uses the last), this can enable request smuggling attacks leading to ACL bypass, cache poisoning, or credential hijacking\n\n### Patches\n\n Patched in the un",
+      "cve": "CVE-2026-1525",
+      "cwe": [
+        "CWE-444"
+      ],
+      "remediation": "Upgrade to version 7.24.0 or later",
+      "evidence": {
+        "module": "undici",
+        "vulnerable_versions": ">=7.0.0 <7.24.0",
+        "patched_versions": ">=7.24.0",
+        "url": "https://github.com/advisories/GHSA-2mjp-6q6p-2qxm"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114641",
+      "severity": "medium",
+      "title": "[undici] Undici has CRLF Injection in undici via `upgrade` option",
+      "description": "### Impact\n\nWhen an application passes user-controlled input to the `upgrade` option of `client.request()`, an attacker can inject CRLF sequences (`\\r\\n`) to:\n\n1. Inject arbitrary HTTP headers\n2. Terminate the HTTP request prematurely and smuggle raw data to non-HTTP services (Redis, Memcached, Elasticsearch)\n\nThe vulnerability exists because undici writes the `upgrade` value directly to the socket without validating for invalid header characters:\n\n```javascript\n// lib/dispatcher/client-h1.js:1121\nif (upgrade) {\n  header += `connection: upgrade\\r\\nupgrade: ${upgrade}\\r\\n`\n}\n```\n\n### Patches\n\n Patched in the undici version v7.24.0 and v6.24.0. Users should upgrade to this version or later.\n\n### Workarounds\n\nSanitize the `upgrade` option string before passing to undici:\n\n```javascript\nfunction sanitizeUpgrade(value) {\n  if (/[\\r\\n]/.test(value)) {\n    throw new Error('Invalid upgrade value')\n  }\n  return value\n}\n\nclient.request({\n  upgrade: sanitizeUpgrade(userInput)\n})\n```",
+      "cve": "CVE-2026-1527",
+      "cwe": [
+        "CWE-93"
+      ],
+      "remediation": "Upgrade to version 7.24.0 or later",
+      "evidence": {
+        "module": "undici",
+        "vulnerable_versions": ">=7.0.0 <7.24.0",
+        "patched_versions": ">=7.24.0",
+        "url": "https://github.com/advisories/GHSA-4992-7rv2-5pvq"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114643",
+      "severity": "medium",
+      "title": "[undici] Undici has Unbounded Memory Consumption in its DeduplicationHandler via Response Buffering that leads to DoS",
+      "description": "## Impact\nThis is an uncontrolled resource consumption vulnerability (CWE-400) that can lead to Denial of Service (DoS).\n\nIn vulnerable Undici versions, when `interceptors.deduplicate()` is enabled, response data for deduplicated requests could be accumulated in memory for downstream handlers. An attacker-controlled or untrusted upstream endpoint can exploit this with large/chunked responses and concurrent identical requests, causing high memory usage and potential OOM process termination.\n\nImpacted users are applications that use Undici’s deduplication interceptor against endpoints that may produce large or long-lived response bodies.\n\n## Patches\n\nThe issue has been patched by changing deduplication behavior to stream response chunks to downstream handlers as they arrive (instead of full-body accumulation), and by preventing late deduplication when body streaming has already started.\n\nUsers should upgrade to the first official Undici (and Node.js, where applicable) releases that inclu",
+      "cve": "CVE-2026-2581",
+      "cwe": [
+        "CWE-770"
+      ],
+      "remediation": "Upgrade to version 7.24.0 or later",
+      "evidence": {
+        "module": "undici",
+        "vulnerable_versions": ">=7.17.0 <7.24.0",
+        "patched_versions": ">=7.24.0",
+        "url": "https://github.com/advisories/GHSA-phc3-fgpg-7m6h"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115541",
+      "severity": "medium",
+      "title": "[brace-expansion] brace-expansion: Zero-step sequence causes process hang and memory exhaustion",
+      "description": "### Impact\n\nA brace pattern with a zero step value (e.g., `{1..2..0}`) causes the sequence generation loop to run indefinitely, making the process hang for seconds and allocate heaps of memory.\n\nThe loop in question:\n\nhttps://github.com/juliangruber/brace-expansion/blob/daa71bcb4a30a2df9bcb7f7b8daaf2ab30e5794a/src/index.ts#L184\n\n`test()` is one of\n\nhttps://github.com/juliangruber/brace-expansion/blob/daa71bcb4a30a2df9bcb7f7b8daaf2ab30e5794a/src/index.ts#L107-L113\n\nThe increment is computed as `Math.abs(0) = 0`, so the loop variable never advances. On a test machine, the process hangs for about 3.5 seconds and allocates roughly 1.9 GB of memory before throwing a `RangeError`. Setting max to any value has no effect because the limit is only checked at the output combination step, not during sequence generation.\n\nThis affects any application that passes untrusted strings to expand(), or by error sets a step value of `0`. That includes tools built on minimatch/glob that resolve patterns fr",
+      "cve": "CVE-2026-33750",
+      "cwe": [
+        "CWE-400"
+      ],
+      "remediation": "Upgrade to version 2.0.3 or later",
+      "evidence": {
+        "module": "brace-expansion",
+        "vulnerable_versions": ">=2.0.0 <2.0.3",
+        "patched_versions": ">=2.0.3",
+        "url": "https://github.com/advisories/GHSA-f886-m6hf-6m8v"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115549",
+      "severity": "medium",
+      "title": "[picomatch] Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching",
+      "description": "### Impact\npicomatch is vulnerable to a **method injection vulnerability (CWE-1321)** affecting the `POSIX_REGEX_SOURCE` object. Because the object inherits from `Object.prototype`, specially crafted POSIX bracket expressions (e.g., `[[:constructor:]]`) can reference inherited method names. These methods are implicitly converted to strings and injected into the generated regular expression.\n\nThis leads to **incorrect glob matching behavior (integrity impact)**, where patterns may match unintended filenames. The issue does **not enable remote code execution**, but it can cause security-relevant logic errors in applications that rely on glob matching for filtering, validation, or access control.\n\nAll users of affected `picomatch` versions that process untrusted or user-controlled glob patterns are potentially impacted.\n\n### Patches\n\nThis issue is fixed in picomatch 4.0.4, 3.0.2 and 2.3.2.\n\nUsers should upgrade to one of these versions or later, depending on their supported release line.\n",
+      "cve": "CVE-2026-33672",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 2.3.2 or later",
+      "evidence": {
+        "module": "picomatch",
+        "vulnerable_versions": "<2.3.2",
+        "patched_versions": ">=2.3.2",
+        "url": "https://github.com/advisories/GHSA-3v7f-55p6-f55p"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115551",
+      "severity": "medium",
+      "title": "[picomatch] Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching",
+      "description": "### Impact\npicomatch is vulnerable to a **method injection vulnerability (CWE-1321)** affecting the `POSIX_REGEX_SOURCE` object. Because the object inherits from `Object.prototype`, specially crafted POSIX bracket expressions (e.g., `[[:constructor:]]`) can reference inherited method names. These methods are implicitly converted to strings and injected into the generated regular expression.\n\nThis leads to **incorrect glob matching behavior (integrity impact)**, where patterns may match unintended filenames. The issue does **not enable remote code execution**, but it can cause security-relevant logic errors in applications that rely on glob matching for filtering, validation, or access control.\n\nAll users of affected `picomatch` versions that process untrusted or user-controlled glob patterns are potentially impacted.\n\n### Patches\n\nThis issue is fixed in picomatch 4.0.4, 3.0.2 and 2.3.2.\n\nUsers should upgrade to one of these versions or later, depending on their supported release line.\n",
+      "cve": "CVE-2026-33672",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 4.0.4 or later",
+      "evidence": {
+        "module": "picomatch",
+        "vulnerable_versions": ">=4.0.0 <4.0.4",
+        "patched_versions": ">=4.0.4",
+        "url": "https://github.com/advisories/GHSA-3v7f-55p6-f55p"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115556",
+      "severity": "medium",
+      "title": "[yaml] yaml is vulnerable to Stack Overflow via deeply nested YAML collections",
+      "description": "Parsing a YAML document with `yaml` may throw a RangeError due to a stack overflow.\n\nThe node resolution/composition phase uses recursive function calls without a depth bound. An attacker who can supply YAML for parsing can trigger a `RangeError: Maximum call stack size exceeded` with a small payload (~2–10 KB). The `RangeError` is not a `YAMLParseError`, so applications that only catch YAML-specific errors will encounter an unexpected exception type. Depending on the host application's exception handling, this can fail requests or terminate the Node.js process.\n\nFlow sequences allow deep nesting with minimal bytes (2 bytes per level: one `[` and one `]`). On the default Node.js stack, approximately 1,000–5,000 levels of nesting (2–10 KB input) exhaust the call stack. The exact threshold is environment-dependent (Node.js version, stack size, call stack depth at invocation).\n\nNote: the library's `Parser` (CST phase) uses a stack-based iterative approach and is not affected. Only the com",
+      "cve": "CVE-2026-33532",
+      "cwe": [
+        "CWE-674"
+      ],
+      "remediation": "Upgrade to version 2.8.3 or later",
+      "evidence": {
+        "module": "yaml",
+        "vulnerable_versions": ">=2.0.0 <2.8.3",
+        "patched_versions": ">=2.8.3",
+        "url": "https://github.com/advisories/GHSA-48c2-rrv3-qjmp"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115582",
+      "severity": "medium",
+      "title": "[path-to-regexp] path-to-regexp vulnerable to Regular Expression Denial of Service via multiple wildcards",
+      "description": "### Impact\n\nWhen using multiple wildcards, combined with at least one parameter, a regular expression can be generated that is vulnerable to ReDoS. This backtracking vulnerability requires the second wildcard to be somewhere other than the end of the path.\n\n**Unsafe examples:**\n\n```\n/*foo-*bar-:baz\n/*a-:b-*c-:d\n/x/*a-:b/*c/y\n```\n\n**Safe examples:**\n\n```\n/*foo-:bar\n/*foo-:bar-*baz\n```\n\n### Patches\n\nUpgrade to version `8.4.0`.\n\n### Workarounds\n\nIf developers are using multiple wildcard parameters, they can check the regex output with a tool such as https://makenowjust-labs.github.io/recheck/playground/ to confirm whether a path is vulnerable.",
+      "cve": "CVE-2026-4923",
+      "cwe": [
+        "CWE-1333"
+      ],
+      "remediation": "Upgrade to version 8.4.0 or later",
+      "evidence": {
+        "module": "path-to-regexp",
+        "vulnerable_versions": ">=8.0.0 <8.4.0",
+        "patched_versions": ">=8.4.0",
+        "url": "https://github.com/advisories/GHSA-27v5-c462-wpq7"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1115810",
+      "severity": "medium",
+      "title": "[lodash] lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit`",
+      "description": "### Impact\n\nLodash versions 4.17.23 and earlier are vulnerable to prototype pollution in the `_.unset` and `_.omit` functions. The fix for [CVE-2025-13465](https://github.com/lodash/lodash/security/advisories/GHSA-xxjr-mmjv-4gpg) only guards against string key members, so an attacker can bypass the check by passing array-wrapped path segments. This allows deletion of properties from built-in prototypes such as `Object.prototype`, `Number.prototype`, and `String.prototype`.\n\nThe issue permits deletion of prototype properties but does not allow overwriting their original behavior.\n\n### Patches\n\nThis issue is patched in 4.18.0.\n\n### Workarounds\n\nNone. Upgrade to the patched version.",
+      "cve": "CVE-2026-2950",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 4.18.0 or later",
+      "evidence": {
+        "module": "lodash",
+        "vulnerable_versions": "<=4.17.23",
+        "patched_versions": ">=4.18.0",
+        "url": "https://github.com/advisories/GHSA-f23m-r3pf-42rh"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116229",
+      "severity": "medium",
+      "title": "[vite] Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling",
+      "description": "### Summary\n\nAny files ending with `.map` even out side the project can be returned to the browser.\n\n### Impact\n\nOnly apps that match the following conditions are affected:\n\n- explicitly exposes the Vite dev server to the network (using `--host` or [`server.host` config option](https://vitejs.dev/config/server-options.html#server-host))\n- have a sensitive content in files ending with `.map` and the path is predictable\n\n### Details\n\nIn Vite v7.3.1, the dev server’s handling of `.map` requests for optimized dependencies resolves file paths and calls `readFile` without restricting `../` segments in the URL. As a result, it is possible to bypass the [`server.fs.strict`](https://vite.dev/config/server-options#server-fs-strict) allow list and retrieve `.map` files located outside the project root, provided they can be parsed as valid source map JSON.\n\n### PoC\n1. Create a minimal PoC sourcemap outside the project root\n    ```bash\n    cat > /tmp/poc.map <<'EOF'\n    {\"version\":3,\"file\":\"x.js\",\"",
+      "cve": "CVE-2026-39365",
+      "cwe": [
+        "CWE-22",
+        "CWE-200"
+      ],
+      "remediation": "Upgrade to version 6.4.2 or later",
+      "evidence": {
+        "module": "vite",
+        "vulnerable_versions": "<=6.4.1",
+        "patched_versions": ">=6.4.2",
+        "url": "https://github.com/advisories/GHSA-4w7w-66w2-5vf9"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116244",
+      "severity": "medium",
+      "title": "[hono] Hono missing validation of cookie name on write path in setCookie()",
+      "description": "## Summary\n\nCookie names are not validated on the write path when using `setCookie()`, `serialize()`, or `serializeSigned()` to generate Set-Cookie headers.\n\nWhile certain cookie attributes such as domain and path are validated, the cookie name itself may contain invalid characters.\n\nThis results in inconsistent handling of cookie names between parsing (read path) and serialization (write path).\n\n## Details\n\nWhen applications use `setCookie()`, `serialize()`, or `serializeSigned()` with a user-controlled cookie name, invalid values (e.g., containing control characters such as `\\r` or `\\n`) can be used to construct malformed `Set-Cookie` header values.\n\nFor example:\n\n```\nSet-Cookie: legit\nX-Injected: evil=value\n```\n\nHowever, in modern runtimes such as Node.js and Cloudflare Workers, such invalid header values are rejected and result in a runtime error before the response is sent.\n\nAs a result, the reported header injection / response splitting behavior could not be reproduced in these e",
+      "cwe": [
+        "CWE-113"
+      ],
+      "remediation": "Upgrade to version 4.12.12 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.12",
+        "patched_versions": ">=4.12.12",
+        "url": "https://github.com/advisories/GHSA-26pp-8wgv-hjvm"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116277",
+      "severity": "medium",
+      "title": "[hono] Hono: Non-breaking space prefix bypass in cookie name handling in getCookie()",
+      "description": "## Summary\n\nA discrepancy between browser cookie parsing and `parse()` handling allows cookie prefix protections to be bypassed.\n\nCookie names that are treated as distinct by the browser may be normalized to the same key by `parse()`, allowing attacker-controlled cookies to override legitimate ones.\n\n## Details\n\nBrowsers follow RFC 6265bis and only trim SP (`0x20`) and HTAB (`0x09`) from cookie names. Other characters, such as the non-breaking space (`U+00A0`), are preserved as part of the cookie name.\n\nFor example, the browser treats the following cookies as distinct:\n\n```\n\"dummy-cookie\"\n\"\\u00a0dummy-cookie\"\n```\n\nHowever, `parse()` previously used JavaScript's `trim()`, which removes a broader set of characters including `U+00A0`. As a result, both names are normalized to:\n\n```\n\"dummy-cookie\"\n```\n\nThis mismatch allows attacker-controlled cookies with a `U+00A0` prefix to shadow or override legitimate cookies when accessed via `getCookie()`.\n\n## Impact\n\nAn attacker who can set cookies ",
+      "cve": "CVE-2026-39410",
+      "cwe": [
+        "CWE-20"
+      ],
+      "remediation": "Upgrade to version 4.12.12 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.12",
+        "patched_versions": ">=4.12.12",
+        "url": "https://github.com/advisories/GHSA-r5rp-j6wh-rvv4"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116279",
+      "severity": "medium",
+      "title": "[hono] Hono: Path traversal in toSSG() allows writing files outside the output directory",
+      "description": "## Summary\n\nA path traversal issue in `toSSG()` allows files to be written outside the configured output directory during static site generation. When using dynamic route parameters via `ssgParams`, specially crafted values can cause generated file paths to escape the intended output directory.\n\n## Details\n\nThe static site generation process creates output files based on route paths derived from application routes and parameters. When `ssgParams` is used to provide values for dynamic routes, those values are used to construct output file paths. If these values contain traversal sequences (e.g. `..`), the resulting output path may resolve outside the configured output directory. As a result, files may be written to unintended locations instead of being confined within the specified output directory.\n\nFor example:\n \n```ts\nimport { Hono } from 'hono'\nimport { toSSG, ssgParams } from 'hono/ssg'\n\nconst app = new Hono()\n\napp.get('/:id', ssgParams([{ id: '../pwned' }]), (c) => {\n  return c.te",
+      "cve": "CVE-2026-39408",
+      "cwe": [
+        "CWE-22"
+      ],
+      "remediation": "Upgrade to version 4.12.12 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": ">=4.0.0 <=4.12.11",
+        "patched_versions": ">=4.12.12",
+        "url": "https://github.com/advisories/GHSA-xf4j-xp2r-rqqx"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116280",
+      "severity": "medium",
+      "title": "[hono] Hono: Middleware bypass via repeated slashes in serveStatic",
+      "description": "## Summary\n\nA path handling inconsistency in `serveStatic` allows protected static files to be accessed by using repeated slashes (`//`) in the request path.\n\nWhen route-based middleware (e.g., `/admin/*`) is used for authorization, the router may not match paths containing repeated slashes, while serveStatic resolves them as normalized paths. This can lead to a middleware bypass.\n\n## Details\n\nThe routing layer and `serveStatic` handle repeated slashes differently.\n\nFor example:\n\n```\n/admin/secret.txt => matches /admin/*\n/admin//secret.txt => may not match /admin/*\n```\n\nHowever, `serveStatic` may interpret both paths as the same file location (e.g., `admin/secret.txt`) and return the file.\n\nThis inconsistency allows a request such as:\n\n```\nGET //admin/secret.txt\n```\n\nto bypass middleware registered on `/admin/*` and access protected files.\n\nThe issue has been fixed by rejecting paths that contain repeated slashes, ensuring consistent behavior between route matching and static file reso",
+      "cve": "CVE-2026-39407",
+      "cwe": [
+        "CWE-22"
+      ],
+      "remediation": "Upgrade to version 4.12.12 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.12",
+        "patched_versions": ">=4.12.12",
+        "url": "https://github.com/advisories/GHSA-wmmm-f939-6g9c"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116281",
+      "severity": "medium",
+      "title": "[@hono/node-server] @hono/node-server: Middleware bypass via repeated slashes in serveStatic",
+      "description": "## Summary\n\nA path handling inconsistency in `serveStatic` allows protected static files to be accessed by using repeated slashes (`//`) in the request path.\n\nWhen route-based middleware (e.g., `/admin/*`) is used for authorization, the router may not match paths containing repeated slashes, while `serveStatic` resolves them as normalized paths. This can lead to a middleware bypass.\n\n## Details\n\nThe routing layer and `serveStatic` handle repeated slashes differently.\n\nFor example:\n\n- `/admin/secret.txt` => matches `/admin/*`\n- `//admin/secret.txt` => may not match `/admin/*`\n\nThis inconsistency allows a request such as:\n\n```\nGET //admin/secret.txt\n```\n\nto bypass middleware registered on `/admin/*` and access protected files.\n\n## Impact\n\nAn attacker can access static files that are intended to be protected by route-based middleware by using repeated slashes in the request path.\n\nThis can lead to unauthorized access to sensitive files under the static root.\n\nThis issue affects applicatio",
+      "cve": "CVE-2026-39406",
+      "cwe": [
+        "CWE-22"
+      ],
+      "remediation": "Upgrade to version 1.19.13 or later",
+      "evidence": {
+        "module": "@hono/node-server",
+        "vulnerable_versions": "<1.19.13",
+        "patched_versions": ">=1.19.13",
+        "url": "https://github.com/advisories/GHSA-92pp-h63x-v22m"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116307",
+      "severity": "medium",
+      "title": "[fast-xml-parser] Entity Expansion Limits Bypassed When Set to Zero Due to JavaScript Falsy Evaluation in fast-xml-parser",
+      "description": "## Summary\n\nThe `DocTypeReader` in fast-xml-parser uses JavaScript truthy checks to evaluate `maxEntityCount` and `maxEntitySize` configuration limits. When a developer explicitly sets either limit to `0` — intending to disallow all entities or restrict entity size to zero bytes — the falsy nature of `0` in JavaScript causes the guard conditions to short-circuit, completely bypassing the limits. An attacker who can supply XML input to such an application can trigger unbounded entity expansion, leading to memory exhaustion and denial of service.\n\n## Details\n\nThe `OptionsBuilder.js` correctly preserves a user-supplied value of `0` using nullish coalescing (`??`):\n\n```js\n// src/xmlparser/OptionsBuilder.js:111\nmaxEntityCount: value.maxEntityCount ?? 100,\n// src/xmlparser/OptionsBuilder.js:107\nmaxEntitySize: value.maxEntitySize ?? 10000,\n```\n\nHowever, `DocTypeReader.js` uses truthy evaluation to check these limits. Because `0` is falsy in JavaScript, the entire guard expression short-circui",
+      "cve": "CVE-2026-33349",
+      "cwe": [
+        "CWE-1284"
+      ],
+      "remediation": "Upgrade to version 5.5.7 or later",
+      "evidence": {
+        "module": "fast-xml-parser",
+        "vulnerable_versions": ">=5.0.0 <5.5.7",
+        "patched_versions": ">=5.5.7",
+        "url": "https://github.com/advisories/GHSA-jp2q-39xq-3w4g"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1116669",
+      "severity": "medium",
+      "title": "[hono] hono Improperly Handles JSX Attribute Names Allows HTML Injection in hono/jsx SSR",
+      "description": "## Summary\n\nImproper handling of JSX attribute names in hono/jsx allows malformed attribute keys to corrupt the generated HTML output.\n\nWhen untrusted input is used as attribute keys during server-side rendering, specially crafted keys can break out of attribute or tag boundaries and inject unintended HTML.\n\n## Details\n\nWhen rendering JSX elements to HTML strings, attribute values are escaped, but attribute names (keys) were previously inserted into the output without validation.\n\nIf an attribute name contains characters such as `\"`, `>`, or whitespace, it can alter the structure of the generated HTML.\n\nFor example, malformed attribute names can:\n\n* Break out of the current attribute and introduce unintended additional attributes\n* Break out of the current HTML tag and inject new elements into the output\n\nThis issue arises when untrusted input (such as query parameters or form data) is used as JSX attribute keys during server-side rendering.\n\n## Impact\n\nAn attacker who can control attr",
+      "cwe": [
+        "CWE-79"
+      ],
+      "remediation": "Upgrade to version 4.12.14 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.14",
+        "patched_versions": ">=4.12.14",
+        "url": "https://github.com/advisories/GHSA-458j-xx4x-4375"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1117015",
+      "severity": "medium",
+      "title": "[postcss] PostCSS has XSS via Unescaped </style> in its CSS Stringify Output",
+      "description": "# PostCSS: XSS via Unescaped `</style>` in CSS Stringify Output\n\n## Summary\n\nPostCSS v8.5.5 (latest) does not escape `</style>` sequences when stringifying CSS ASTs. When user-submitted CSS is parsed and re-stringified for embedding in HTML `<style>` tags, `</style>` in CSS values breaks out of the style context, enabling XSS.\n\n## Proof of Concept\n\n```javascript\nconst postcss = require('postcss');\n\n// Parse user CSS and re-stringify for page embedding\nconst userCSS = 'body { content: \"</style><script>alert(1)</script><style>\"; }';\nconst ast = postcss.parse(userCSS);\nconst output = ast.toResult().css;\nconst html = `<style>${output}</style>`;\n\nconsole.log(html);\n// <style>body { content: \"</style><script>alert(1)</script><style>\"; }</style>\n//\n// Browser: </style> closes the style tag, <script> executes\n```\n\n**Tested output** (Node.js v22, postcss v8.5.5):\n```\nInput: body { content: \"</style><script>alert(1)</script><style>\"; }\nOutput: body { content: \"</style><script>alert(1)</script><s",
+      "cve": "CVE-2026-41305",
+      "cwe": [
+        "CWE-79"
+      ],
+      "remediation": "Upgrade to version 8.5.10 or later",
+      "evidence": {
+        "module": "postcss",
+        "vulnerable_versions": "<8.5.10",
+        "patched_versions": ">=8.5.10",
+        "url": "https://github.com/advisories/GHSA-qx2v-qp2m-jg93"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1117087",
+      "severity": "medium",
+      "title": "[hono] Hono has incorrect IP matching in ipRestriction() for IPv4-mapped IPv6 addresses",
+      "description": "## Summary\n\n`ipRestriction()` does not canonicalize IPv4-mapped IPv6 client addresses (e.g. `::ffff:127.0.0.1`) before applying IPv4 allow or deny rules. In environments such as Node.js dual-stack, this can cause IPv4 rules to fail to match, leading to unintended authorization behavior.\n\n## Details\n\nThe middleware classifies client addresses based on their textual form. Addresses containing \"`:`\" are treated as IPv6, including IPv4-mapped IPv6 addresses such as `::ffff:127.0.0.1`. These addresses are not normalized to IPv4 before matching.\n\nAs a result:\n\n* IPv4 static rules (e.g. `127.0.0.1`) do not match because the raw string differs\n* IPv4 CIDR rules (e.g. `127.0.0.0/8`, `10.0.0.0/8`) are skipped because the address is treated as IPv6\n\nFor example, with:\n\n`denyList: ['127.0.0.1']`\n\na request from `127.0.0.1` may be represented as `::ffff:127.0.0.1` and bypass the deny rule.\n\nThis behavior commonly occurs in Node.js environments where IPv4 clients are exposed as IPv4-mapped IPv6 addr",
+      "cve": "CVE-2026-39409",
+      "cwe": [
+        "CWE-180"
+      ],
+      "remediation": "Upgrade to version 4.12.12 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.12",
+        "patched_versions": ">=4.12.12",
+        "url": "https://github.com/advisories/GHSA-xpcf-pg52-r92g"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1117911",
+      "severity": "medium",
+      "title": "[fast-xml-parser] fast-xml-parser XMLBuilder: XML Comment and CDATA Injection via Unescaped Delimiters",
+      "description": "# fast-xml-parser XMLBuilder: Comment and CDATA Injection via Unescaped Delimiters\n\n## Summary\n\nfast-xml-parser XMLBuilder does not escape the `-->` sequence in comment content or the `]]>` sequence in CDATA sections when building XML from JavaScript objects. This allows XML injection when user-controlled data flows into comments or CDATA elements, leading to XSS, SOAP injection, or data manipulation.\n\nExisting CVEs for fast-xml-parser cover different issues:\n- CVE-2023-26920: Prototype pollution (parser)\n- CVE-2023-34104: ReDoS (parser)\n- CVE-2026-27942: Stack overflow in XMLBuilder with preserveOrder\n- CVE-2026-25896: Entity encoding bypass via regex in DOCTYPE entities\n\nThis finding covers **unescaped comment/CDATA delimiters in XMLBuilder** - a distinct vulnerability.\n\n## Vulnerable Code\n\n**File**: `src/fxb.js`\n\n```javascript\n// Line 442 - Comment building with NO escaping of -->\nbuildTextValNode(val, key, attrStr, level) {\n    // ...\n    if (key === this.options.commentPropName) {",
+      "cve": "CVE-2026-41650",
+      "cwe": [
+        "CWE-91"
+      ],
+      "remediation": "Upgrade to version 5.7.0 or later",
+      "evidence": {
+        "module": "fast-xml-parser",
+        "vulnerable_versions": "<5.7.0",
+        "patched_versions": ">=5.7.0",
+        "url": "https://github.com/advisories/GHSA-gh4j-gqv2-49f6"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1117915",
+      "severity": "medium",
+      "title": "[hono] Hono has CSS Declaration Injection via Style Object Values in JSX SSR",
+      "description": "### Summary\n\nThe JSX renderer escapes `style` attribute object values for HTML but not for CSS. Untrusted input in a `style` object value or property name can therefore inject additional CSS declarations into the rendered `style` attribute. The impact is limited to CSS and does not allow JavaScript execution or HTML attribute breakout.\n\n### Details\n\n`style` object values are serialized into a CSS declaration list and escaped for HTML attribute context only. Characters that act as CSS declaration boundaries — such as `;`, comment markers, quoted strings, and block delimiters — are valid in HTML attribute content and can extend a value beyond its assigned property.\n\nThis issue arises when untrusted input is interpolated into a JSX `style` object and rendered server-side.\n\n### Impact\n\nAn attacker who can control the value or property name of a `style` object may inject arbitrary CSS declarations. This may lead to:\n\n- Visual manipulation of the page, including full-viewport overlays usable",
+      "cve": "CVE-2026-44458",
+      "cwe": [
+        "CWE-74",
+        "CWE-116"
+      ],
+      "remediation": "Upgrade to version 4.12.18 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.18",
+        "patched_versions": ">=4.12.18",
+        "url": "https://github.com/advisories/GHSA-qp7p-654g-cw7p"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118827",
+      "severity": "medium",
+      "title": "[ip-address] ip-address has XSS in Address6 HTML-emitting methods",
+      "description": "### Summary\n\n`Address6.group()` and `Address6.link()` do not HTML-escape attacker-controlled content before embedding it in the HTML strings they return, and `AddressError.parseMessage` (emitted by the `Address6` constructor for invalid input) can contain unescaped attacker-controlled content in one branch. An application that (1) passes untrusted input to `Address6` and (2) renders the output of these methods, or the thrown error's `parseMessage`, as HTML (e.g. via `innerHTML`) is vulnerable to cross-site scripting. A related issue in `v6.helpers.spanAll()` produced malformed markup but was not exploitable; it is hardened in the same release for consistency.\n\n### Details\n\nFour related issues were identified and fixed together:\n\n1. **`Address6.group()`: zone ID injection.** The `Address6` constructor stores the raw input (including any IPv6 zone ID) in `this.address` before zone stripping. `group()` then passed `this.address` to `helpers.simpleGroup()`, which wrapped each `:`-separated",
+      "cve": "CVE-2026-42338",
+      "cwe": [
+        "CWE-79"
+      ],
+      "remediation": "Upgrade to version 10.1.1 or later",
+      "evidence": {
+        "module": "ip-address",
+        "vulnerable_versions": "<=10.1.0",
+        "patched_versions": ">=10.1.1",
+        "url": "https://github.com/advisories/GHSA-v2v4-37r5-5v8g"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118924",
+      "severity": "medium",
+      "title": "[protobufjs] protobuf.js: Denial of service from crafted field names in generated code",
+      "description": "## Summary\n\nprotobufjs generated JavaScript property accessors from schema-controlled field and oneof names. Certain control characters in field names were not escaped before being embedded into generated function bodies. A crafted schema or JSON descriptor could therefore cause generated encode, decode, verify, or conversion functions to fail during compilation.\n\n## Impact\n\nAn attacker who can provide or influence a protobuf schema or JSON descriptor may be able to make affected message types unusable by causing protobufjs runtime code generation to throw a syntax error.\n\nThis is a denial of service issue for applications that load untrusted schemas or descriptors. Applications that only use trusted, application-defined schemas are not directly affected by this issue.\n\nThe issue is not known to allow code execution by itself.\n\n## Preconditions\n\n- The application must allow an attacker to control or influence a protobuf schema or JSON descriptor.\n- The crafted input must define a field",
+      "cve": "CVE-2026-44294",
+      "cwe": [
+        "CWE-20"
+      ],
+      "remediation": "Upgrade to version 7.5.6 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<=7.5.5",
+        "patched_versions": ">=7.5.6",
+        "url": "https://github.com/advisories/GHSA-2pr8-phx7-x9h3"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118926",
+      "severity": "medium",
+      "title": "[protobufjs] protobuf.js: Prototype injection in generated message constructors",
+      "description": "## Summary\n\nprotobufjs generated message constructors copied enumerable properties from a provided properties object without filtering the `__proto__` key. If an application constructed a message from an attacker-controlled plain object, an own enumerable `__proto__` property could alter the prototype of that individual message instance.\n\n## Impact\n\nAn attacker who can control the properties object passed to a generated protobufjs message constructor or creation helper may be able to modify the prototype chain of the resulting message instance.\n\nThis is a per-instance prototype injection issue. It does not pollute `Object.prototype` or other global prototypes. The impact depends on downstream application behavior, such as relying on inherited properties, prototype methods, or `instanceof` checks for message objects.\n\nApplications that only decode binary protobuf data, or that construct messages from trusted application-defined objects, are not directly affected by this issue.\n\n## Preco",
+      "cve": "CVE-2026-44292",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "remediation": "Upgrade to version 7.5.6 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<=7.5.5",
+        "patched_versions": ">=7.5.6",
+        "url": "https://github.com/advisories/GHSA-fx83-v9x8-x52w"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118933",
+      "severity": "medium",
+      "title": "[@protobufjs/utf8] protobufjs has overlong UTF-8 decoding",
+      "description": "## Summary\n\nprotobufjs includes a minimal UTF-8 decoder used in non-Node and fallback decoding paths. The affected decoder accepted overlong UTF-8 byte sequences and decoded them to their canonical characters instead of replacing them.\n\nThe issue concerns overlong encodings and code points outside the Unicode range. protobufjs may still accept some non-strict UTF-8 input for compatibility, so applications should not rely on protobufjs as a general-purpose strict UTF-8 validator.\n\n## Impact\n\nAn attacker who can provide protobuf binary data decoded through the affected UTF-8 path may be able to bypass application-level checks that inspect raw bytes before protobuf string decoding. For example, bytes that do not contain certain ASCII characters could decode to strings containing those characters.\n\nThe practical impact depends on downstream application validation and how decoded strings are used. Node.js Buffer-backed decoding paths are not directly affected when they use Node's native UTF",
+      "cve": "CVE-2026-44288",
+      "cwe": [
+        "CWE-176"
+      ],
+      "remediation": "Upgrade to version 1.1.1 or later",
+      "evidence": {
+        "module": "@protobufjs/utf8",
+        "vulnerable_versions": "<=1.1.0",
+        "patched_versions": ">=1.1.1",
+        "url": "https://github.com/advisories/GHSA-q6x5-8v7m-xcrf"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118935",
+      "severity": "medium",
+      "title": "[protobufjs] protobufjs has overlong UTF-8 decoding",
+      "description": "## Summary\n\nprotobufjs includes a minimal UTF-8 decoder used in non-Node and fallback decoding paths. The affected decoder accepted overlong UTF-8 byte sequences and decoded them to their canonical characters instead of replacing them.\n\nThe issue concerns overlong encodings and code points outside the Unicode range. protobufjs may still accept some non-strict UTF-8 input for compatibility, so applications should not rely on protobufjs as a general-purpose strict UTF-8 validator.\n\n## Impact\n\nAn attacker who can provide protobuf binary data decoded through the affected UTF-8 path may be able to bypass application-level checks that inspect raw bytes before protobuf string decoding. For example, bytes that do not contain certain ASCII characters could decode to strings containing those characters.\n\nThe practical impact depends on downstream application validation and how decoded strings are used. Node.js Buffer-backed decoding paths are not directly affected when they use Node's native UTF",
+      "cve": "CVE-2026-44288",
+      "cwe": [
+        "CWE-176"
+      ],
+      "remediation": "Upgrade to version 7.5.6 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<=7.5.5",
+        "patched_versions": ">=7.5.6",
+        "url": "https://github.com/advisories/GHSA-q6x5-8v7m-xcrf"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118964",
+      "severity": "medium",
+      "title": "[hono] Hono's Cache Middleware ignores Vary: Authorization / Vary: Cookie leading to cross-user cache leakage",
+      "description": "### Summary\n\nCache Middleware does not skip caching for responses that declare per-user variance via `Vary: Authorization` or `Vary: Cookie`. As a result, a response cached for one authenticated user may be served to subsequent requests from different users.\n\n### Details\n\nThe Cache Middleware skips caching when a response carries `Vary: *`, certain `Cache-Control` directives (`private`, `no-store`, `no-cache`), or `Set-Cookie`. However, `Vary: Authorization` and `Vary: Cookie` — the standard signals defined in RFC 9110 / RFC 9111 to indicate per-user responses — are not treated as cache-skip reasons.\n\nThis issue arises when applications use the Cache Middleware on endpoints that return user-specific data and rely on `Vary: Authorization` or `Vary: Cookie` to scope the response per user, without also setting `Cache-Control: private`.\n\n### Impact\n\nA user may receive a cached response that was originally generated for a different authenticated user. This may lead to:\n\n- Disclosure of pers",
+      "cve": "CVE-2026-44457",
+      "cwe": [
+        "CWE-524"
+      ],
+      "remediation": "Upgrade to version 4.12.18 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.18",
+        "patched_versions": ">=4.12.18",
+        "url": "https://github.com/advisories/GHSA-p77w-8qqv-26rm"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118982",
+      "severity": "medium",
+      "title": "[hono] Hono: bodyLimit() can be bypassed for chunked / unknown-length requests",
+      "description": "## Summary\n\n`bodyLimit()` does not reliably enforce `maxSize` for requests without a usable `Content-Length` (e.g. `Transfer-Encoding: chunked`). Oversized requests can reach handlers and return `200` instead of `413`.\n\n## Details\n\nFor chunked / unknown-length requests, `bodyLimit()` wraps the body in a stream that counts bytes asynchronously, then runs the handler before the size decision is final. The `413` is only applied afterwards by checking `c.error`.\n\nThis lets the limit be bypassed when:\n\n- the handler does not read the body,\n- the handler reads only the first chunk(s) and returns, or\n- the handler reads the body but swallows the read error in `try/catch`.\n\nIn all three cases the handler returns `200` before the limit check completes (or its result is observed).\n\nThe fix is to enforce the size decision before `next()` runs, instead of retrofitting the response via `c.error` afterwards.\n\n## Impact\n\nApplications relying on `bodyLimit()` as a hard boundary can be bypassed: oversi",
+      "cve": "CVE-2026-44456",
+      "cwe": [
+        "CWE-400"
+      ],
+      "remediation": "Upgrade to version 4.12.16 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.16",
+        "patched_versions": ">=4.12.16",
+        "url": "https://github.com/advisories/GHSA-9vqf-7f2p-gf9v"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118983",
+      "severity": "medium",
+      "title": "[hono] hono/jsx has Unvalidated JSX Tag Names that May Allow HTML Injection",
+      "description": "## Summary\n\nImproper handling of JSX element tag names in hono/jsx allowed unvalidated tag names to be directly inserted into the generated HTML output.\n\nWhen untrusted input is used as a tag name via the programmatic `jsx()` or `createElement()` APIs during server-side rendering, specially crafted values may break out of the intended element context and inject unintended HTML.\n\n## Details\n\nWhen rendering JSX elements to HTML strings, attribute values are escaped and attribute names are validated. However, element tag names were previously inserted into the output without validation.\n\nIf a tag name contains characters such as `<`, `>`, quotes, or whitespace, it may alter the structure of the generated HTML.\n\nFor example, malformed tag names can:\n\n* Break out of the intended element and introduce unintended HTML elements\n* Inject attributes or event handlers into the rendered output\n\nThis issue arises when untrusted input (such as query parameters or database content) is used as JSX tag",
+      "cve": "CVE-2026-44455",
+      "cwe": [
+        "CWE-74"
+      ],
+      "remediation": "Upgrade to version 4.12.16 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.16",
+        "patched_versions": ">=4.12.16",
+        "url": "https://github.com/advisories/GHSA-69xw-7hcm-h432"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1119108",
+      "severity": "medium",
+      "title": "[ws] ws: Uninitialized memory disclosure",
+      "description": "### Impact\n\nThe `websocket.close()` implementation is vulnerable to uninitialized memory disclosure when a `TypedArray` is passed as the reason argument.\n\n### Proof of concept\n\n```js\nimport { deepStrictEqual } from 'node:assert';\nimport { WebSocket, WebSocketServer } from 'ws';\n\nconst wss = new WebSocketServer(\n  { port: 0, skipUTF8Validation: true },\n  function () {\n    const { port } = wss.address();\n    const ws = new WebSocket(`ws://localhost:${port}`, {\n      skipUTF8Validation: true\n    });\n\n    ws.on('close', function (code, reason) {\n      deepStrictEqual(reason, Buffer.alloc(80));\n    });\n  }\n);\n\nwss.on('connection', function (ws) {\n  ws.close(1000, new Float32Array(20));\n});\n```\n\n### Patches\n\nThe vulnerability was fixed in ws@8.20.1 (https://github.com/websockets/ws/commit/c0327ec15a54d701eb6ccefaa8bef328cfc03086).\n\n### Credits\n\nCredit for the private and responsible disclosure of this issue goes to [Nikita Skovoroda](https://github.com/ChALkeR).\n\n### Remarks\n\nAlthough the ca",
+      "cve": "CVE-2026-45736",
+      "cwe": [
+        "CWE-908"
+      ],
+      "remediation": "Upgrade to version 8.20.1 or later",
+      "evidence": {
+        "module": "ws",
+        "vulnerable_versions": ">=8.0.0 <8.20.1",
+        "patched_versions": ">=8.20.1",
+        "url": "https://github.com/advisories/GHSA-58qx-3vcg-4xpx"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1119378",
+      "severity": "medium",
+      "title": "[protobufjs] protobufjs: Denial of Service via unbounded recursive JSON descriptor expansion",
+      "description": "## Summary\n\nprotobufjs could recurse without a depth limit while expanding nested JSON descriptors through `Root.fromJSON()` and `Namespace.addJSON()`.\n\nA crafted JSON descriptor with deeply nested namespace definitions could cause the JavaScript call stack to be exhausted during descriptor loading.\n\n## Impact\n\nAn attacker who can provide JSON descriptors loaded by an application may be able to crash the process or otherwise cause schema loading to fail with a stack overflow.\n\nThis affects applications that load JSON descriptors from untrusted sources with affected versions.\n\n## Preconditions\n\n- The application must load JSON descriptor data influenced by an attacker.\n- The crafted descriptor must contain deeply nested `nested` namespace objects.\n- The affected `Root.fromJSON()` / `Namespace.addJSON()` descriptor expansion path must process the crafted input.\n\n## Workarounds\n\nAvoid loading untrusted protobuf JSON descriptors with affected versions. If immediate upgrade is not possible,",
+      "cve": "CVE-2026-45740",
+      "cwe": [
+        "CWE-674"
+      ],
+      "remediation": "Upgrade to version 7.5.8 or later",
+      "evidence": {
+        "module": "protobufjs",
+        "vulnerable_versions": "<=7.5.7",
+        "patched_versions": ">=7.5.8",
+        "url": "https://github.com/advisories/GHSA-jggg-4jg4-v7c6"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1119441",
+      "severity": "medium",
+      "title": "[uuid] uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+      "description": "### Summary\n\nThe `v3()`, `v5()`, and `v6()` [API methods](https://github.com/uuidjs/uuid#api-summary) (not `uuid` release versions) accept external output buffers but do not reject out-of-range writes (small `buf` or large `offset`).  \nBy contrast, `v4()`, `v1()`, and `v7()` API methods explicitly throw `RangeError` on invalid bounds.\n\nThis inconsistency allows **silent partial writes** into caller-provided buffers.\n\n\n### Affected code\n\n- `src/v35.ts` (`v3()`/`v5()` path) writes `buf[offset + i]` without bounds validation.\n- `src/v6.ts` writes `buf[offset + i]` without bounds validation.\n\n### Reproducible PoC\n\n```bash\ncd /home/StrawHat/uuid\nnpm ci\nnpm run build\n\nnode --input-type=module -e \"\nimport {v4,v5,v6} from './dist-node/index.js';\nconst ns='6ba7b810-9dad-11d1-80b4-00c04fd430c8';\nfor (const [name,fn] of [\n  ['v4()',()=>v4({},new Uint8Array(8),4)],\n  ['v5()',()=>v5('x',ns,new Uint8Array(8),4)],\n  ['v6()',()=>v6({},new Uint8Array(8),4)],\n]) {\n  try { fn(); console.log(name,'NO_THRO",
+      "cve": "CVE-2026-41907",
+      "cwe": [
+        "CWE-787",
+        "CWE-1285"
+      ],
+      "remediation": "Upgrade to version 11.1.1 or later",
+      "evidence": {
+        "module": "uuid",
+        "vulnerable_versions": "<11.1.1",
+        "patched_versions": ">=11.1.1",
+        "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq"
+      }
+    },
+    {
+      "surface": "input",
+      "id": "input-xss-stored-in-title",
+      "severity": "low",
+      "title": "XSS-shaped strings accepted as issue title (stored vector)",
+      "description": "All 5 XSS payloads were stored verbatim in the issue title. This is NOT a vulnerability on its own — Ship renders titles via React, which text-escapes by default — but it relies on no consumer ever using `dangerouslySetInnerHTML` on a title. Recommend explicit input sanitization OR a render-side test that catches dangerous-html usage on title fields.",
+      "cwe": "CWE-79 (XSS)",
+      "evidence": [
+        {
+          "payload": "<script>alert(1)</script>",
+          "status": 201
+        },
+        {
+          "payload": "<img src=x onerror=alert(1)>",
+          "status": 201
+        },
+        {
+          "payload": "javascript:alert(1)",
+          "status": 201
+        },
+        {
+          "payload": "\"><script>alert(1)</script>",
+          "status": 201
+        },
+        {
+          "payload": "<svg onload=alert(1)>",
+          "status": 201
+        }
+      ],
+      "remediation": "Add a unit test that fails if any title-rendering call site uses dangerouslySetInnerHTML, OR sanitize title server-side via a allowlist regex."
+    },
+    {
+      "surface": "websocket",
+      "id": "ws-malformed-silently-accepted-64-byte-random-binary",
+      "severity": "low",
+      "title": "Server silently accepted 64-byte random binary on WS",
+      "description": "Sent 64-byte random binary; WS stayed open and server stayed responsive. No error, no rejection. Indicates the frame was discarded by Yjs's parser without explicit validation feedback.",
+      "evidence": {
+        "frameRejected": false,
+        "closeCode": 1005,
+        "serverAliveAfter": true
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113161",
+      "severity": "low",
+      "title": "[qs] qs's arrayLimit bypass in comma parsing allows denial of service",
+      "description": "### Summary\nThe `arrayLimit` option in qs does not enforce limits for comma-separated values when `comma: true` is enabled, allowing attackers to cause denial-of-service via memory exhaustion. This is a bypass of the array limit enforcement, similar to the bracket notation bypass addressed in GHSA-6rw7-vpxm-498p (CVE-2025-15284).\n\n### Details\nWhen the `comma` option is set to `true` (not the default, but configurable in applications), qs allows parsing comma-separated strings as arrays (e.g., `?param=a,b,c` becomes `['a', 'b', 'c']`). However, the limit check for `arrayLimit` (default: 20) and the optional throwOnLimitExceeded occur after the comma-handling logic in `parseArrayValue`, enabling a bypass. This permits creation of arbitrarily large arrays from a single parameter, leading to excessive memory allocation.\n\n**Vulnerable code** (lib/parse.js: lines ~40-50):\n```js\nif (val && typeof val === 'string' && options.comma && val.indexOf(',') > -1) {\n    return val.split(',');\n}\n\nif (o",
+      "cve": "CVE-2026-2391",
+      "cwe": [
+        "CWE-20"
+      ],
+      "remediation": "Upgrade to version 6.14.2 or later",
+      "evidence": {
+        "module": "qs",
+        "vulnerable_versions": ">=6.7.0 <=6.14.1",
+        "patched_versions": ">=6.14.2",
+        "url": "https://github.com/advisories/GHSA-w7fw-mjwx-w883"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1113311",
+      "severity": "low",
+      "title": "[hono] Hono added timing comparison hardening in basicAuth and bearerAuth",
+      "description": "## Summary\n\nThe `basicAuth` and `bearerAuth` middlewares previously used a comparison that was not fully timing-safe.\n\nThe `timingSafeEqual` function used normal string equality (`===`) when comparing hash values. This comparison may stop early if values differ, which can theoretically cause small timing differences.\n\nThe implementation has been updated to use a safer comparison method.\n\n\n## Details\n\nThe issue was caused by the use of normal string equality (`===`) when comparing hash values inside the `timingSafeEqual` function.\n\nIn JavaScript, string comparison may stop as soon as a difference is found. This means the comparison time can slightly vary depending on how many characters match.\n\nUnder very specific and controlled conditions, this behavior could theoretically allow timing-based analysis.\n\nThe implementation has been updated to:\n\n- Avoid early termination during comparison\n- Use a constant-time-style comparison method\n\n## Impact\n\nThis issue is unlikely to be exploited in n",
+      "cwe": [
+        "CWE-208"
+      ],
+      "remediation": "Upgrade to version 4.11.10 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.11.10",
+        "patched_versions": ">=4.11.10",
+        "url": "https://github.com/advisories/GHSA-gq3j-xvxp-8hrf"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1114153",
+      "severity": "low",
+      "title": "[fast-xml-parser] fast-xml-parser has stack overflow in XMLBuilder with preserveOrder",
+      "description": "### Impact\nApplication crashes with stack overflow when user use XML builder with `prserveOrder:true` for following or similar input \n\n```\n[{\n    'foo': [\n        { 'bar': [{ '@_V': 'baz' }] }\n    ]\n}]\n```\n\nCause: `arrToStr` was not validating if the input is an array or a string and treating all non-array values as text content.\n_What kind of vulnerability is it? Who is impacted?_\n\n### Patches\nYes in 5.3.8\n\n### Workarounds\nUse XML builder with `preserveOrder:false` or check the input data before passing to builder.\n\n### References\n[_Are there any links users can visit to find out more?_](https://github.com/NaturalIntelligence/fast-xml-parser/pull/791)",
+      "cve": "CVE-2026-27942",
+      "cwe": [
+        "CWE-120"
+      ],
+      "remediation": "Upgrade to version 5.3.8 or later",
+      "evidence": {
+        "module": "fast-xml-parser",
+        "vulnerable_versions": ">=5.0.0 <5.3.8",
+        "patched_versions": ">=5.3.8",
+        "url": "https://github.com/advisories/GHSA-fj3w-jwp8-x2g3"
+      }
+    },
+    {
+      "surface": "deps",
+      "id": "deps-cve-1118963",
+      "severity": "low",
+      "title": "[hono] Hono has improper validation of NumericDate claims (exp, nbf, iat) in JWT verify()",
+      "description": "### Summary\n\nImproper validation of the JWT NumericDate claims `exp`, `nbf`, and `iat` in `hono/utils/jwt` allows tokens with non-spec-compliant claim values to silently bypass time-based checks. This issue is not exploitable by an anonymous attacker; it only manifests when a malformed claim value reaches `verify()` — typically when the application itself issues such tokens, or when the signing key is otherwise under attacker control.\n\n### Details\n\nThe validation routine combined option, presence, and threshold checks in a single short-circuiting expression, so several classes of malformed values were silently skipped instead of rejected:\n\n- A falsy numeric value short-circuited the presence check.\n- A non-finite numeric value compared as never-after-now and never-expired.\n- A non-numeric type produced NaN comparisons that evaluated false.\n\nThis deviates from RFC 7519 §4.1.4, which defines NumericDate as a finite JSON numeric value.\n\n### Impact\n\nAn actor able to issue tokens accepted b",
+      "cve": "CVE-2026-44459",
+      "cwe": [
+        "CWE-1284"
+      ],
+      "remediation": "Upgrade to version 4.12.18 or later",
+      "evidence": {
+        "module": "hono",
+        "vulnerable_versions": "<4.12.18",
+        "patched_versions": ">=4.12.18",
+        "url": "https://github.com/advisories/GHSA-hm8q-7f3q-5f36"
+      }
+    },
+    {
+      "surface": "auth",
+      "id": "auth-admin-route-access-as-superadmin",
+      "severity": "info",
+      "title": "Super-admin routes accessible with super-admin session",
+      "description": "The seeded dev account has is_super_admin=true. Recording responses for super-admin routes. Horizontal privilege-escalation testing (regular user → admin) would need a second seed account.",
+      "evidence": [
+        {
+          "route": "/api/admin/users",
+          "status": 401
+        },
+        {
+          "route": "/api/admin/workspaces",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "surface": "manual-cors",
+      "id": "cors-probe-error",
+      "severity": "info",
+      "title": "CORS probe errored",
+      "description": "fetch failed"
+    },
+    {
+      "surface": "manual-csp",
+      "id": "csp-probe-error",
+      "severity": "info",
+      "title": "CSP probe errored",
+      "description": "fetch failed"
+    },
+    {
+      "surface": "manual-ratelimit",
+      "id": "ratelimit-probe-error",
+      "severity": "info",
+      "title": "Rate-limit probe errored",
+      "description": "fetch failed"
+    },
+    {
+      "surface": "auth",
+      "id": "auth-unauthenticated-access",
+      "severity": "ok",
+      "title": "All protected routes correctly require authentication",
+      "description": "Probed 9 protected routes without credentials; every one returned 401/403/404. No unauthenticated access to authenticated data.",
+      "evidence": [
+        {
+          "route": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "route": "/api/issues",
+          "status": 401
+        },
+        {
+          "route": "/api/documents?type=wiki",
+          "status": 401
+        },
+        {
+          "route": "/api/dashboard/my-work",
+          "status": 401
+        },
+        {
+          "route": "/api/weeks/my-week",
+          "status": 401
+        },
+        {
+          "route": "/api/projects",
+          "status": 401
+        },
+        {
+          "route": "/api/programs",
+          "status": 401
+        },
+        {
+          "route": "/api/team",
+          "status": 404
+        },
+        {
+          "route": "/api/workspaces",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "surface": "auth",
+      "id": "auth-session-token-format",
+      "severity": "ok",
+      "title": "Session token is 256 bits of entropy, hex-encoded",
+      "description": "Captured session_id is 64 hex chars (256 bits) — matches the documented `crypto.randomBytes(32).toString('hex')` shape in api/src/routes/auth.ts.",
+      "evidence": {
+        "length": 64,
+        "sample": "eab57d10…f9d3"
+      }
+    },
+    {
+      "surface": "auth",
+      "id": "auth-logout-invalidates-session",
+      "severity": "ok",
+      "title": "Logout correctly invalidates the session token",
+      "description": "After POST /api/auth/logout, reusing the same session_id returns 401."
+    },
+    {
+      "surface": "auth",
+      "id": "auth-malformed-session-rejected",
+      "severity": "ok",
+      "title": "Malformed session IDs are rejected with 401",
+      "description": "Empty, oversized, SQL-shaped, and random-string session_ids all return 401.",
+      "evidence": [
+        {
+          "probe": "not-a-session-id",
+          "status": 401
+        },
+        {
+          "probe": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": 401
+        },
+        {
+          "probe": "'); DROP TABLE sessions; --",
+          "status": 401
+        },
+        {
+          "probe": "",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "surface": "input",
+      "id": "input-sql-injection-inert",
+      "severity": "ok",
+      "title": "SQL injection payloads are inert (parameterized queries verified)",
+      "description": "4 SQL injection payloads were stored as literal text. No pg_sleep delay observed (all responses <4s). Parameterized queries via `pg` are preventing execution.",
+      "evidence": [
+        {
+          "payload": "'; DROP TABLE documents; --",
+          "status": 201,
+          "elapsedMs": 11
+        },
+        {
+          "payload": "' OR '1'='1",
+          "status": 201,
+          "elapsedMs": 8
+        },
+        {
+          "payload": "' UNION SELECT password_hash FROM users --",
+          "status": 201,
+          "elapsedMs": 7
+        },
+        {
+          "payload": "1; SELECT pg_sleep(5)",
+          "status": 201,
+          "elapsedMs": 8
+        }
+      ]
+    },
+    {
+      "surface": "input",
+      "id": "input-length-rejected",
+      "severity": "ok",
+      "title": "Oversized inputs are rejected with 400/413",
+      "description": "10 KB / 100 KB / 1 MB inputs all rejected. Zod validation + body-parser size limits are working.",
+      "evidence": [
+        {
+          "probe": "10KB string",
+          "status": 400
+        },
+        {
+          "probe": "100KB string",
+          "status": 400
+        },
+        {
+          "probe": "1MB string",
+          "status": 400
+        }
+      ]
+    },
+    {
+      "surface": "websocket",
+      "id": "ws-events-requires-auth",
+      "severity": "ok",
+      "title": "/events WebSocket rejects unauthenticated upgrade",
+      "description": "Connection without session_id cookie was refused at the upgrade handshake (closeCode=1006, gotOpenEvent=false).",
+      "evidence": {
+        "openedSuccessfully": false,
+        "gotErrorBeforeOpen": true,
+        "gotOpenEvent": false,
+        "closeCode": 1006,
+        "closeReason": "",
+        "elapsedMs": 5
+      }
+    },
+    {
+      "surface": "websocket",
+      "id": "ws-collab-requires-auth",
+      "severity": "ok",
+      "title": "/collaboration WebSocket rejects unauthenticated upgrade",
+      "description": "Connection to a Yjs collab endpoint without session_id was refused at the upgrade (closeCode=1006).",
+      "evidence": {
+        "openedSuccessfully": false,
+        "gotErrorBeforeOpen": true,
+        "gotOpenEvent": false,
+        "closeCode": 1006,
+        "closeReason": "",
+        "elapsedMs": 5
+      }
+    },
+    {
+      "surface": "websocket",
+      "id": "ws-unknown-path-handled",
+      "severity": "ok",
+      "title": "Unknown WebSocket paths are dropped without server error",
+      "description": "Connection to /this-is-not-a-real-ws-endpoint was rejected at upgrade. No server panic, no resource leak detected.",
+      "evidence": {
+        "openedSuccessfully": false,
+        "gotErrorBeforeOpen": true,
+        "gotOpenEvent": false,
+        "closeCode": 1006,
+        "closeReason": "",
+        "elapsedMs": 2
+      }
+    },
+    {
+      "surface": "websocket",
+      "id": "ws-collab-auth-works",
+      "severity": "ok",
+      "title": "Authenticated /collaboration connection succeeds",
+      "description": "Connection to /collaboration/wiki:<docId> with valid session_id opened successfully.",
+      "evidence": {
+        "docId": "27d6cf3a-0602-45a4-a8c0-e33e2fdfb567",
+        "openedAfterMs": 4012
+      }
+    },
+    {
+      "surface": "manual-secrets",
+      "id": "secrets-no-leaks-in-client-bundle",
+      "severity": "ok",
+      "title": "No known secret patterns found in client bundle",
+      "description": "Scanned web/dist for AWS keys, GitHub PATs, PEM-format private keys, database URLs, and inline SESSION_SECRET literals. Zero matches."
+    },
+    {
+      "surface": "manual-error-verbosity",
+      "id": "error-no-stack-leak",
+      "severity": "ok",
+      "title": "Error responses do not leak stack traces or internal paths to clients",
+      "description": "Probed non-JSON body, unknown route, and invalid UUID — none returned a Node.js stack trace, file path, or framework internals in the response body.",
+      "evidence": [
+        {
+          "probe": "errored",
+          "error": "fetch failed"
+        }
+      ]
+    }
+  ]
+}
