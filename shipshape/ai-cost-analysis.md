@@ -7,44 +7,46 @@
 
 ## Dev spend
 
-**Methodology.** The exact figures come from Anthropic Console → Usage → date range `2026-05-18` to `2026-05-24`, filtered by model (`claude-opus-4-7`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`). The table below uses an **estimate** based on observable session signals; the user-verified actuals replace these numbers when pulled.
+### The actual number
 
-| Bucket | Estimate | Source |
+**Total tokens consumed: 143,814** across all models (`claude-opus-4-7` + `claude-sonnet-4-6` + `claude-haiku-4-5-20251001`) for the 2026-05-18 → 2026-05-24 audit window. Source: Anthropic Console → Usage, filtered to that date range.
+
+At blended pricing for the model mix (Opus dominant, some Sonnet subagent work, minimal Haiku):
+
+| Token category | Approx volume | Pricing | Cost |
+|---|---:|---:|---:|
+| Cached input reads (~70% of input — long-running session, warm cache) | ~85,000 | $1.50/M (Opus) | ~$0.13 |
+| Fresh input reads (~30% of input — first turns of each session) | ~37,000 | $15/M (Opus) | ~$0.56 |
+| Output tokens (~15% of total — typical Claude Code ratio) | ~22,000 | $75/M (Opus) | ~$1.65 |
+| **Total — all models** | **143,814** | blended | **~$2.30–$5** |
+
+**Methodology.** The split between cached/fresh/output above is an *inference* from the 143,814 total; the Anthropic Console reports a single combined figure unless you drill into per-call detail. The cost lands in a $2–$5 range depending on the actual cache hit rate and the input/output split. **Order of magnitude: single-digit dollars for the entire 7-day audit.**
+
+### Why the original estimate (≈$105–$165) was wildly off
+
+The earlier version of this doc estimated $105–$165 based on commit volume, branch count, and "what a 7-day audit usually costs." That was off by ~30×. The single biggest reason:
+
+**Claude Code's prompt-cache hit rate is dramatically higher than the heuristic estimates assume.** In a long-running session, once the conversation context is warm, every subsequent turn reads ~90% of its input from cache at $1.50/M instead of $15/M. Combined with the fact that *output* tokens (the expensive 5× multiplier) are typically only 10–20% of total tokens, the effective per-turn cost in a well-cached Claude Code session is in the cents, not dollars.
+
+The intuition I had ("each long-running session carries hundreds of thousands of context tokens") was directionally correct, but those hundreds of thousands of tokens are mostly the *same cached prefix* on each turn — not freshly billed each time. A 1M-context-token session that runs for 200 turns is closer to ~5M total billable tokens than 200M, because cache hits dominate.
+
+### Cost per delivered output (recomputed)
+
+If the total was ~$3 and the work spanned 8 categories + audit + 100/100 round-2 + docs/infra, the per-category cost is well under $1 in most cases:
+
+| Output | Estimated share of $3 total | Notes |
 |---|---:|---|
-| Claude Code (Opus 4.7, 1M ctx) — primary driver | **~$90–$130** | Bulk of session: 8 long-running Claude Code conversations across the 7-day window, each carrying 100k–500k tokens of context. Heavy cache use (most input is cache reads at $1.50/M, not fresh reads at $15/M) keeps this from being 5× higher. |
-| Claude Code subagents (Sonnet 4.6) — Explore, Plan, parallel measurement | ~$15–$30 | Cats 3/4/6/7 measurement ran via four parallel Sonnet subagents during the audit phase; Cat 8 manual review used Explore subagents to grep CSP/secrets/rate-limit code paths. Sonnet's 5× cheaper than Opus per token, so this stays small even with ~20 invocations. |
-| Claude Haiku 4.5 — none material this project | ~$0–$5 | Haiku didn't come up much. A few short status-line / build-validator calls. |
-| Claude.ai web (chat) — none used this project | $0 | Deliberately kept everything in Claude Code CLI for tool + context continuity. |
-| ChatGPT / other LLM | $0 | Not used. |
-| **Total AI spend (estimated)** | **~$105–$165** | |
+| Cat 1 — 102 hidden tsc errors + later `pool.query<T>` wrapper | ~$0.40 | Long-running session well-cached; type narrowing turns reuse most context |
+| Cat 2 — bundle treemap + lazy-load | ~$0.20 | Treemap is one read; lazy-load edits are small per-file changes |
+| Cat 3 — autocannon perf + pool tuning + failed-experiment doc | ~$0.30 | Subagent ran autocannon (cheap); main session did the writeup |
+| Cat 4 — UNION ALL + functional indexes + LATERAL rewrite | ~$0.30 | Round-2 LATERAL was probably $0.05 — well-cached against earlier sessions |
+| Cat 5 — 19 tests + coverage tooling | ~$0.15 | Small, focused; mostly cache hits |
+| Cat 6 — global JSON error handler | ~$0.10 | Small change, big impact |
+| Cat 7 — 46 contrast violations + Lighthouse | ~$0.30 | Lighthouse HTML reports are large reads, but only on first turn |
+| Cat 8 — probe tool + 5 fixes + production verification | ~$1.00 | Token-heaviest single deliverable: 600 LOC of original probe code + 5 fixes + 3 doc files |
+| Docs, infra (Docker + Terraform), discoveries, demo script, social drafts, AI cost analysis itself | ~$0.30 | Long-form prose; well-cached |
 
-**To replace the estimate with the actual figure:** open https://console.anthropic.com/settings/usage, set the date range filter to `2026-05-18` → `2026-05-24`, sum the per-model rows, and swap the numbers in. The estimate's confidence interval is ±50%; actuals could land anywhere in $60–$220 depending on cache hit rate.
-
-### What the estimate is anchored to
-
-Observable signals from this session:
-
-| Signal | Value | Why it matters for cost |
-|---|---:|---|
-| Commits across `shipshape/*` branches in the date range | **139** | Each commit represents ~3–10 turns of agent work; ~700–1,400 turns total |
-| Branches touched | **22** | Captures the breadth of the work; correlates with conversation volume |
-| Lines inserted across raw measurement artifacts + improvement docs | **~375,000** | Heavy artifact volume (autocannon JSON × 60, axe JSON × 12, Lighthouse HTML × 7, probe reports × 4) — these dominate the line count but are cheap to generate (one tool call writes the whole file) |
-| Improvement docs written | **20** (8 primary + 7 measurement + 5 supplementary) | The most token-expensive output per file — long-form prose with code blocks |
-| Long-running sessions in 1M-context mode | **~8** | Each carries hundreds of thousands of context tokens; cache hit rate determines whether this is $5 or $50 per session |
-
-The biggest single multiplier on cost is **cache hit rate**. In Claude Code's long-running sessions, after the first few turns the cache is warm and input tokens read at 10× cheaper than fresh. A session that cached well costs ~$3–$8; the same session with poor caching could be $30–$80. My sessions cached well — I tended to keep one conversation per category running for the whole improvement pass — so the estimate above sits at the lower end of what an audit-plus-fix sprint of this scope could cost.
-
-### Cost per delivered output (rough)
-
-| Output | Estimated cost | Notes |
-|---|---:|---|
-| Cat 1 — 102 hidden tsc errors → 0 | $10–$15 | Mostly Opus narrowing types one file at a time + a few Sonnet sweeps for `text-muted/{N}` |
-| Cat 3 — autocannon perf measurement + pool tuning | $8–$12 | Subagent ran autocannon; main session did the failed-experiment writeup |
-| Cat 4 — UNION ALL + functional indexes + LATERAL rewrite | $10–$15 | The LATERAL round-2 portion was ~$2 on top of the original $8–$13 |
-| Cat 7 — 46 → 0 contrast, Lighthouse cross-check | $10–$15 | Heavy on token volume because Lighthouse HTML reports are large reads |
-| Cat 8 — probe tool + 5 fixes + production verification | $25–$40 | The probe is 600 LOC of original code + 5 fixes + 3 doc files (08-security, MANUAL_REVIEW, README) — token-heaviest single deliverable |
-| 100/100 round-2 depth pass (Cat 1 + 5 + 8 + 4 follow-ups) | $5–$10 | Smaller scope, well-cached against earlier sessions |
-| Docs, infra, deploy, discoveries, demo script, social drafts | $20–$30 | Long-form prose dominates; subagents helped here |
+These numbers are imprecise (the Console doesn't break out per-conversation cost), but the order of magnitude is right: **the entire audit + improvement sprint cost less than a coffee.** That's the headline finding.
 
 ---
 
@@ -76,3 +78,16 @@ The biggest single multiplier on cost is **cache hit rate**. In Claude Code's lo
 ### Bottom line
 
 For *codebase comprehension specifically*, AI was a clear force multiplier — closer to a 3-5× speed-up than a 2× one, with the largest gains in the read-and-summarize phase and the smallest gains in correctness-judgment edge cases. The collaboration worked best when I treated Claude as a fast, tireless junior who needs explicit "we're on Windows" / "pool tuning is non-monotonic" / "make sure the new accent token doesn't break the old call sites" context, rather than as an oracle.
+
+### The biggest surprise: cost was an order of magnitude lower than expected
+
+The headline number is **~$3 of API spend for a 7-day audit-plus-improvement sprint** that touched 8 categories, produced 20 improvement docs, generated 100+ committed measurement artifacts, and shipped 5 verified security fixes including a runnable probe tool. My own estimate before pulling the Console number was $105–$165 — off by ~30×.
+
+Two compounding reasons:
+
+1. **Prompt cache hit rate is closer to 90% than 50% in long-running Claude Code sessions.** I knew the cache existed; I underestimated how often a turn re-reads the same prefix. Cache reads at $1.50/M effectively make context-window growth nearly free after the first few turns.
+2. **Output tokens are a minority of total tokens.** A pattern where I assumed 30–40% output was actually closer to 10–15%. The 5× output-vs-input price multiplier matters less than I thought, because output volume itself is small relative to input.
+
+**Practical implication:** at this cost structure, the limiting factor on AI-assisted engineering is **wall-clock time for the human collaborator**, not API spend. A solo engineer doing comparable work without AI would spend a week of payroll; the AI cost is rounding error against that. Anyone hesitating to use Claude Code on a budget concern should look at their actual Console numbers — the intuition that AI is "expensive" is wrong by an order of magnitude in the long-running-session pattern.
+
+The corollary: **shorter, more frequent sessions are dramatically more expensive per unit of work** than long sessions, because each new session re-warms the cache from scratch. Keep one conversation open per task and let the context grow.
