@@ -60,16 +60,15 @@ resource "neon_database" "ship" {
   owner_name = neon_role.app.name
 }
 
-# Neon emits the connection string from the role's password + branch endpoint.
-# We assemble DATABASE_URL the same way the Neon console does.
+# Neon's provider exposes the full connection URI directly on neon_project.
+# Verified against the kislerdm/neon v0.13.0 schema via
+# `terraform providers schema -json` — neon_project exports
+# `connection_uri`, `database_host`, `database_password`, etc. Earlier
+# versions of this module manually assembled the URL from role + branch
+# attributes (incorrectly assumed `neon_branch.endpoint` existed); the
+# direct attribute is the canonical way.
 locals {
-  database_url = format(
-    "postgresql://%s:%s@%s/%s?sslmode=require",
-    neon_role.app.name,
-    neon_role.app.password,
-    neon_branch.main.endpoint, # branch host:port — provider-derived
-    neon_database.ship.name,
-  )
+  database_url = neon_project.ship.connection_uri
 }
 
 # ─── Render: web service for the Express API ──────────────────────────────────

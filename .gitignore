@@ -131,8 +131,8 @@ web/dev-dist/
 .vercel
 
 # ShipShape — Vercel + Render + Neon Terraform module
+# .terraform.lock.hcl IS committed (pins verified provider versions); ignore everything else.
 terraform/render-vercel-neon/.terraform/
-terraform/render-vercel-neon/.terraform.lock.hcl
 terraform/render-vercel-neon/*.tfvars
 terraform/render-vercel-neon/*.tfstate
 terraform/render-vercel-neon/*.tfstate.backup

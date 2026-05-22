@@ -6,6 +6,10 @@
 *.tfvars.secret
 .terraform.lock.hcl
 
+# Exception: the ShipShape Vercel+Render+Neon module commits its lock file
+# (pins verified provider versions after the 2026-05-22 init + validate run).
+!render-vercel-neon/.terraform.lock.hcl
+
 # Crash logs
 crash.log
 crash.*.log
