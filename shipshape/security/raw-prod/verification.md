@@ -2,7 +2,7 @@
 
 - API: https://ship-api-76ez.onrender.com
 - Web: https://ship-henna.vercel.app
-- Run at: 2026-05-22T16:33:49.657Z
+- Run at: 2026-05-22T20:25:54.812Z
 
 ## Severity counts
 
@@ -22,7 +22,7 @@ API /health → 200
     "access-control-allow-origin": "https://ship-henna.vercel.app",
     "alt-svc": "h3=\":443\"; ma=86400",
     "cf-cache-status": "DYNAMIC",
-    "cf-ray": "9ffd397cbed2f088-DFW",
+    "cf-ray": "9ffe8d74cf386a82-DFW",
     "connection": "keep-alive",
     "content-encoding": "br",
     "content-length": "19",
@@ -30,11 +30,11 @@ API /health → 200
     "content-type": "application/json; charset=utf-8",
     "cross-origin-opener-policy": "same-origin",
     "cross-origin-resource-policy": "cross-origin",
-    "date": "Fri, 22 May 2026 16:33:47 GMT",
+    "date": "Fri, 22 May 2026 20:25:52 GMT",
     "etag": "W/\"f-VaSQ4oDUiZblZNAEkkN+sX+q3Sg\"",
     "origin-agent-cluster": "?1",
     "referrer-policy": "no-referrer",
-    "rndr-id": "67b0e9b6-218f-4c60",
+    "rndr-id": "acb936b7-3561-4104",
     "server": "cloudflare",
     "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
     "vary": "Origin, Accept-Encoding",
