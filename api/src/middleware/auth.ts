@@ -1,8 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
-import { pool } from '../db/client.js';
+import { pool, queryOne } from '../db/client.js';
 import { getCookieSameSite } from '../config/cookie-options.js';
 import { SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS, ERROR_CODES, HTTP_STATUS } from '@ship/shared';
+
+// Row types — local to this middleware. The pool.query<T> wrapper means
+// these get checked at the query call site; no `as` casts needed.
+interface ApiTokenRow {
+  id: string;
+  user_id: string;
+  workspace_id: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  is_super_admin: boolean;
+}
+
+interface SessionRow {
+  id: string;
+  user_id: string;
+  workspace_id: string;
+  expires_at: string;
+  last_activity: string;
+  created_at: string;
+  is_super_admin: boolean;
+}
+
+interface MembershipRow {
+  id: string;
+  role?: string;
+}
 
 // Extend Express Request to include session info
 declare global {
@@ -31,15 +57,13 @@ async function validateApiToken(token: string): Promise<{
 } | null> {
   const tokenHash = hashToken(token);
 
-  const result = await pool.query(
+  const tokenRow = await queryOne<ApiTokenRow>(
     `SELECT t.id, t.user_id, t.workspace_id, t.expires_at, t.revoked_at, u.is_super_admin
      FROM api_tokens t
      JOIN users u ON t.user_id = u.id
      WHERE t.token_hash = $1`,
     [tokenHash]
   );
-
-  const tokenRow = result.rows[0];
 
   if (!tokenRow) return null;
 
@@ -124,7 +148,7 @@ export async function authMiddleware(
 
   try {
     // Get session and check if it's valid
-    const result = await pool.query(
+    const session = await queryOne<SessionRow>(
       `SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at,
               u.is_super_admin
        FROM sessions s
@@ -132,8 +156,6 @@ export async function authMiddleware(
        WHERE s.id = $1`,
       [sessionId]
     );
-
-    const session = result.rows[0];
 
     if (!session) {
       res.status(HTTP_STATUS.UNAUTHORIZED).json({
@@ -182,12 +204,12 @@ export async function authMiddleware(
 
     // Verify user still has access to the workspace (unless super-admin)
     if (session.workspace_id && !session.is_super_admin) {
-      const membershipResult = await pool.query(
+      const membership = await queryOne<MembershipRow>(
         'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
         [session.workspace_id, session.user_id]
       );
 
-      if (!membershipResult.rows[0]) {
+      if (!membership) {
         // User no longer has access - delete session
         await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
 
@@ -286,12 +308,10 @@ export async function workspaceAdminMiddleware(
   }
 
   try {
-    const result = await pool.query(
+    const membership = await queryOne<MembershipRow>(
       'SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, req.userId]
     );
-
-    const membership = result.rows[0];
 
     if (!membership || membership.role !== 'admin') {
       res.status(HTTP_STATUS.FORBIDDEN).json({
@@ -343,12 +363,12 @@ export async function workspaceAccessMiddleware(
   }
 
   try {
-    const result = await pool.query(
+    const membership = await queryOne<MembershipRow>(
       'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, req.userId]
     );
 
-    if (!result.rows[0]) {
+    if (!membership) {
       res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
         error: {

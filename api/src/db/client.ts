@@ -1,4 +1,5 @@
 import pg from 'pg';
+import type { QueryResultRow } from 'pg';
 import { config } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -86,4 +87,58 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-export { pool };
+/**
+ * Typed query helpers — eliminate the `as Row[]` casts and `.rows[0]!`
+ * non-null assertions that were ~hundreds across the route layer.
+ *
+ * The audit's hypothesis ("this single change eliminates hundreds of `as`
+ * casts") rests on the observation that every `pool.query(sql, params)`
+ * returns `QueryResult<QueryResultRow>` whose `.rows` is `QueryResultRow[]`
+ * — a permissive `{ [column: string]: any }`. Adding the generic at the
+ * helper level lets callers say what shape they expect once, and get
+ * narrowed `.name`, `.id`, etc. from there forward.
+ *
+ * Two helpers because the two access patterns are different:
+ *   query<T>     — returns the row array (use for lists; empty array if no rows)
+ *   queryOne<T>  — returns the first row or null (use for "find by id" lookups)
+ *
+ * Both delegate to the same underlying `pool.query` so any pg behavior
+ * (parameterization, transactions, errors) is preserved. The wrappers
+ * are added, not substituted — existing `pool.query` call sites continue
+ * to work; new code should prefer these.
+ */
+
+/**
+ * Run a query and return the rows array, typed as T[].
+ *
+ * @example
+ *   interface UserRow { id: string; email: string; name: string; }
+ *   const users = await query<UserRow>('SELECT id, email, name FROM users WHERE workspace_id = $1', [wid]);
+ *   // users is UserRow[]; users[0]?.email is string | undefined
+ */
+async function query<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  params?: ReadonlyArray<unknown>,
+): Promise<T[]> {
+  const result = await pool.query<T>(text, params as unknown as unknown[]);
+  return result.rows;
+}
+
+/**
+ * Run a query and return the first row or null. Use for unique lookups.
+ *
+ * @example
+ *   const user = await queryOne<UserRow>('SELECT * FROM users WHERE id = $1', [id]);
+ *   if (!user) { return res.status(404).json(...); }
+ *   // user is UserRow (narrowed by the null-check above)
+ */
+async function queryOne<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  params?: ReadonlyArray<unknown>,
+): Promise<T | null> {
+  const result = await pool.query<T>(text, params as unknown as unknown[]);
+  return result.rows[0] ?? null;
+}
+
+export { pool, query, queryOne };
+export type { QueryResultRow };
