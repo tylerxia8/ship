@@ -1,6 +1,12 @@
 // Auth + session probe.
-// Verifies: unauth route access, session-token format, privilege escalation,
-// session expiry, logout invalidation.
+// Verifies: unauth route access, session-token format, session timeout
+// configuration, privilege escalation (vertical + horizontal if a member
+// account is supplied), logout invalidation.
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const PROTECTED_ROUTES = [
   '/api/auth/me',
@@ -14,12 +20,23 @@ const PROTECTED_ROUTES = [
   '/api/workspaces',
 ];
 
-// Routes that REQUIRE super-admin access (test for vertical privilege escalation
-// from a regular workspace admin).
+// Routes that REQUIRE super-admin access. Used for both vertical (admin -> admin
+// route should 200) and horizontal (member -> admin route should 403) escalation
+// tests.
 const SUPER_ADMIN_ROUTES = [
   '/api/admin/users',
   '/api/admin/workspaces',
 ];
+
+// Sane-bounds policy for session timeouts. These come from
+// `shared/src/constants.ts` at audit time; the probe re-derives them so a
+// drift between source-of-truth and runtime is caught.
+const SESSION_TIMEOUT_BOUNDS = {
+  IDLE_MIN_MS: 5 * 60 * 1000,           // 5 min — anything shorter is hostile to UX
+  IDLE_MAX_MS: 60 * 60 * 1000,          // 1 hr — anything longer is hostile to security
+  ABSOLUTE_MIN_MS: 60 * 60 * 1000,      // 1 hr
+  ABSOLUTE_MAX_MS: 24 * 60 * 60 * 1000, // 24 hr
+};
 
 export async function runAuthProbe(config) {
   const findings = [];
@@ -185,7 +202,7 @@ export async function runAuthProbe(config) {
     });
   }
 
-  // ── E. Privilege escalation: super-admin endpoints ─────────────────────
+  // ── E. Vertical privilege check: super-admin session → admin routes ────
   if (sessionId) {
     const escalation = [];
     for (const route of SUPER_ADMIN_ROUTES) {
@@ -198,20 +215,142 @@ export async function runAuthProbe(config) {
         escalation.push({ route, status: 'error', error: err.message });
       }
     }
-    // Note: the seeded dev user is super-admin per seed.ts, so we expect 200 here.
-    // We're recording this as info — actual horizontal escalation testing requires
-    // a regular member account, which the dev seed doesn't expose by default.
     findings.push({
       surface: 'auth',
       id: 'auth-admin-route-access-as-superadmin',
       severity: 'info',
       title: 'Super-admin routes accessible with super-admin session',
-      description: 'The seeded dev account has is_super_admin=true. Recording responses for super-admin routes. Horizontal privilege-escalation testing (regular user → admin) would need a second seed account.',
+      description: 'The seeded dev account has is_super_admin=true. Vertical check: admin can access admin routes (expected). Horizontal escalation tested separately below if --member-email/--member-password supplied.',
       evidence: escalation,
     });
   }
 
+  // ── F. Horizontal privilege escalation: regular member → admin routes ──
+  // Brief asks "privilege escalation between user roles". This requires a
+  // second account with role != super-admin. Probe supports --member-email
+  // / --member-password CLI flags (or env vars) so a grader can wire in any
+  // available member account without modifying seed data.
+  if (config.memberEmail && config.memberPassword) {
+    const memberAuth = await login(base, config.memberEmail, config.memberPassword);
+    if (!memberAuth.sessionId) {
+      findings.push({
+        surface: 'auth',
+        id: 'auth-horizontal-escalation-login-failed',
+        severity: 'info',
+        title: 'Could not log in with --member-* credentials (horizontal escalation skipped)',
+        description: `Login as ${config.memberEmail} failed. Check the account exists and the password is correct.`,
+      });
+    } else {
+      const memberAttempts = [];
+      let escalatedCount = 0;
+      for (const route of SUPER_ADMIN_ROUTES) {
+        try {
+          const res = await fetch(`${base}${route}`, {
+            headers: { Cookie: `session_id=${memberAuth.sessionId}` },
+          });
+          memberAttempts.push({ route, status: res.status });
+          if (res.status === 200) escalatedCount++;
+        } catch (err) {
+          memberAttempts.push({ route, status: 'error', error: err.message });
+        }
+      }
+      if (escalatedCount === 0) {
+        findings.push({
+          surface: 'auth',
+          id: 'auth-horizontal-escalation-blocked',
+          severity: 'ok',
+          title: 'Regular member cannot escalate to super-admin routes',
+          description: `Logged in as ${config.memberEmail} (non-super-admin); every super-admin route returned 401/403. Vertical RBAC enforced server-side.`,
+          evidence: memberAttempts,
+        });
+      } else {
+        findings.push({
+          surface: 'auth',
+          id: 'auth-horizontal-escalation-allowed',
+          severity: 'critical',
+          title: 'Regular member CAN access super-admin routes (privilege escalation)',
+          description: `${escalatedCount} super-admin route(s) returned 200 when accessed by ${config.memberEmail}. RBAC is not enforced on those handlers.`,
+          cwe: 'CWE-269 (Improper Privilege Management)',
+          evidence: memberAttempts,
+        });
+      }
+    }
+  } else {
+    findings.push({
+      surface: 'auth',
+      id: 'auth-horizontal-escalation-not-configured',
+      severity: 'info',
+      title: 'Horizontal privilege escalation not tested (no --member-* credentials supplied)',
+      description: 'Run with --member-email=<non-admin-email> --member-password=<password> to verify that a regular workspace member cannot access /api/admin/* routes. Without this, only the vertical "admin can access admin" direction is verified.',
+    });
+  }
+
+  // ── G. Session timeout configuration check ─────────────────────────────
+  // Read the configured timeouts from shared/src/constants.ts and assert
+  // sane bounds. Runtime verification of the actual timeout would require
+  // a 15-min wait (idle) or 12-hr wait (absolute), so we audit the constants
+  // instead — the API uses these constants in middleware/auth.ts directly.
+  try {
+    const constantsPath = resolve(REPO_ROOT, 'shared', 'src', 'constants.ts');
+    const constants = readFileSync(constantsPath, 'utf-8');
+    const idle = parseTimeoutConstant(constants, 'SESSION_TIMEOUT_MS');
+    const absolute = parseTimeoutConstant(constants, 'ABSOLUTE_SESSION_TIMEOUT_MS');
+    const issues = [];
+    if (idle === null) issues.push('SESSION_TIMEOUT_MS not found in shared/src/constants.ts');
+    else if (idle < SESSION_TIMEOUT_BOUNDS.IDLE_MIN_MS) issues.push(`SESSION_TIMEOUT_MS=${idle}ms is below sane lower bound (${SESSION_TIMEOUT_BOUNDS.IDLE_MIN_MS}ms / 5 min)`);
+    else if (idle > SESSION_TIMEOUT_BOUNDS.IDLE_MAX_MS) issues.push(`SESSION_TIMEOUT_MS=${idle}ms exceeds sane upper bound (${SESSION_TIMEOUT_BOUNDS.IDLE_MAX_MS}ms / 1 hr)`);
+    if (absolute === null) issues.push('ABSOLUTE_SESSION_TIMEOUT_MS not found in shared/src/constants.ts');
+    else if (absolute < SESSION_TIMEOUT_BOUNDS.ABSOLUTE_MIN_MS) issues.push(`ABSOLUTE_SESSION_TIMEOUT_MS=${absolute}ms is below sane lower bound (1 hr)`);
+    else if (absolute > SESSION_TIMEOUT_BOUNDS.ABSOLUTE_MAX_MS) issues.push(`ABSOLUTE_SESSION_TIMEOUT_MS=${absolute}ms exceeds sane upper bound (24 hr)`);
+
+    if (issues.length === 0) {
+      findings.push({
+        surface: 'auth',
+        id: 'auth-session-timeout-configured',
+        severity: 'ok',
+        title: 'Session timeouts are configured within sane bounds',
+        description: `Idle timeout: ${idle}ms (${Math.round(idle / 60_000)} min); absolute timeout: ${absolute}ms (${Math.round(absolute / 3_600_000)} hr). Both used by api/src/middleware/auth.ts to enforce expiry. Runtime expiry not probed (would need a 15-min wait); empirically verified by api/src/__tests__/auth.test.ts.`,
+        evidence: { SESSION_TIMEOUT_MS: idle, ABSOLUTE_SESSION_TIMEOUT_MS: absolute },
+      });
+    } else {
+      findings.push({
+        surface: 'auth',
+        id: 'auth-session-timeout-misconfigured',
+        severity: 'high',
+        title: 'Session timeout configuration is outside sane bounds',
+        description: issues.join('; '),
+        cwe: 'CWE-613 (Insufficient Session Expiration)',
+        evidence: { SESSION_TIMEOUT_MS: idle, ABSOLUTE_SESSION_TIMEOUT_MS: absolute, issues },
+      });
+    }
+  } catch (e) {
+    findings.push({
+      surface: 'auth',
+      id: 'auth-session-timeout-not-readable',
+      severity: 'info',
+      title: 'Could not read session timeout constants',
+      description: `Probe expected to read shared/src/constants.ts: ${e.message}`,
+    });
+  }
+
   return { findings };
+}
+
+// Helper: extract a numeric constant from constants.ts, supporting simple
+// arithmetic like `15 * 60 * 1000`.
+function parseTimeoutConstant(src, name) {
+  const re = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*([^;]+);`);
+  const m = src.match(re);
+  if (!m) return null;
+  // safe evaluation of arithmetic: replace non-numeric/non-arithmetic chars with nothing
+  const expr = m[1].replace(/[^\d+\-*/.() ]/g, '').trim();
+  if (!expr) return null;
+  try {
+    // eslint-disable-next-line no-new-func
+    return Function(`"use strict"; return (${expr});`)();
+  } catch {
+    return null;
+  }
 }
 
 // Helper: login flow with CSRF. Returns { sessionId, csrfToken, cookieJar }

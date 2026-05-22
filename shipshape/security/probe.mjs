@@ -34,6 +34,11 @@ const CONFIG = {
   web: ARGS.web ?? 'http://localhost:5173',
   email: ARGS.email ?? 'dev@ship.local',
   password: ARGS.password ?? 'admin123',
+  // Optional non-admin credentials for horizontal-privilege-escalation tests.
+  // When supplied, the auth probe logs in as this account and verifies admin
+  // routes return 401/403. Without it, only vertical (admin -> admin) is tested.
+  memberEmail: ARGS['member-email'] ?? process.env.SHIPSHAPE_MEMBER_EMAIL ?? null,
+  memberPassword: ARGS['member-password'] ?? process.env.SHIPSHAPE_MEMBER_PASSWORD ?? null,
   cleanup: !!ARGS.cleanup,
   outDir: ARGS.out ?? resolve(REPO_ROOT, 'shipshape/security/raw'),
 };
