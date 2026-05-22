@@ -31,6 +31,7 @@ The audit gate (Tuesday hard deadline) is satisfied by [shipshape/audit/AUDIT_RE
 | 5 | Test Coverage | +3 meaningful tests OR fix 3 flakes | **+19 tests** across 3 previously-untested critical paths (extractText/hasContent helpers, date formatting utilities, the global error handler) | `shipshape/05-test-coverage` | [`5ee270f`](#) |
 | 6 | Runtime Errors | 3 fixes, ≥1 user-facing data-loss case | Global JSON error handler closes stack-trace leak on malformed JSON, sanitises payload-too-large to JSON 413, and replaces HTML 404 with JSON `{ NOT_FOUND }` on unmatched `/api/*` | `shipshape/06-runtime-errors` | [`0470de1`](#) |
 | 7 | Accessibility | +10 Lighthouse on worst page OR clear Critical/Serious on top 3 | **46 → 0 color-contrast violations** across all 12 audited routes (cleared everything, not just top 3); cross-checked with Lighthouse 13.3.0 — the two lowest-scoring routes (`/my-week`, `/dashboard`) went **96 → 100** | `shipshape/07-accessibility` | [`97a5eec`](#) + [`186ecf8`](#) |
+| 8 | Security Audit | Build a probe tool; fix ≥2 verified vulnerabilities with before/after proof | **Probe tool runnable** ([shipshape/security/probe.mjs](security/probe.mjs)) across 5 surfaces. **3 verified fixes; critical: 4 → 0**: (a) WebSocket process-crash on oversized/malformed frame (CWE-20 + CWE-400 — any authenticated user could DoS the API); (b) two transitive critical CVEs (fast-xml-parser CVE-2026-25896 + protobufjs CVE-2026-41242) bumped via `pnpm.overrides`; (c) body-parser stack-trace leak on malformed JSON (CWE-209) closed via global error handler. All 451 api unit tests still pass. | `shipshape/08-security` | [`1361c54`](#) + [`9cdf809`](#) + [`176ff29`](#) |
 
 Plus a pre-existing tooling bug found while opening the audit: [`db106d1`](#) fixes a brace-tracking bug in `scripts/check-empty-tests.sh` that was throwing false positives on tests containing nested arrow functions.
 
@@ -70,6 +71,7 @@ If you have 30 minutes, also read the audit's full Category sections + skim one 
 | 5 | (multiple test files) | `shipshape/05-test-coverage` | 16 tests for `extractText`/`hasContent`/date helpers + 3 regression tests for the Cat 6 error handler |
 | 6 | [06-runtime-errors.md](improvements/06-runtime-errors.md) | `shipshape/06-runtime-errors` | before/after malformed-input probe, JSON 404 design, what was scoped out |
 | 7 | [07-accessibility.md](improvements/07-accessibility.md) + [v2-lighthouse](improvements/07-accessibility-v2-lighthouse.md) | `shipshape/07-accessibility` | new `accent-bright` token, `text-muted/{N}` sweep script, opacity-40 wrapper rewrite; v2 doc adds independent Lighthouse cross-check with full HTML reports |
+| 8 | [08-security.md](improvements/08-security.md) + [MANUAL_REVIEW.md](security/MANUAL_REVIEW.md) | `shipshape/08-security` | runnable probe tool ([shipshape/security/probe.mjs](security/probe.mjs)), 3 verified fixes (WS process-crash, two transitive critical CVEs, body-parser stack-leak), manual review of CORS/CSP/secrets/rate-limit/error-verbosity with file:line refs |
 
 ---
 
@@ -79,8 +81,8 @@ The brief lists 8 deliverables. This is where each one lives:
 
 | # | Deliverable | Where |
 |---|---|---|
-| 1 | GitHub repository — branches + setup guide | This fork. Branches: `shipshape/audit` + `shipshape/01-…` through `shipshape/07-…` (+ `shipshape/04b-functional-indexes` bonus). Setup: [README.md § Setup (ShipShape fork)](../README.md#getting-started). |
-| 2 | Audit report w/ baselines + methodology | [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md) (450 lines, 7 categories) + [GATE_CHECKLIST.md](audit/GATE_CHECKLIST.md) (1-page brief-gate index). Raw evidence under [audit/raw/](audit/raw/). |
+| 1 | GitHub repository — branches + setup guide | This fork. Branches: `shipshape/audit` + `shipshape/01-…` through `shipshape/08-…` (+ `shipshape/04b-functional-indexes` bonus). Setup: [README.md § Setup (ShipShape fork)](../README.md#getting-started). |
+| 2 | Audit report w/ baselines + methodology | [shipshape/audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md) (8 categories) + [GATE_CHECKLIST.md](audit/GATE_CHECKLIST.md) (1-page brief-gate index) + [COMPREHENSIVE_AUDIT.md](audit/COMPREHENSIVE_AUDIT.md) (brief's exact-tables variant). Cat 8 adds a runnable probe tool: [shipshape/security/probe.mjs](security/probe.mjs). Raw evidence under [audit/raw/](audit/raw/) + [security/raw/](security/raw/). |
 | 3 | Improvement documentation (one per category) | [shipshape/improvements/0N-*.md](improvements/) — see the table above. Each has before, root cause, fix, after, reproducibility. |
 | 4 | Discovery write-up (3 patterns + reflection) | [shipshape/discoveries.md](discoveries.md) on the `shipshape/05-test-coverage` branch. |
 | 5 | Demo video (3–5 min) | Script + recording-day checklist: [shipshape/demo-video-script.md](demo-video-script.md). MP4 to be recorded once deployment is live (so the closing URL works). |

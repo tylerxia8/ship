@@ -17,8 +17,9 @@ For the **brief's exact Audit Deliverable metric rows** (filled in row-by-row, w
 | **5** | Test Coverage | +3 meaningful tests | **+19 tests** across 3 untested critical paths |
 | **6** | Runtime Errors | 3 fixes, ≥1 user-facing case | **4 fixes**: JSON 404, sanitized 5xx, malformed-JSON 400, payload-too-large 413 |
 | **7** | Accessibility | +10 Lighthouse OR clear Critical/Serious on top 3 | **46 → 0 contrast violations** on **all 12** routes; Lighthouse 96 → 100 on 2 worst |
+| **8** | Security Audit | Build a probe tool + fix ≥2 verified vulnerabilities | **Runnable probe tool** ([security/probe.mjs](security/probe.mjs)) across 5 surfaces. **3 verified fixes; critical 4 → 0**: WS process-crash DoS (CWE-20+400), two transitive critical CVEs (fast-xml-parser + protobufjs), body-parser stack-trace leak (CWE-209). All 451 tests still pass. |
 
-Every category met its brief target. Five exceeded by ≥2×.
+Every category met its brief target. Six exceeded by ≥2×.
 
 ---
 
@@ -211,6 +212,35 @@ axe-core scan via `@axe-core/playwright` with WCAG 2 A/AA + WCAG 2.1 A/AA tags.
 **Headline finding:** the README's "WCAG 2.1 AA Compliant" badge was a verifiable contradiction. Three root causes accounted for all 46 failing nodes: an accent token used both as button bg and as text-on-dark (38 nodes), `text-muted/50` alpha-blend (16 nodes), and a single `opacity-40` wrapper on future-week standup rows (12 nodes — the worst, at 1.84:1). Two-token approach for accent + automated sweep + wrapper rewrite clears all of them without changing brand color.
 
 **Where:** [`shipshape/07-accessibility`](https://github.com/tylerxia8/ship/compare/shipshape/audit...shipshape/07-accessibility) · [improvements/07-accessibility.md](improvements/07-accessibility.md) · [v2 Lighthouse cross-check](improvements/07-accessibility-v2-lighthouse.md) · raw: [audit/raw/a11y/](audit/raw/a11y/), [improvements/a11y-after/](improvements/a11y-after/), [improvements/raw/lighthouse/](improvements/raw/lighthouse/)
+
+---
+
+## Category 8 — Security Audit
+
+**Target:** Build a security probe tool (deliverable, not optional) + fix at least 2 verified vulnerabilities with before/after proof.
+
+| Metric | Baseline | After fix |
+|---|---|---|
+| Security probe tool | — | **Runnable** ([shipshape/security/probe.mjs](security/probe.mjs)) — single command, 5 surfaces (auth / input / websocket / deps / manual) |
+| Critical findings | **4** (2× WS process-crash + fast-xml-parser CVE + protobufjs CVE) | **0** |
+| High findings | 30 (29 dep CVEs + 1 body-parser stack-leak) | **24** (only dev-only ReDoS-class CVEs remain; the production-path leak and the 2 critical CVEs are cleared) |
+| WS validation failures | 2 critical (CWE-20 + CWE-400) | 0 (probe `ws-malformed-*` all `ok`/`low`) |
+| CORS / CSP misconfiguration | None | None |
+| Secrets exposure | None (client bundle clean, no logged secrets) | unchanged |
+| Rate limiting absent on endpoints | None (login 5/15min, api 100/min, WS 30/IP/min + 50 msg/sec) | unchanged |
+| Verbose error leakage | **YES** — body-parser SyntaxError returns Express default HTML with full Node.js stack + .pnpm file paths | **No** — global error handler returns sanitized envelope |
+| Existing tests | 451 pass | **451 pass** (verified; transcript in [improvements/raw/cat8-measurement/](improvements/raw/cat8-measurement/test-suite-after-fixes.txt)) |
+
+**Headline finding:** the WebSocket collaboration server can be DoS'd by any authenticated user with a single >10 MB or text-shaped frame. The `ws` library emits an `error` event on the socket; Ship's handlers attached `message` and `close` listeners but never `error`, so the throw escalates to Node's `uncaughtException` default and crashes the process. **Fix:** `ws.on('error', …)` listeners on both connection handlers + `try/catch` around `handleMessage()` for the synchronous decoder-throw code path. Verified by probe + by re-reading the `[Collaboration]` server-side warnings after each malformed-frame test.
+
+**Three verified fixes** (the brief requires ≥2 with before/after proof):
+1. **WS unhandled-error DoS** (CWE-20 + CWE-400) — production-reachable; probe `ws-malformed-server-crash-*` → `ok`/`low`.
+2. **Two transitive critical CVEs** (CWE-94 + CWE-1333) — fast-xml-parser 5.3.4 → 5.8.0 (via @aws-sdk; production path), protobufjs 7.5.4 → 7.6.0 (via testcontainers; dev path). Applied via `pnpm.overrides`.
+3. **Body-parser stack-trace leak** (CWE-209) — cherry-picked Cat 6 global error handler from `shipshape/06-runtime-errors` (commit `0470de1`). Probe `error-stack-leak` (high) → `error-no-stack-leak` (ok).
+
+**Also:** a complementary [MANUAL_REVIEW.md](security/MANUAL_REVIEW.md) does a code-read pass on each of the four brief-required areas (CORS+CSP, env+secrets, rate limiting, error verbosity) with file:line references — captures subtleties the runtime probe doesn't see, like the WebSocket upgrade handler not validating the `Origin` header (defense-in-depth gap; mitigated today by `sameSite=strict` cookie) and the login rate limit being per-IP rather than per-account (would matter under distributed credential stuffing).
+
+**Where:** [`shipshape/08-security`](https://github.com/tylerxia8/ship/compare/shipshape/audit...shipshape/08-security) · [improvements/08-security.md](improvements/08-security.md) · [security/MANUAL_REVIEW.md](security/MANUAL_REVIEW.md) · probe: [security/probe.mjs](security/probe.mjs) + [README](security/README.md) · raw: [improvements/raw/cat8-measurement/](improvements/raw/cat8-measurement/) (probe-before / probe-after-v2 / probe-after-v3 + test transcript)
 
 ---
 
