@@ -102,3 +102,42 @@ node ./node_modules/vitest/vitest.mjs run src/lib/date-utils.test.ts --reporter=
 ```
 
 Both should report `Tests N passed (N)`.
+
+---
+
+## Coverage tooling — `pnpm --filter @ship/api test:coverage`
+
+The audit noted that `test:coverage` was a defined script but `@vitest/coverage-v8` wasn't an explicit dev-dep, so running it failed. **Resolved on 2026-05-22** — `@vitest/coverage-v8@^4.0.16` added to `api/package.json` and [api/vitest.config.ts](../../api/vitest.config.ts) extended with reporter + threshold config.
+
+### Baseline numbers (measured 2026-05-22 on `shipshape/05-test-coverage`)
+
+| Metric | Baseline % | CI floor | Headroom |
+|---|---:|---:|---:|
+| Statements | **40.49%** | 35 | 5.49 |
+| Branches | **33.69%** | 30 | 3.69 |
+| Functions | **41.1%** | 35 | 6.10 |
+| Lines | **40.64%** | 35 | 5.64 |
+
+Floors set ~5pt below baseline so transient env variance doesn't fail CI; bumping the floors requires adding tests, which is the point. Raw machine-readable output committed at [raw/cat5-coverage/coverage-summary.json](raw/cat5-coverage/coverage-summary.json) (regenerable via `pnpm --filter @ship/api test:coverage`).
+
+### Why global coverage trails per-file coverage
+
+Ship has ~30 route files with E2E coverage (Playwright) but no unit-level coverage. The route layer's branch coverage (32.56%) drags the global number down. Some files DO hit 100% — `business-days.ts`, `document-content.ts`, every OpenAPI schema file — because those are the helpers Cat 5's 19 new tests target. The next round of unit-level coverage (named as follow-up) would target the larger route handlers (`dashboard.ts` at 2%, `team.ts` at 9%, `weekly-plans.ts` at 5%).
+
+### What the threshold catches
+
+Setting CI floors below baseline means:
+1. **New code with zero tests** will pull global coverage down past the floor → CI fails. This is the regression-catching mechanism.
+2. **A test getting deleted or `.skip`-ed** has the same effect.
+3. **A refactor that adds branches without adding tests** dilutes branch coverage faster than other metrics; branches floor at 30 specifically because Ship's branch coverage is structurally lower than lines/statements (long route handlers with deep `if/else` ladders).
+
+### Reproducing
+
+```powershell
+corepack pnpm --filter @ship/api test:coverage
+# HTML report at api/coverage/index.html (browseable)
+# JSON summary at api/coverage/coverage-summary.json
+# A committed snapshot lives at shipshape/improvements/raw/cat5-coverage/
+```
+
+`api/coverage/` is gitignored — only the committed snapshot at `shipshape/improvements/raw/cat5-coverage/` is tracked.
