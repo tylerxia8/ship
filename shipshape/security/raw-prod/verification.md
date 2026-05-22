@@ -2,11 +2,11 @@
 
 - API: https://ship-api-76ez.onrender.com
 - Web: https://ship-henna.vercel.app
-- Run at: 2026-05-22T02:37:59.541Z
+- Run at: 2026-05-22T03:15:44.099Z
 
 ## Severity counts
 
-- **ok**: 10
+- **ok**: 12
 
 ## Checks
 
@@ -22,7 +22,7 @@ API /health → 200
     "access-control-allow-origin": "https://ship-henna.vercel.app",
     "alt-svc": "h3=\":443\"; ma=86400",
     "cf-cache-status": "DYNAMIC",
-    "cf-ray": "9ff8711f0db6a924-DFW",
+    "cf-ray": "9ff8a864cdd869d0-DFW",
     "connection": "keep-alive",
     "content-encoding": "br",
     "content-length": "19",
@@ -30,11 +30,11 @@ API /health → 200
     "content-type": "application/json; charset=utf-8",
     "cross-origin-opener-policy": "same-origin",
     "cross-origin-resource-policy": "cross-origin",
-    "date": "Fri, 22 May 2026 02:37:57 GMT",
+    "date": "Fri, 22 May 2026 03:15:41 GMT",
     "etag": "W/\"f-VaSQ4oDUiZblZNAEkkN+sX+q3Sg\"",
     "origin-agent-cluster": "?1",
     "referrer-policy": "no-referrer",
-    "rndr-id": "08ed8175-9172-4079",
+    "rndr-id": "cc67ca44-06bf-401d",
     "server": "cloudflare",
     "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
     "vary": "Origin, Accept-Encoding",
@@ -137,6 +137,30 @@ Malformed JSON → sanitized {code: VALIDATION_ERROR} envelope, no stack leak (F
 ### ✓ prod-ws-unknown-path-rejected — ok
 
 unknown WS path rejected at handshake (closeCode=1006, openedFirst=false)
+
+```json
+{
+  "opened": false,
+  "closeCode": 1006,
+  "reason": ""
+}
+```
+
+### ✓ prod-ws-collab-rejects-evil-origin — ok
+
+/collaboration WS with evil Origin (Fix #4) rejected at handshake (closeCode=1006, openedFirst=false)
+
+```json
+{
+  "opened": false,
+  "closeCode": 1006,
+  "reason": ""
+}
+```
+
+### ✓ prod-ws-events-rejects-evil-origin — ok
+
+/events WS with evil Origin (Fix #4) rejected at handshake (closeCode=1006, openedFirst=false)
 
 ```json
 {

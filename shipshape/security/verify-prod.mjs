@@ -173,6 +173,21 @@ async function main() {
     'prod-ws-unknown-path-rejected',
     'unknown WS path'
   );
+  // 8.1) Fix #4 — CSWSH defense: upgrade carrying evil Origin must be refused
+  // BEFORE the auth check. Sending Origin: https://evil.example.com on
+  // /collaboration and /events should both close at handshake.
+  await probeWs(
+    `${API.replace(/^http/, 'ws')}/collaboration/wiki:00000000-0000-0000-0000-000000000000`,
+    'prod-ws-collab-rejects-evil-origin',
+    '/collaboration WS with evil Origin (Fix #4)',
+    { Origin: 'https://evil.example.com' }
+  );
+  await probeWs(
+    `${API.replace(/^http/, 'ws')}/events`,
+    'prod-ws-events-rejects-evil-origin',
+    '/events WS with evil Origin (Fix #4)',
+    { Origin: 'https://evil.example.com' }
+  );
 
   // 9) Re-check /health after the WS probes — server must still be alive
   // (this is the Fix #1 invariant: malformed upgrade attempts do not crash
@@ -214,14 +229,17 @@ async function main() {
   process.exit(bad ? 2 : 0);
 }
 
-async function probeWs(url, id, label) {
+async function probeWs(url, id, label, headers = null) {
   await new Promise((resolveOuter) => {
     let opened = false;
     let closed = false;
     let closeCode = null;
     let ws;
     try {
-      ws = new WebSocket(url);
+      // Node 24's global WebSocket constructor accepts a headers option via
+      // the second argument (init bag). This matches how `ws` library expects
+      // custom upgrade headers like Origin.
+      ws = headers ? new WebSocket(url, { headers }) : new WebSocket(url);
     } catch (e) {
       record(id, 'ok', `${label}: WebSocket ctor threw (rejected immediately)`, { error: String(e) });
       return resolveOuter();
