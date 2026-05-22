@@ -51,5 +51,12 @@
     "testcontainers": "^11.11.0",
     "typescript": "^5.7.2",
     "vitest": "^4.0.16"
+  },
+  "pnpm": {
+    "overrides": {
+      "fast-xml-parser@<5.3.5": "^5.3.5",
+      "protobufjs@<7.5.5": "^7.5.5"
+    },
+    "_overridesNote": "Patches two critical-severity CVEs surfaced by shipshape/security/probe.mjs: CVE-2026-25896 (fast-xml-parser entity-encoding bypass, transitive via @aws-sdk in production), CVE-2026-41242 (protobufjs arbitrary code execution, dev-only via testcontainers/dockerode)."
   }
 }
