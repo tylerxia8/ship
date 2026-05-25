@@ -113,19 +113,31 @@ function sleep(ms: number): Promise<void> {
 
 // ─── Typed read helpers ────────────────────────────────────────────────────
 
-// Ship's API envelope shape: { success: true, data: T } | { success: false, error: ... }
+// Ship's API returns one of two shapes depending on endpoint:
+//   - Raw array/object directly (most data endpoints — /api/documents, etc.)
+//   - { success, data, error? } envelope (auth + some write endpoints)
+// Be tolerant of both.
 function unwrap<T>(body: unknown): T {
-  if (!body || typeof body !== 'object') {
-    throw new Error('Ship API returned non-object body');
+  if (body === null || body === undefined) {
+    throw new Error('Ship API returned null/undefined body');
   }
-  const env = body as { success?: boolean; data?: T; error?: unknown };
-  if (env.success === false) {
-    throw new Error(`Ship API error envelope: ${JSON.stringify(env.error)}`);
+  // Raw array — return as-is
+  if (Array.isArray(body)) return body as unknown as T;
+  // Object form: distinguish envelope vs raw object
+  if (typeof body === 'object') {
+    const maybeEnv = body as { success?: boolean; data?: T; error?: unknown };
+    // Explicit envelope: success=false means an error
+    if (maybeEnv.success === false) {
+      throw new Error(`Ship API error envelope: ${JSON.stringify(maybeEnv.error)}`);
+    }
+    // Explicit envelope: success=true with data
+    if (maybeEnv.success === true && maybeEnv.data !== undefined) {
+      return maybeEnv.data;
+    }
+    // Raw object (no envelope shape) — return as-is
+    return body as T;
   }
-  if (env.data === undefined) {
-    throw new Error('Ship API envelope missing data field');
-  }
-  return env.data;
+  return body as T;
 }
 
 export async function getDocument(id: string): Promise<ShipDocument> {

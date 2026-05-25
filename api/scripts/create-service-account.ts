@@ -52,14 +52,17 @@ async function main(): Promise<void> {
 
   const pool = new Pool({
     connectionString: databaseUrl,
-    ssl: { rejectUnauthorized: false },
+    // Local dev Postgres doesn't have SSL; production Aurora/Neon does.
+    ssl: databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')
+      ? false
+      : { rejectUnauthorized: false },
   });
 
   try {
-    // Resolve workspace — accept UUID or slug
+    // Resolve workspace — accept UUID or name (workspaces table has no slug column)
     const wsLookup = await pool.query<{ id: string; name: string }>(
       `SELECT id, name FROM workspaces
-       WHERE id::text = $1 OR slug = $1 OR name ILIKE $1
+       WHERE id::text = $1 OR name ILIKE $1
        LIMIT 1`,
       [workspaceArg],
     );
