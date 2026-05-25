@@ -1,0 +1,46 @@
+# Render Blueprint for the ship-agent service.
+#
+# Deploy via Render's UI: New > Blueprint > point at this file in the repo
+# (https://github.com/tylerxia8/ship/blob/fleetgraph/main/agent/render.yaml).
+# Or, in an existing service, paste the build/start commands manually.
+#
+# Env vars NOT in this file (set them via Render dashboard → Environment
+# tab so they're encrypted at rest, not committed):
+#   ANTHROPIC_API_KEY                — for LLM calls
+#   LANGSMITH_API_KEY                — for trace upload
+#   SHIP_SERVICE_ACCOUNT_KEY         — ship_sa_... from create-service-account.ts
+#   AGENT_SHARED_SECRET              — shared with Ship api/ for X-Agent-Secret header
+#   FLEETGRAPH_TARGET_WORKSPACE_ID   — workspace UUID the poller watches
+#
+# The DATABASE_URL would be added later for PostgresSaver checkpoints.
+
+services:
+  - type: web
+    name: ship-agent
+    runtime: node
+    plan: starter # Render's lowest paid tier — needed because the free tier
+                  # spins down on idle, which breaks the proactive poller.
+    branch: fleetgraph/main
+    rootDir: .
+    buildCommand: |
+      corepack enable
+      pnpm install --frozen-lockfile
+      pnpm --filter @ship/shared build
+      pnpm --filter @ship/agent build
+    startCommand: pnpm --filter @ship/agent start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: PORT
+        value: 4000
+      - key: LANGSMITH_PROJECT
+        value: fleetgraph-prod
+      - key: LANGSMITH_TRACING
+        value: 'true'
+      - key: LANGSMITH_ENDPOINT
+        value: https://api.smith.langchain.com
+      - key: SHIP_API_BASE_URL
+        value: https://ship-api-76ez.onrender.com
+      - key: FLEETGRAPH_POLLER_ENABLED
+        value: 'true'
