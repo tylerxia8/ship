@@ -17,6 +17,7 @@
  */
 
 import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
+import { Client } from 'langsmith';
 import { config } from '../config.js';
 
 // ─── State ─────────────────────────────────────────────────────────────────
@@ -104,8 +105,23 @@ async function main(): Promise<void> {
     console.log('');
   }
 
-  console.log('[hello-world] done. Check LangSmith for the traces:');
-  console.log(`  https://smith.langchain.com/o/-/projects/p/${config.langsmith.project}`);
+  // Force-flush in-flight trace batches before the process exits.
+  // Without this, the langsmith client's async batch queue may still
+  // have pending uploads when the script exits, and they get dropped.
+  console.log('[hello-world] flushing LangSmith trace queue...');
+  const client = new Client({
+    apiKey: config.langsmith.apiKey,
+    apiUrl: config.langsmith.endpoint,
+  });
+  await client.awaitPendingTraceBatches();
+  console.log('[hello-world] flush complete.');
+
+  console.log('');
+  console.log('[hello-world] check LangSmith:');
+  console.log(`  1. Visit https://smith.langchain.com`);
+  console.log(`  2. Switch to your workspace if you're in a different one`);
+  console.log(`  3. Open Tracing Projects → look for "${config.langsmith.project}"`);
+  console.log(`  4. Expect 3 traces with 3 different conditional branches`);
 }
 
 main().catch((err) => {
