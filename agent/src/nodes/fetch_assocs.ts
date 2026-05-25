@@ -17,6 +17,14 @@ const MAX_EDGES_PER_HOP = 50;
 export async function fetchAssocs(
   state: FleetGraphStateType,
 ): Promise<Partial<FleetGraphStateType>> {
+  // Early-return when the intent doesn't require associations. Keeps the
+  // graph topology simple (no conditional fan-out from intent_classifier),
+  // and the no-op cost is negligible.
+  const required = state.intent?.requiredFetches ?? [];
+  if (!required.includes('assocs')) {
+    return { fetchedData: { associations: [] } };
+  }
+
   try {
     const raw = await getAssociations(state.context.scopeId);
     const bounded: ShipAssociation[] = raw.slice(0, MAX_EDGES_PER_HOP);
