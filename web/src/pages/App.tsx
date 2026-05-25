@@ -21,6 +21,7 @@ import { useTeamMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { cn, getContrastTextColor } from '@/lib/cn';
 import { buildDocumentTree, DocumentTreeNode } from '@/lib/documentTree';
 import { CommandPalette } from '@/components/CommandPalette';
+import { FleetGraphChat } from '@/components/FleetGraphChat';
 import { SessionTimeoutModal } from '@/components/SessionTimeoutModal';
 import { UploadNavigationWarning } from '@/components/UploadNavigationWarning';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
@@ -548,6 +549,9 @@ export function AppLayout() {
         {/* Portal content from Editor will be rendered here via React Portal */}
         <aside id="properties-portal" aria-label="Document properties" className="flex flex-col" />
       </div>
+
+      {/* FleetGraph agent chat — floating panel, scoped to current document route */}
+      <FleetGraphChat />
 
       {/* Command Palette (Cmd+K) */}
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />

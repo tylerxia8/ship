@@ -32,6 +32,7 @@ import dashboardRoutes from './routes/dashboard.js';
 import associationsRoutes from './routes/associations.js';
 import accountabilityRoutes from './routes/accountability.js';
 import aiRoutes from './routes/ai.js';
+import fleetgraphRoutes from './routes/fleetgraph.js';
 import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans.js';
 import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { setupSwagger } from './swagger.js';
@@ -205,6 +206,11 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   // Claude context routes - read-only GET endpoints for Claude skills
   app.use('/api/claude', claudeRoutes);
+
+  // FleetGraph agent proxy — browser hits Ship, Ship forwards to ship-agent
+  // service. authMiddleware enforces session; agent endpoints (chat/resume)
+  // need CSRF since they're state-changing.
+  app.use('/api/fleetgraph', conditionalCsrf, fleetgraphRoutes);
 
   // Search routes are read-only GET endpoints - no CSRF needed
   app.use('/api/search', searchRouter);
