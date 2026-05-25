@@ -20,6 +20,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { Command } from '@langchain/langgraph';
 import { config } from './config.js';
 import { fleetGraph } from './graph.js';
+import { startPoller } from './poller.js';
 import type { Context, ScopeType, TriggerMode, HumanDecision } from './state.js';
 
 const AGENT_SHARED_SECRET = process.env.AGENT_SHARED_SECRET ?? '';
@@ -231,4 +232,14 @@ app.listen(PORT, () => {
   console.log(`[ship-agent] langsmith tracing: ${config.langsmith.tracing}`);
   console.log(`[ship-agent] langsmith project: ${config.langsmith.project}`);
   console.log(`[ship-agent] auth: ${AGENT_SHARED_SECRET ? 'shared secret enforced' : 'OPEN (dev mode)'}`);
+
+  // Start the proactive poller in deployed environments. Skip in dev to
+  // avoid hammering Anthropic + Ship during smoke testing. Toggle via
+  // FLEETGRAPH_POLLER_ENABLED=true.
+  if (process.env.FLEETGRAPH_POLLER_ENABLED === 'true') {
+    console.log('[ship-agent] proactive poller enabled');
+    startPoller();
+  } else {
+    console.log('[ship-agent] proactive poller disabled (set FLEETGRAPH_POLLER_ENABLED=true to enable)');
+  }
 });
