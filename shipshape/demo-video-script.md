@@ -98,7 +98,7 @@ For each category, ~30 seconds. Show the before number, then the after number, t
 **On screen:** scroll to the "Honest hedges" section of `shipshape/SUBMISSION.md`.
 
 **Say:**
-> "Three honest hedges. One: seed volume is around 250 documents instead of the brief's stated 500-plus — most categories aren't volume-sensitive but two specific Cat 3 numbers would look more dramatic at 500. Two: the `/login` route still has a missing `<main>` landmark in Lighthouse — out of scope for the contrast fix, called out as a documented follow-up. Three: the `terraform/render-vercel-neon/` module that codifies the live deploy wasn't `terraform init`'d in this session because no Terraform binary was on the writing workstation; the README enumerates the three leaf attributes most likely to need surgical adjustment on first apply. I'd rather flag the residuals than pretend everything is clean."
+> "Two honest hedges. One: seed volume is around 250 documents instead of the brief's stated 500-plus — most categories aren't volume-sensitive but two specific Cat 3 numbers would look more dramatic at 500. Two: the `/login` route still has a missing `<main>` landmark in Lighthouse — out of scope for the contrast fix, called out as a documented follow-up. The earlier Terraform and Docker prod-mirror hedges both closed yesterday — `terraform apply` ran end-to-end against real Render, Vercel, and Neon APIs and the prod-mirror `docker compose up --build` ran clean with all five Cat 8 protections verified in the production code path. Both evidence files are in `shipshape/security/raw-prod/`. I'd rather flag the residuals than pretend everything is clean."
 
 ---
 
