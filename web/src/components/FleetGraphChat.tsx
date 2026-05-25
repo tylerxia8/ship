@@ -210,12 +210,13 @@ export function FleetGraphChat(): JSX.Element | null {
 
   return (
     <>
-      {/* Floating action button */}
+      {/* Floating action button — sits above the TanStack Query DevTools
+          button which also lives in the bottom-right corner. */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          className="fixed bottom-20 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           aria-label="Open FleetGraph chat"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -226,7 +227,7 @@ export function FleetGraphChat(): JSX.Element | null {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[600px] w-96 flex-col rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div className="fixed bottom-20 right-6 z-50 flex h-[600px] w-96 flex-col rounded-lg border border-gray-200 bg-white shadow-xl">
           {/* Header */}
           <div className="flex items-center justify-between rounded-t-lg border-b border-gray-200 bg-indigo-600 px-4 py-3 text-white">
             <div>
