@@ -291,7 +291,7 @@ Each node has a single responsibility. Per-stage observability is cheap because 
 
 **Checkpoints.** `MemorySaver` for v1 (in-process; survives across `interrupt()` pauses within the same agent service lifetime). `PostgresSaver` is the planned upgrade for cross-restart persistence; deferred since MVP only needs in-process resume.
 
-**Suppression / dedup.** The reasoner produces a deterministic `findingHash` (SHA-256 of `scopeId::answer` truncated to 16 chars). v1 persists findings with a unique `(workspace_id, scope_id, finding_hash)` constraint, so repeat runs refresh `last_seen_at` instead of creating duplicate cards. A separate dismissal/snooze suppression table is a v2 hardening item alongside PostgresSaver.
+**Suppression / dedup.** Proactive runs produce a deterministic `findingHash` from the stable fetched Ship state (scope, intent, documents, associations, load, activity types, and history states) rather than the LLM's exact prose. v1 persists findings with a unique `(workspace_id, scope_id, finding_hash)` constraint, so repeat runs over the same condition refresh `last_seen_at` instead of creating duplicate cards. A separate dismissal/snooze suppression table is a v2 hardening item alongside PostgresSaver.
 
 ### 4. Deployment model
 

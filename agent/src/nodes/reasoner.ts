@@ -72,10 +72,21 @@ function getModel(): ChatAnthropic {
   return _model;
 }
 
-function hashFinding(scopeId: string, answer: string): string {
-  // Deterministic — same scope + same answer text → same hash, used for
-  // the suppression cache so we don't re-notify about the same condition.
-  return crypto.createHash('sha256').update(`${scopeId}::${answer}`).digest('hex').slice(0, 16);
+function hashFinding(
+  state: Pick<FleetGraphStateType, 'context' | 'intent' | 'fetchedData'>,
+  answer: string,
+): string {
+  const source =
+    state.context.mode === 'proactive'
+      ? stableJson({
+          scopeId: state.context.scopeId,
+          scopeType: state.context.scopeType,
+          intent: state.intent?.kind ?? 'proactive_scan',
+          fetchedData: stateSignature(state.fetchedData),
+        })
+      : `${state.context.scopeId}::${answer}`;
+
+  return crypto.createHash('sha256').update(source).digest('hex').slice(0, 16);
 }
 
 export async function reasoner(
@@ -95,7 +106,7 @@ export async function reasoner(
   const reasoning: ReasonerOutput = {
     answer: result.answer,
     citations: result.citations,
-    findingHash: hashFinding(context.scopeId, result.answer),
+    findingHash: hashFinding(state, result.answer),
     confidence: result.confidence,
     suggestedActions: result.suggestedActions.map((a) => ({
       type: a.type,
@@ -106,6 +117,78 @@ export async function reasoner(
   };
 
   return { reasoning };
+}
+
+function stateSignature(fetchedData: FleetGraphStateType['fetchedData']): unknown {
+  return {
+    documents: fetchedData.documents
+      ?.map((doc) => ({
+        id: doc.id,
+        type: doc.document_type,
+        title: doc.title,
+        properties: stableProperties(doc.properties),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    associations: fetchedData.associations
+      ?.map((assoc) => ({
+        source: assoc.source_id,
+        target: assoc.target_id,
+        type: assoc.relationship_type,
+      }))
+      .sort((a, b) => `${a.source}:${a.type}:${a.target}`.localeCompare(`${b.source}:${b.type}:${b.target}`)),
+    load: fetchedData.load
+      ? {
+          totalEstimatedHours: fetchedData.load.totalEstimatedHours,
+          unassignedIssueCount: fetchedData.load.unassignedIssueCount,
+          people: fetchedData.load.people
+            .map((person) => ({
+              personId: person.personId,
+              assignedIssueCount: person.assignedIssueCount,
+              estimatedHoursAssigned: person.estimatedHoursAssigned,
+              capacityHours: person.capacityHours,
+              loadRatio: person.loadRatio,
+            }))
+            .sort((a, b) => a.personId.localeCompare(b.personId)),
+        }
+      : undefined,
+    activity: fetchedData.activity
+      ?.map((event) => ({
+        documentId: event.documentId,
+        changeType: event.changeType,
+      }))
+      .sort((a, b) => `${a.documentId}:${a.changeType}`.localeCompare(`${b.documentId}:${b.changeType}`)),
+    history: fetchedData.history
+      ? {
+          documentIds: [...fetchedData.history.documentIds].sort(),
+          states: fetchedData.history.states,
+        }
+      : undefined,
+  };
+}
+
+function stableProperties(value: Record<string, unknown>): Record<string, unknown> {
+  const omitted = new Set(['updated_at', 'created_at', 'last_seen_at', 'last_activity_at']);
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !omitted.has(key))
+      .sort(([a], [b]) => a.localeCompare(b)),
+  );
+}
+
+function stableJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableJson(item)).join(',')}]`;
+  }
+
+  return `{${Object.entries(value as Record<string, unknown>)
+    .filter(([, item]) => item !== undefined)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`)
+    .join(',')}}`;
 }
 
 function buildPrompt(

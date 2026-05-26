@@ -147,7 +147,7 @@ Distinct intents produce distinct trace shapes. This is the PRD's pipeline-vs-gr
 
 - **Within a run**: fetched data lives in state; nodes don't re-fetch
 - **Across runs**: planned 60s response cache on the Ship API client (in-memory LRU bounded at 10MB). It will be invalidated when the v2 executor mutates a document
-- **Reasoner data**: v1 dedupes persisted cards by finding hash; v2 suppression will prevent repeat surfacing after dismissals and can skip expensive reasoner calls when the condition is unchanged
+- **Reasoner data**: v1 dedupes persisted cards by a stable fetched-state hash; v2 suppression will prevent repeat surfacing after dismissals and can skip expensive reasoner calls when the condition is unchanged
 
 ### 6. Human-in-the-Loop Design
 
