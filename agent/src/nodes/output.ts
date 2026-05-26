@@ -41,13 +41,14 @@ export async function output(state: FleetGraphStateType): Promise<Partial<FleetG
   const citations = reasoning?.citations ?? [];
 
   if (context.mode === 'proactive' && reasoning && reasoning.confidence !== 'low') {
+    const title = titleFromAnswer(reasoning.answer);
     try {
       await createFleetGraphFinding({
         scopeType: context.scopeType,
         scopeId: context.scopeId,
         findingHash: reasoning.findingHash,
-        title: titleFromAnswer(reasoning.answer),
-        body: reasoning.answer,
+        title,
+        body: bodyFromAnswer(reasoning.answer, title),
         confidence: reasoning.confidence,
         citations,
         suggestedActions: reasoning.suggestedActions.map((action) => ({ ...action })),
@@ -78,4 +79,22 @@ function titleFromAnswer(answer: string): string {
     .trim();
 
   return (cleaned || 'FleetGraph finding').slice(0, 160);
+}
+
+function bodyFromAnswer(answer: string, title: string): string {
+  const lines = answer.split(/\r?\n/);
+  const firstContentIndex = lines.findIndex((line) => line.trim());
+
+  if (firstContentIndex === -1) {
+    return answer;
+  }
+
+  const firstContentLine = lines[firstContentIndex] ?? '';
+
+  if (titleFromAnswer(firstContentLine) !== title) {
+    return answer;
+  }
+
+  const remaining = lines.slice(firstContentIndex + 1).join('\n').trim();
+  return remaining || answer;
 }
