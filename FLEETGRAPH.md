@@ -210,6 +210,14 @@ User chat in the Ship UI → Ship API forwards to agent service `POST /agent/cha
 
 Linear scaling; reasoner is the dominant cost (~$0.012/run). Cost cliffs documented in the Cost Analysis section at final submission.
 
+### Performance requirements
+
+| Metric | Goal | FleetGraph result |
+|---|---|---|
+| Problem detection latency | <5 min from Ship event to surfaced finding | Poller wakes every 60s and runs each active sprint at most every 4 min. Measured graph runs are 7.64s and 19.23s in the public traces, so the documented worst-case budget is ~4:20. |
+| Cost per graph run | Documented and defended | ~$0.013/run, dominated by the Sonnet reasoner. Actual development/test spend from Anthropic token export: ~$0.34 total. |
+| Estimated runs per day | Documented and defended | At 100 users: ~7,300/day (7,200 proactive + 100 on-demand). Scale table above documents 100 / 1,000 / 10,000-user projections. |
+
 ### Detection-latency verification plan
 
 Per PRD: "latency will be verified with a timed test run. An event will be introduced into Ship and the clock starts."
@@ -237,7 +245,7 @@ Real-data evidence captured against the local Ship instance seeded with 257 docu
 | 3 | Proactive scan on a sprint (no user message; agent decides what's worth surfacing) | Agent identifies signal-worthy state without prompting | ✅ Same Week 16 sprint: proactive_scan intent (fast-path, no LLM call for intent), reasoner-medium-confidence finding generated, 2 actions proposed. Path: distinct from on-demand because `intent_classifier` skips the LLM | (covered by trace 2 — same shape) |
 | 4 | HITL Approve flow (continuation of test 2) | Graph resumes from `human_gate`, records the human decision, and finalize returns approved output | ✅ POST `/api/fleetgraph/resume` with `{threadId, decision: "approved"}` → graph resumed → finalize formatted message with `✓ Approved.` prefix. DOM verified via Playwright. Screenshot: [fleetgraph-chat-approved.png](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 2 — second leg) |
 | 5 | Browser end-to-end (logged in as `dev@ship.local`, navigated to `/documents/{issue-id}`, opened chat panel, submitted question) | Full UI roundtrip: chat panel renders, scope auto-detected from URL, message dispatched, response rendered with citations | ✅ Verified via Playwright. Screenshots: [working](shipshape/fleetgraph-evidence/fleetgraph-chat-working.png), [HITL](shipshape/fleetgraph-evidence/fleetgraph-chat-hitl-approval.png), [approved](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 1 — same shape as test 1) |
-| 6 | Latency check — graph end-to-end against real Ship + Anthropic | Total ≤ 5 min including poll + graph | ✅ Graph run time 7.64s (trace 1, read-only) and 19.23s (trace 2, HITL) — both well under the 5-min SLA. 4-min poll cadence gives ~4:14 worst-case event-to-surface | (latencies visible in trace 1 + trace 2 above) |
+| 6 | Latency check — graph end-to-end against real Ship + Anthropic | Total ≤ 5 min including poll + graph | ✅ Graph run time 7.64s (trace 1, read-only) and 19.23s (trace 2, HITL). With the 4-min per-scope poll cadence, the documented worst-case event-to-surface budget is ~4:20, under the 5-min SLA. | (latencies visible in trace 1 + trace 2 above) |
 | 7 | Production manual scan on Week 17 (`9fd08ede...`) from `ship-henna.vercel.app` | Same proactive graph runs on demand, persists a durable finding, and the scoped panel displays it | ✅ `POST /api/fleetgraph/scan` returned output and persisted finding `e722608b-10ff-4198-9156-44ac239fbe27`; Playwright verified the FleetGraph button renders on the Week 17 document, opens with `sprint: 9fd08ede...`, and shows the proactive finding with Resolve/Dismiss controls. Screenshot: [fleetgraph-production-week17.png](shipshape/fleetgraph-evidence/fleetgraph-production-week17.png) | Production smoke, 2026-05-26 |
 
 **Trace shape demonstrates "graph, not pipeline":**
@@ -435,4 +443,4 @@ curl https://ship-api-76ez.onrender.com/api/fleetgraph/health
 - [x] Agent chat + notifications accessible in UI (`web/src/components/FleetGraphChat.tsx`)
 - [x] Deployed and publicly accessible (ship-agent.onrender.com + ship-api-76ez.onrender.com)
 - [x] Trigger model documented + defended
-- [x] <5 min detection latency (graph runs in ~14s; with 4-min poll cadence = ~4:14 worst case)
+- [x] <5 min detection latency (public traces show graph runs under 20s; with 4-min poll cadence = ~4:20 worst case)
