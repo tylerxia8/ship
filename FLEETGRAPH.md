@@ -4,7 +4,7 @@ A project intelligence agent for Ship. Reads the document graph, reasons about i
 
 **Author:** Tyler Xia
 **Sprint:** 2026-05-25 → 2026-05-31
-**Status:** Architecture Defense draft — MVP-required sections complete; Test Cases / Architecture Decisions / Cost Analysis filled in at their respective deadlines.
+**Status:** MVP and early-submission sections complete; final cost actuals pending Anthropic Console totals.
 
 ---
 
@@ -204,9 +204,9 @@ User chat in the Ship UI → Ship API forwards to agent service `POST /agent/cha
 
 | Scale | Active sprints | Proactive runs/day | On-demand runs/day | Combined $/month |
 |---|---|---|---|---|
-| 100 users (~20 sprints) | 20 | 7,200 | 100 | ~$280/mo |
-| 1,000 users (~200 sprints) | 200 | 72,000 | 1,000 | ~$2,800/mo |
-| 10,000 users (~2,000 sprints) | 2,000 | 720,000 | 10,000 | ~$28,000/mo |
+| 100 users (~20 sprints) | 20 | 7,200 | 100 | ~$2,800/mo |
+| 1,000 users (~200 sprints) | 200 | 72,000 | 1,000 | ~$28,000/mo |
+| 10,000 users (~2,000 sprints) | 2,000 | 720,000 | 10,000 | ~$280,000/mo |
 
 Linear scaling; reasoner is the dominant cost (~$0.012/run). Cost cliffs documented in the Cost Analysis section at final submission.
 
@@ -357,7 +357,7 @@ Token budget per production graph run (working numbers, refined at final):
 
 | 100 Users | 1,000 Users | 10,000 Users |
 |---|---|---|
-| ~$280/mo | ~$2,800/mo | ~$28,000/mo |
+| ~$2,800/mo | ~$28,000/mo | ~$280,000/mo |
 
 **Assumptions:**
 
@@ -373,7 +373,7 @@ Token budget per production graph run (working numbers, refined at final):
 1. **Reasoner is the spend driver** — 92% of per-run cost. Mitigations: cache fetched data within a graph run; suppress reasoner calls when the finding hash matches a recent dismissal.
 2. **`fetch_assocs` unbounded** — a document with hundreds of associations would balloon context. Hard cap at 50 edges per hop, 100 total per run.
 3. **Conversation history growth** — chat threads with 20+ turns blow context. Bounded to 10 turns; older turns summarized into a single system message.
-4. **Polling × active sprints** — linear cost growth. At 10,000 users we'd want to switch to event-driven (webhooks) to avoid paying for polls that find nothing.
+4. **Polling × active sprints** — linear cost growth. At 1,000+ users we'd want to switch to event-driven (webhooks) to avoid paying for polls that find nothing.
 
 Full breakdown, including actual development spend and tuned per-token figures, lands at Final Submission.
 
