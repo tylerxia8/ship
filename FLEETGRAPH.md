@@ -4,7 +4,7 @@ A project intelligence agent for Ship. Reads the document graph, reasons about i
 
 **Author:** Tyler Xia
 **Sprint:** 2026-05-25 → 2026-05-31
-**Status:** MVP and early-submission sections complete; final cost actuals pending Anthropic Console totals.
+**Status:** MVP, early-submission, and final cost sections complete.
 
 ---
 
@@ -334,16 +334,26 @@ Migration 039 (`api/src/db/migrations/039_service_account.sql`) added `users.is_
 
 ## Cost Analysis
 
-> **Due at Final Submission (Sunday 2026-05-31).** Placeholders below capture the cost model for ongoing validation.
+Actuals below are from `claude_api_tokens_2026_05.csv`, filtered to the FleetGraph assignment key (`claude-key`) for 2026-05-25 through 2026-05-26. The Anthropic token export reports daily token totals by model, but not per-request invocation counts.
 
 ### Development and Testing Costs
 
 | Item | Amount |
 |---|---|
-| Claude API — input tokens (cumulative) | TBD — measured from Anthropic Console |
-| Claude API — output tokens (cumulative) | TBD |
-| Total invocations during development | TBD |
-| Total development spend | TBD |
+| Claude API — input tokens (cumulative) | 50,296 |
+| Claude API — output tokens (cumulative) | 14,886 |
+| Total invocations during development | Not exposed in Anthropic token export; 7 documented test runs plus production verification scans are included in the token totals |
+| Total development spend | ~$0.34 (`$0.336628` calculated from token totals) |
+
+Model breakdown:
+
+| Model | Input Tokens | Output Tokens | Calculated Spend |
+|---|---:|---:|---:|
+| `claude-haiku-4-5-20251001` | 13,950 | 965 | ~$0.0188 |
+| `claude-sonnet-4-6` | 36,346 | 13,921 | ~$0.3179 |
+| **Total** | **50,296** | **14,886** | **~$0.3366** |
+
+Pricing used: Anthropic API pricing as of 2026-05-26: Haiku 4.5 at $1 / MTok input and $5 / MTok output; Sonnet 4.6 at $3 / MTok input and $15 / MTok output.
 
 Token budget per production graph run (working numbers, refined at final):
 
@@ -375,7 +385,7 @@ Token budget per production graph run (working numbers, refined at final):
 3. **Conversation history growth** — chat threads with 20+ turns blow context. Bounded to 10 turns; older turns summarized into a single system message.
 4. **Polling × active sprints** — linear cost growth. At 1,000+ users we'd want to switch to event-driven (webhooks) to avoid paying for polls that find nothing.
 
-Full breakdown, including actual development spend and tuned per-token figures, lands at Final Submission.
+The actual development spend is low because the final FleetGraph graph runs are compact: Haiku only classifies on-demand intent, while Sonnet receives bounded fetched Ship state rather than full-document dumps.
 
 ---
 
@@ -412,7 +422,7 @@ curl https://ship-api-76ez.onrender.com/api/fleetgraph/health
 | Trigger Model | MVP | ✅ |
 | Test Cases | Early Submission (Thu 11:59 PM) | ✅ Real evidence from 7 test runs + 4 browser/production screenshots + 2 public LangSmith trace links |
 | Architecture Decisions | Early Submission | ✅ All 6 decisions documented with rationale, trade-offs, code-level pointers |
-| Cost Analysis | Final Submission (Sun noon) | ⏳ Cost model defined; actuals tally from Anthropic Console at end-of-week |
+| Cost Analysis | Final Submission (Sun noon) | ✅ Actual Anthropic token totals added from `claude_api_tokens_2026_05.csv` |
 
 ## PRD MVP checklist
 
