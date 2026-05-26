@@ -42,6 +42,13 @@ import {
 } from './nodes/index.js';
 
 function routeAfterDecision(state: typeof FleetGraphState.State): 'human_gate' | 'finalize' {
+  // Proactive runs must surface and persist their finding even when the
+  // reasoner proposes mutating follow-up actions. Those actions are stored as
+  // recommendations only; no executor runs in the MVP. On-demand mutating
+  // suggestions still pause at the HITL gate.
+  if (state.context.mode === 'proactive') {
+    return 'finalize';
+  }
   return state.needsHumanApproval ? 'human_gate' : 'finalize';
 }
 

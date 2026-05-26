@@ -112,8 +112,8 @@ flowchart TD
     reasoner --> decision
 
     decision{action_decision<br/>needs human approval?}
-    decision -->|read-only response| output
-    decision -->|mutation OR notify-other| gate
+    decision -->|read-only OR proactive finding| output
+    decision -->|on-demand mutation OR notify-other| gate
 
     gate[human_gate<br/>INTERRUPT — MemorySaver checkpoint<br/>resume on user click]
     gate -->|approve / dismiss / snooze| output
@@ -138,6 +138,8 @@ flowchart TD
 | `output` | Format chat response or notification; persist proactive finding; finalize trace | — | ~50ms | Terminal node |
 
 **Fetch strategy:** the MVP graph uses a deterministic fetch chain rather than LangGraph parallel fan-out. Each optional fetch node checks `intent.requiredFetches` and returns immediately when it is not needed. This produces stable traces while still making intent-specific runs materially different: `load_check` includes `fetch_load`, `slip_check` includes `fetch_activity`, `diff_query` includes `fetch_history`, and read-only blocker checks stay small.
+
+**Proactive action handling:** proactive runs always continue to `output` so medium/high-confidence findings are persisted. Suggested mutating actions are stored on the finding as recommendations only. On-demand runs that propose mutations or notifying another user still pause at `human_gate`.
 
 **State persistence:** MVP uses LangGraph `MemorySaver` checkpoints indexed by `thread_id` so HITL interrupts can resume within the same running agent process. `PostgresSaver` is the planned hardening path for cross-restart persistence, dedup tables, and long-lived snoozes.
 

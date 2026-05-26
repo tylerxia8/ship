@@ -118,7 +118,7 @@ Nodes by phase:
 **Conditional edges** (3 total — what makes this a graph, not a pipeline):
 
 1. After `intent_classifier` → 6 distinct fetch subsets; only the relevant nodes execute per run
-2. After `reasoner` → `action_decision` either routes to `human_gate` (mutation/notify-other) or straight to `output` (read-only)
+2. After `reasoner` → `action_decision` routes proactive findings to `output` for persistence; on-demand mutation/notify-other proposals route to `human_gate`; read-only responses go straight to `output`
 3. After `human_gate` → user decision resumes the graph to `output`; executor/log/snooze persistence are v2 hardening paths
 
 Distinct intents produce distinct trace shapes. This is the PRD's pipeline-vs-graph test.
