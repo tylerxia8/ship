@@ -258,6 +258,9 @@ Real-data evidence captured against the local Ship instance seeded with 257 docu
 | 5 | Browser end-to-end (logged in as `dev@ship.local`, navigated to `/documents/{issue-id}`, opened chat panel, submitted question) | Full UI roundtrip: chat panel renders, scope auto-detected from URL, message dispatched, response rendered with citations | ✅ Verified via Playwright. Screenshots: [working](shipshape/fleetgraph-evidence/fleetgraph-chat-working.png), [HITL](shipshape/fleetgraph-evidence/fleetgraph-chat-hitl-approval.png), [approved](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 1 — same shape as test 1) |
 | 6 | Latency check — graph end-to-end against real Ship + Anthropic | Total ≤ 5 min including poll + graph | ✅ Graph run time 7.64s (trace 1, read-only) and 19.23s (trace 2, HITL). With the 4-min per-scope poll cadence, the documented worst-case event-to-surface budget is ~4:20, under the 5-min SLA. | (latencies visible in trace 1 + trace 2 above) |
 | 7 | Production manual scan on Week 17 (`9fd08ede...`) from `ship-henna.vercel.app` | Same proactive graph runs on demand, persists a durable finding, and the scoped panel displays it | ✅ `POST /api/fleetgraph/scan` returned output and persisted finding `e722608b-10ff-4198-9156-44ac239fbe27`; Playwright verified the FleetGraph button renders on the Week 17 document, opens with `sprint: 9fd08ede...`, and shows the proactive finding with Resolve/Dismiss controls. Screenshot: [fleetgraph-production-week17.png](shipshape/fleetgraph-evidence/fleetgraph-production-week17.png) | Production smoke, 2026-05-26 |
+| 8 | Production on-demand load query on Week 17 (`9fd08ede...`): "Who's overloaded this week?" | Classify as `load_check`, activate load fetch path, and gate reassignment-style actions | ✅ Production API returned `intent.kind=load_check`, `confidence=high`, `pendingInterrupt=true` in 9.44s (`threadId=chat-1779824300747-raspkji9`). | LangSmith project `fleetgraph-prod`, 2026-05-26 |
+| 9 | Production on-demand diff query on Week 17 (`9fd08ede...`): "What changed since last week's retro?" | Classify as `diff_query`, activate history path, and produce read-only answer when available history is insufficient | ✅ Production API returned `intent.kind=diff_query`, `confidence=high`, read-only chat output in 10.66s (`threadId=chat-1779824310181-e78tjiaa`). | LangSmith project `fleetgraph-prod`, 2026-05-26 |
+| 10 | Timed production proactive scan on Week 17 through Ship API | Surface a proactive finding within the 5-min detection window and persist/refresh the scoped card | ✅ `POST /api/fleetgraph/scan` returned a notification in 12.78s (`threadId=timed-1779824299857`). `GET /api/fleetgraph/findings?status=open` then showed refreshed finding `883dec33-7919-42f6-9c84-18db84c856ec` with `last_seen_at=2026-05-26T19:38:53.281Z`. | LangSmith project `fleetgraph-prod`, 2026-05-26 |
 
 **Trace shape demonstrates "graph, not pipeline":**
 
@@ -439,7 +442,7 @@ curl https://ship-api-76ez.onrender.com/api/fleetgraph/health
 | Graph Diagram | MVP | ✅ |
 | Use Cases | MVP | ✅ (6 use cases) |
 | Trigger Model | MVP | ✅ |
-| Test Cases | Early Submission (Thu 11:59 PM) | ✅ Real evidence from 7 test runs + 4 browser/production screenshots + 2 public LangSmith trace links |
+| Test Cases | Early Submission (Thu 11:59 PM) | ✅ Real evidence from 10 test runs + 4 browser/production screenshots + 2 public LangSmith trace links |
 | Architecture Decisions | Early Submission | ✅ All 6 decisions documented with rationale, trade-offs, code-level pointers |
 | Cost Analysis | Final Submission (Sun noon) | ✅ Actual Anthropic token totals added from `claude_api_tokens_2026_05.csv` |
 
