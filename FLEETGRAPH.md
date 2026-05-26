@@ -361,7 +361,7 @@ Actuals below are from `claude_api_tokens_2026_05.csv`, filtered to the FleetGra
 |---|---|
 | Claude API — input tokens (cumulative) | 50,296 |
 | Claude API — output tokens (cumulative) | 14,886 |
-| Total invocations during development | Not exposed in Anthropic token export; 7 documented test runs plus production verification scans are included in the token totals |
+| Graph agent invocations during development/testing | 7 documented evidence runs in the Test Cases table, plus additional production verification scans included in the token totals. Anthropic's token export does not expose exact per-request invocation counts. |
 | Total development spend | ~$0.34 (`$0.336628` calculated from token totals) |
 
 Model breakdown:
