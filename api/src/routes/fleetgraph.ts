@@ -69,6 +69,18 @@ async function requireFleetGraphWriter(req: Request, res: Response): Promise<boo
     return false;
   }
 
+  if (AGENT_SECRET) {
+    if (req.get('X-Agent-Secret') === AGENT_SECRET) {
+      return true;
+    }
+
+    res.status(403).json({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'FleetGraph findings can only be created by the agent service' },
+    });
+    return false;
+  }
+
   const user = await pool.query(
     `SELECT is_service_account FROM users WHERE id = $1`,
     [req.userId],

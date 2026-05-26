@@ -41,6 +41,7 @@ export const config = {
   ship: {
     apiBaseUrl: optional('SHIP_API_BASE_URL', 'http://localhost:3000'),
     serviceAccountKey: optional('SHIP_SERVICE_ACCOUNT_KEY', ''),
+    agentSharedSecret: optional('AGENT_SHARED_SECRET', ''),
   },
 
   // Postgres — same Neon DB Ship uses, separate fleetgraph_* schema.

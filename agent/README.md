@@ -17,6 +17,7 @@ Architecture: see [FLEETGRAPH.md](../FLEETGRAPH.md) at the repo root.
 | `LANGSMITH_ENDPOINT` | no (default `api.smith.langchain.com`) | LangSmith API endpoint |
 | `SHIP_API_BASE_URL` | no (default `http://localhost:3000`) | Ship API host |
 | `SHIP_SERVICE_ACCOUNT_KEY` | yes (prod) | Long-lived agent API key |
+| `AGENT_SHARED_SECRET` | yes (prod) | Shared service secret; validates browser-to-agent proxy calls and agent-to-Ship finding writes |
 | `DATABASE_URL` | yes (prod) | Postgres for PostgresSaver checkpoints |
 | `PORT` | no (default `4000`) | HTTP server port |
 

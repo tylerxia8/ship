@@ -304,7 +304,7 @@ Both at https://ship-api-76ez.onrender.com and https://ship-agent.onrender.com r
 **Auth flow.**
 - Browser → Ship API: session cookie (existing flow, untouched)
 - Ship API → ship-agent: `X-Agent-Secret` header validated against `AGENT_SHARED_SECRET` env on both sides
-- ship-agent → Ship API: Bearer token via `api_tokens` table (the `SHIP_SERVICE_ACCOUNT_KEY`)
+- ship-agent → Ship API: Bearer token via `api_tokens` table (the `SHIP_SERVICE_ACCOUNT_KEY`), plus the shared `X-Agent-Secret` header for FleetGraph finding writes
 
 Migration 039 (`api/src/db/migrations/039_service_account.sql`) added `users.is_service_account` boolean for future audit-log differentiation. Optional in MVP; the existing api_tokens flow gives us auth without depending on the migration.
 

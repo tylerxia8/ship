@@ -70,6 +70,7 @@ async function shipFetch(
           'Content-Type': 'application/json',
           Authorization: `Bearer ${config.ship.serviceAccountKey}`,
           'User-Agent': 'ship-agent/0.0.0 (FleetGraph)',
+          ...(config.ship.agentSharedSecret ? { 'X-Agent-Secret': config.ship.agentSharedSecret } : {}),
           ...(init.headers ?? {}),
         },
       });
