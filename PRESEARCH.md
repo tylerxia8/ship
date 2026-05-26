@@ -146,8 +146,8 @@ Distinct intents produce distinct trace shapes. This is the PRD's pipeline-vs-gr
 **Avoiding redundant API calls:**
 
 - **Within a run**: fetched data lives in state; nodes don't re-fetch
-- **Across runs**: a 60s response cache on the Ship API client (in-memory LRU bounded at 10MB). Invalidated when the agent's `executor` itself mutates a document
-- **Reasoner data**: the suppression cache prevents the expensive reasoner call when the finding hash matches a recent dismissal — equivalent to a memoization on the entire graph output
+- **Across runs**: planned 60s response cache on the Ship API client (in-memory LRU bounded at 10MB). It will be invalidated when the v2 executor mutates a document
+- **Reasoner data**: v1 dedupes persisted cards by finding hash; v2 suppression will prevent repeat surfacing after dismissals and can skip expensive reasoner calls when the condition is unchanged
 
 ### 6. Human-in-the-Loop Design
 
@@ -162,11 +162,11 @@ Distinct intents produce distinct trace shapes. This is the PRD's pipeline-vs-gr
 
 `Snooze` opens a small dropdown: 1h / 1d / 1w / custom. Custom takes a date picker; defaults to next workday at 9am.
 
-**On dismiss**: logged with the finding hash to `fleetgraph_dismissals`. Future runs see the dismissal and suppress matching findings for an exponentially-backing-off duration (1d → 1w → permanent unless user re-subscribes).
+**On dismiss in the MVP**: the persisted `fleetgraph_findings` row is marked `dismissed`, which removes it from the scoped panel's open-findings list. A v2 `fleetgraph_dismissals` table will keep a separate feedback log and suppress matching findings for an exponentially-backing-off duration (1d → 1w → permanent unless user re-subscribes).
 
-**On snooze**: graph state persists with `snooze_until` timestamp; an internal scheduler reawakens the graph run at the deadline, which re-evaluates the condition (if it's gone, no notification; if it's still true, surfaces again).
+**On snooze in the MVP**: on-demand HITL resume returns a quiet snoozed response. Durable `snooze_until` scheduling is a v2 hardening path once PostgresSaver/checkpoint persistence is enabled.
 
-**On approve**: graph resumes from `human_gate`, hands the actions to `executor`, executor calls Ship API with the agent's service-account creds, audit trail recorded.
+**On approve in the MVP**: graph resumes from `human_gate` and records the human decision in the final response; mutating executor calls are intentionally deferred. The v2 executor will call Ship API with the agent's service-account creds and record an audit trail.
 
 ### 7. Error and Failure Handling
 

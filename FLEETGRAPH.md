@@ -238,6 +238,7 @@ Real-data evidence captured against the local Ship instance seeded with 257 docu
 | 4 | HITL Approve flow (continuation of test 2) | Graph resumes from `human_gate`, executor runs, finalize returns approved output | ✅ POST `/api/fleetgraph/resume` with `{threadId, decision: "approved"}` → graph resumed → finalize formatted message with `✓ Approved.` prefix. DOM verified via Playwright. Screenshot: [fleetgraph-chat-approved.png](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 2 — second leg) |
 | 5 | Browser end-to-end (logged in as `dev@ship.local`, navigated to `/documents/{issue-id}`, opened chat panel, submitted question) | Full UI roundtrip: chat panel renders, scope auto-detected from URL, message dispatched, response rendered with citations | ✅ Verified via Playwright. Screenshots: [working](shipshape/fleetgraph-evidence/fleetgraph-chat-working.png), [HITL](shipshape/fleetgraph-evidence/fleetgraph-chat-hitl-approval.png), [approved](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 1 — same shape as test 1) |
 | 6 | Latency check — graph end-to-end against real Ship + Anthropic | Total ≤ 5 min including poll + graph | ✅ Graph run time 7.64s (trace 1, read-only) and 19.23s (trace 2, HITL) — both well under the 5-min SLA. 4-min poll cadence gives ~4:14 worst-case event-to-surface | (latencies visible in trace 1 + trace 2 above) |
+| 7 | Production manual scan on Week 17 (`9fd08ede...`) from `ship-henna.vercel.app` | Same proactive graph runs on demand, persists a durable finding, and the scoped panel displays it | ✅ `POST /api/fleetgraph/scan` returned output and persisted finding `e722608b-10ff-4198-9156-44ac239fbe27`; Playwright verified the FleetGraph button renders on the Week 17 document, opens with `sprint: 9fd08ede...`, and shows the proactive finding with Resolve/Dismiss controls | Production smoke, 2026-05-26 |
 
 **Trace shape demonstrates "graph, not pipeline":**
 
@@ -290,7 +291,7 @@ Each node has a single responsibility. Per-stage observability is cheap because 
 
 **Checkpoints.** `MemorySaver` for v1 (in-process; survives across `interrupt()` pauses within the same agent service lifetime). `PostgresSaver` is the planned upgrade for cross-restart persistence; deferred since MVP only needs in-process resume.
 
-**Suppression / dedup.** The reasoner produces a deterministic `findingHash` (SHA-256 of `scopeId::answer` truncated to 16 chars). Future runs check the hash against a dismissals table to suppress repeat surfaces. v1 implements the hash; the dismissals table lands with PostgresSaver.
+**Suppression / dedup.** The reasoner produces a deterministic `findingHash` (SHA-256 of `scopeId::answer` truncated to 16 chars). v1 persists findings with a unique `(workspace_id, scope_id, finding_hash)` constraint, so repeat runs refresh `last_seen_at` instead of creating duplicate cards. A separate dismissal/snooze suppression table is a v2 hardening item alongside PostgresSaver.
 
 ### 4. Deployment model
 
@@ -321,7 +322,7 @@ Migration 039 (`api/src/db/migrations/039_service_account.sql`) added `users.is_
 
 **Component:** `web/src/components/FleetGraphChat.tsx` — floating action button + modal panel. Embedded in `web/src/pages/App.tsx` after `<Outlet />` so it appears on every authenticated route.
 
-**Scope auto-detection.** Reads `useParams<{id?}>()` + `useLocation()`. When the URL matches `/documents/:id`, `/sprints/:id`, `/issues/:id` etc., the chat panel infers the scope and sends it with every message. Conversation thread resets when `scope.scopeId` changes (prevents the "I keep answering about issue X but the user is now on sprint Y" footgun).
+**Scope auto-detection.** `AppLayout` derives the active document id and document type from the unified document context and passes that scope into `FleetGraphChat`; legacy route fallback still reads `useParams<{id?}>()` + `useLocation()`. When the URL matches `/documents/:id`, `/sprints/:id`, `/issues/:id` etc., the chat panel sends that scope with every message. Conversation thread resets when `scope.scopeId` changes (prevents the "I keep answering about issue X but the user is now on sprint Y" footgun).
 
 **HITL UI.** When the agent response contains `pendingInterrupt`, the component renders Approve / Dismiss / Snooze buttons inline with the agent message. Clicking dispatches `POST /api/fleetgraph/resume` with the threadId. The resumed graph's output replaces the proposed-actions block.
 

@@ -5,9 +5,8 @@
  *   - on_demand: chat response with citations (returned synchronously to the HTTP handler)
  *   - proactive: notification record (persisted; eventually pushed to Ship's notification rail)
  *
- * Also where dismissal/snooze decisions get logged so future runs can
- * suppress repeated findings (full suppression cache wired in once
- * PostgresSaver is in place).
+ * Dismiss/snooze decisions return quiet outputs in the MVP. Durable
+ * suppression tables are a v2 hardening path with PostgresSaver.
  */
 
 import { createFleetGraphFinding } from '../ship-client.js';
@@ -70,5 +69,13 @@ export async function output(state: FleetGraphStateType): Promise<Partial<FleetG
 
 function titleFromAnswer(answer: string): string {
   const firstLine = answer.split(/\r?\n/).find((line) => line.trim()) ?? 'FleetGraph finding';
-  return firstLine.trim().slice(0, 160);
+  const cleaned = firstLine
+    .trim()
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/^\*\*(.*?)\*\*$/, '$1')
+    .replace(/^\*(.*?)\*$/, '$1')
+    .replace(/`/g, '')
+    .trim();
+
+  return (cleaned || 'FleetGraph finding').slice(0, 160);
 }
