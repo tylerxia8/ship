@@ -60,6 +60,31 @@ const updateFindingSchema = z.object({
   status: z.enum(['open', 'dismissed', 'snoozed', 'resolved']),
 });
 
+async function requireFleetGraphWriter(req: Request, res: Response): Promise<boolean> {
+  if (!req.isApiToken || !req.userId) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'FleetGraph findings can only be created by the agent service' },
+    });
+    return false;
+  }
+
+  const user = await pool.query(
+    `SELECT is_service_account FROM users WHERE id = $1`,
+    [req.userId],
+  );
+
+  if (!user.rows[0]?.is_service_account) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'FleetGraph findings can only be created by the agent service' },
+    });
+    return false;
+  }
+
+  return true;
+}
+
 router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
   const { userId, workspaceId } = authCtx(req);
   const body = req.body as ChatProxyBody;
@@ -221,6 +246,8 @@ router.get('/findings', authMiddleware, async (req: Request, res: Response) => {
 
 router.post('/findings', authMiddleware, async (req: Request, res: Response) => {
   const { userId, workspaceId } = authCtx(req);
+  if (!(await requireFleetGraphWriter(req, res))) return;
+
   const parsed = createFindingSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({

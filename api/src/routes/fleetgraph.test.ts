@@ -14,6 +14,8 @@ describe('FleetGraph findings API', () => {
   let csrfToken: string;
   let workspaceId: string;
   let userId: string;
+  let serviceUserId: string;
+  let serviceToken: string;
   let scopeId: string;
 
   beforeAll(async () => {
@@ -35,6 +37,28 @@ describe('FleetGraph findings API', () => {
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [workspaceId, userId],
+    );
+
+    const serviceUserResult = await pool.query(
+      `INSERT INTO users (email, password_hash, name, is_service_account)
+       VALUES ($1, NULL, 'FleetGraph Agent', TRUE)
+       RETURNING id`,
+      [`fleetgraph-agent-${testRunId}@ship.local`],
+    );
+    serviceUserId = serviceUserResult.rows[0].id;
+
+    await pool.query(
+      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+       VALUES ($1, $2, 'admin')`,
+      [workspaceId, serviceUserId],
+    );
+
+    serviceToken = `ship_test_${crypto.randomBytes(16).toString('hex')}`;
+    const serviceTokenHash = crypto.createHash('sha256').update(serviceToken).digest('hex');
+    await pool.query(
+      `INSERT INTO api_tokens (user_id, workspace_id, name, token_hash, token_prefix)
+       VALUES ($1, $2, 'FleetGraph Agent Test Token', $3, $4)`,
+      [serviceUserId, workspaceId, serviceTokenHash, serviceToken.slice(0, 12)],
     );
 
     const scopeResult = await pool.query(
@@ -65,18 +89,36 @@ describe('FleetGraph findings API', () => {
 
   afterAll(async () => {
     await pool.query('DELETE FROM fleetgraph_findings WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM api_tokens WHERE user_id = $1', [serviceUserId]);
     await pool.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
     await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
-    await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [userId]);
-    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await pool.query('DELETE FROM workspace_memberships WHERE user_id IN ($1, $2)', [userId, serviceUserId]);
+    await pool.query('DELETE FROM users WHERE id IN ($1, $2)', [userId, serviceUserId]);
     await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
   });
 
-  it('creates, lists, upserts, and resolves a finding', async () => {
-    const createResponse = await request(app)
+  it('rejects browser-session attempts to create findings', async () => {
+    const response = await request(app)
       .post('/api/fleetgraph/findings')
       .set('Cookie', sessionCookie)
       .set('x-csrf-token', csrfToken)
+      .send({
+        scopeType: 'sprint',
+        scopeId,
+        findingHash: `forged-${testRunId}`,
+        title: 'Forged finding',
+        body: 'A regular user should not be able to create this.',
+        confidence: 'medium',
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toBe('FleetGraph findings can only be created by the agent service');
+  });
+
+  it('creates, lists, upserts, and resolves a finding from the agent service account', async () => {
+    const createResponse = await request(app)
+      .post('/api/fleetgraph/findings')
+      .set('Authorization', `Bearer ${serviceToken}`)
       .send({
         scopeType: 'sprint',
         scopeId,
@@ -95,8 +137,7 @@ describe('FleetGraph findings API', () => {
 
     const upsertResponse = await request(app)
       .post('/api/fleetgraph/findings')
-      .set('Cookie', sessionCookie)
-      .set('x-csrf-token', csrfToken)
+      .set('Authorization', `Bearer ${serviceToken}`)
       .send({
         scopeType: 'sprint',
         scopeId,

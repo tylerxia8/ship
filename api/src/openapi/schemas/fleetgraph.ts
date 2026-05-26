@@ -135,7 +135,7 @@ registry.registerPath({
   path: '/fleetgraph/findings',
   tags: ['FleetGraph'],
   summary: 'Create or refresh a FleetGraph finding',
-  description: 'Used by the FleetGraph agent service to persist proactive findings.',
+  description: 'Used by the FleetGraph agent service to persist proactive findings. Requires a service-account bearer token.',
   request: {
     body: {
       content: {
@@ -154,6 +154,9 @@ registry.registerPath({
           }),
         },
       },
+    },
+    403: {
+      description: 'Only the FleetGraph agent service account can create findings',
     },
   },
 });
