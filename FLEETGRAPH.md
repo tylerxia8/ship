@@ -423,6 +423,16 @@ The actual development spend is low because the final FleetGraph graph runs are 
 | Source code branch | `fleetgraph/main` on `tylerxia8/ship` |
 | Deploy guide | [agent/DEPLOY.md](agent/DEPLOY.md) |
 
+### Reviewer walkthrough
+
+1. Open the production Week 17 sprint: https://ship-henna.vercel.app/documents/9fd08ede-475e-488d-8909-ffdef4340ddf
+2. Sign in with an authorized Ship account.
+3. Click the FleetGraph button in the app chrome.
+4. Confirm the panel scope reads `sprint: 9fd08ede-475e-488d-8909-ffdef4340ddf`.
+5. Ask: "Who's overloaded this week?" Expected: `load_check` path, with human approval required before any reassignment-style action.
+6. Ask: "What changed since last week's retro?" Expected: `diff_query` path, read-only answer when history is insufficient.
+7. Click Scan. Expected: proactive scan path returns a notification-style finding and refreshes/persists a scoped finding card.
+
 **Health checks (all live):**
 ```bash
 curl https://ship-agent.onrender.com/health
