@@ -9,7 +9,7 @@
  *   - suggestedActions: zero or more actions (read-only or mutating)
  *
  * The reasoner has no tools in v1 (no `expand_doc` follow-up traversal yet).
- * It works with whatever the parallel fetch nodes provided. Future versions
+ * It works with whatever the fetch nodes provided. Future versions
  * will let the model request additional fetches via tool calls.
  *
  * Output is constrained by Zod schema. See FLEETGRAPH.md § Graph Diagram.

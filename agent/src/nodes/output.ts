@@ -10,9 +10,10 @@
  * PostgresSaver is in place).
  */
 
+import { createFleetGraphFinding } from '../ship-client.js';
 import type { FleetGraphStateType } from '../state.js';
 
-export function output(state: FleetGraphStateType): Partial<FleetGraphStateType> {
+export async function output(state: FleetGraphStateType): Promise<Partial<FleetGraphStateType>> {
   const { context, reasoning, humanDecision } = state;
 
   // Dismissed/snoozed paths produce a quiet output — nothing surfaces to
@@ -40,6 +41,24 @@ export function output(state: FleetGraphStateType): Partial<FleetGraphStateType>
   const text = reasoning?.answer ?? '(no answer produced)';
   const citations = reasoning?.citations ?? [];
 
+  if (context.mode === 'proactive' && reasoning && reasoning.confidence !== 'low') {
+    try {
+      await createFleetGraphFinding({
+        scopeType: context.scopeType,
+        scopeId: context.scopeId,
+        findingHash: reasoning.findingHash,
+        title: titleFromAnswer(reasoning.answer),
+        body: reasoning.answer,
+        confidence: reasoning.confidence,
+        citations,
+        suggestedActions: reasoning.suggestedActions.map((action) => ({ ...action })),
+      });
+    } catch (err) {
+      // Persistence failure should not break the graph run or LangSmith trace.
+      console.error('[fleetgraph/output] failed to persist finding:', (err as Error).message);
+    }
+  }
+
   return {
     output: {
       kind: context.mode === 'on_demand' ? 'chat' : 'notification',
@@ -47,4 +66,9 @@ export function output(state: FleetGraphStateType): Partial<FleetGraphStateType>
       citations,
     },
   };
+}
+
+function titleFromAnswer(answer: string): string {
+  const firstLine = answer.split(/\r?\n/).find((line) => line.trim()) ?? 'FleetGraph finding';
+  return firstLine.trim().slice(0, 160);
 }

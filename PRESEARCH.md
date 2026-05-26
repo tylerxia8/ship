@@ -54,7 +54,7 @@ Pre-search answers driving the architecture decisions in [FLEETGRAPH.md](FLEETGR
 - Compliance class (orphan ownership, persistent slip) → workspace admins (`workspace_memberships WHERE role='admin'`)
 - On-demand → the requesting user (always)
 
-**How on-demand uses current-view context**: Ship frontend sends `{ scopeType, scopeId, workspaceId, viewMode }` with every chat message. `context_resolver` uses it to bound the initial fetch, bias the intent classifier, and constrain citations to the current scope and its 2-hop neighborhood.
+**How on-demand uses current-view context**: Ship frontend sends `{ scopeType, scopeId, workspaceId }` with every chat message. `context_resolver` uses it to bound the initial fetch, bias the intent classifier, and constrain citations to the current scope plus adjacent documents fetched by the active nodes.
 
 ### 2. Use Case Discovery
 
@@ -74,6 +74,8 @@ Each use case maps to a specific Ship document type or association pattern. None
 ### 3. Trigger Model Decision
 
 **When proactive runs without a user present**: a `setInterval(60_000)` loop in the agent service enumerates `documents WHERE document_type='sprint' AND computed_status='active'`. For each sprint, if `last_run_at` in `fleetgraph_runs` is older than 4 minutes, fire a graph run with that sprint as scope. Per-scope rate limit prevents thundering herd.
+
+**When a reviewer wants to force a proactive run**: the scoped FleetGraph panel exposes a manual Scan action. Ship calls `POST /api/fleetgraph/scan`, the API proxy forwards to `POST /agent/scan`, and the agent runs the same proactive graph once for the current document.
 
 **Poll vs webhook vs hybrid — tradeoff matrix in FLEETGRAPH.md § Trigger Model.** Summary: poll for v1 because Ship doesn't emit events; webhook deferred because the latency floor (~4 min with polling) is well within the 5-min SLA, and adding event-bus infrastructure to Ship is 2–3 days of Ship-side work outside Week 5's scope.
 
@@ -102,38 +104,42 @@ The 5-min SLA is set by the most-time-sensitive proactive case (blocker chain on
 
 Nodes by phase:
 
-- **Context (1 node)** — `context_resolver` normalizes trigger + scope into the typed state object. Deterministic.
-- **Routing (1 node)** — `intent_classifier`, Haiku call, maps user message or proactive trigger to one of 6 intents + the fetch subset each needs.
-- **Fetch (4 nodes, run in parallel where applicable)** — `fetch_doc`, `fetch_assocs`, `fetch_load`, `fetch_activity`, plus `fetch_history` for diff queries. Run as parallel branches via LangGraph's `Send` API. Each is a deterministic Ship API or pg call.
-- **Reasoning (1 node)** — `reasoner`, Sonnet call with an `expand_doc(id)` tool the LLM can call for follow-up traversal if the initial fetch is insufficient.
-- **Action (1 node)** — `action_decision`, deterministic classifier emitting `(actions[], needsHumanApproval)`.
-- **HITL (1 node)** — `human_gate`, INTERRUPT pause; state persisted to Postgres; UI surfaces the proposal.
-- **Execution (1 node)** — `executor`, makes Ship API mutations for approved actions, records audit trail.
-- **Output (1 node)** — formats chat response or notification; finalizes LangSmith trace.
+- **Context (1 node)** - `context_resolver` normalizes trigger + scope into the typed state object. Deterministic.
+- **Routing (1 node)** - `intent_classifier`, Haiku call, maps user message or proactive trigger to one of 6 intents + the fetch subset each needs.
+- **Fetch (5 nodes, deterministic chain)** - `fetch_doc`, `fetch_assocs`, `fetch_load`, `fetch_activity`, plus `fetch_history` for diff queries. `fetch_doc` always runs; the others inspect `intent.requiredFetches` and no-op when not needed. Each is a deterministic Ship API call.
+- **Reasoning (1 node)** - `reasoner`, Sonnet call with structured output. Follow-up traversal via an `expand_doc(id)` tool is a v2 hardening item.
+- **Action (1 node)** - `action_decision`, deterministic classifier emitting `(actions[], needsHumanApproval)`.
+- **HITL (1 node)** - `human_gate`, INTERRUPT pause; MVP resumes from MemorySaver while the agent process is alive.
+- **Execution (planned)** - Ship API mutations for approved actions are intentionally deferred; MVP gates proposals but does not execute document mutations.
+- **Output (1 node)** - formats chat response or notification, persists proactive findings, and finalizes the LangSmith trace.
 
-**Parallel fetches**: `fetch_doc`, `fetch_assocs`, `fetch_load`, `fetch_activity` run concurrently within their intent's required subset. LangGraph's parallel branching means the trace shows 4 simultaneous spans, not 4 sequential ones.
+**Fetch execution**: MVP uses a stable chain instead of parallel branching. This avoids LangGraph.js routing flake while still showing different execution behavior per intent: load checks activate `fetch_load`, slip checks activate `fetch_activity`, diff checks activate `fetch_history`, and blocker checks stay small.
 
 **Conditional edges** (3 total — what makes this a graph, not a pipeline):
 
 1. After `intent_classifier` → 6 distinct fetch subsets; only the relevant nodes execute per run
 2. After `reasoner` → `action_decision` either routes to `human_gate` (mutation/notify-other) or straight to `output` (read-only)
-3. After `human_gate` → 3 exits: `executor` (approved), `log` (dismissed), `snoozed` (paused with resume timer)
+3. After `human_gate` → user decision resumes the graph to `output`; executor/log/snooze persistence are v2 hardening paths
 
 Distinct intents produce distinct trace shapes. This is the PRD's pipeline-vs-graph test.
 
 ### 5. State Management
 
-**In-run state** — `Annotation.Root` schema covering context, intent, fetched data (with merge reducer for parallel writes), reasoning output, pending actions, human decision, messages history. Defined in detail in [FLEETGRAPH.md § Graph Diagram → State shape](FLEETGRAPH.md#graph-diagram).
+**In-run state** — `Annotation.Root` schema covering context, intent, fetched data, reasoning output, pending actions, human decision, messages history. Defined in detail in [FLEETGRAPH.md § Graph Diagram](FLEETGRAPH.md#graph-diagram).
 
-**Cross-run state** — `PostgresSaver` writes checkpoints at every node boundary to Ship's existing Neon DB, separate `fleetgraph_*` tables via dedicated migration. Indexed by `thread_id`:
+**Cross-run state** — MVP uses `MemorySaver` checkpoints indexed by `thread_id`, which is enough for HITL resume while the agent process stays alive. `PostgresSaver` plus durable `fleetgraph_*` tables is the planned hardening path:
 
 - For proactive: `thread_id = sprint_id` (per-sprint conversation continuity)
 - For on-demand: `thread_id = conversation_id` (per-chat conversation)
 
-**Persisted across runs:**
+**Persisted state now:**
 
-1. **Checkpoints** — full graph state, for resuming `human_gate` interrupts
-2. **Suppression cache** — `(scope_id, finding_hash) → last_surfaced_at` to prevent re-notifying about already-known conditions
+1. **Findings** — `fleetgraph_findings` stores proactive findings, deduped by `(workspace_id, scope_id, finding_hash)`, and exposed in the contextual FleetGraph chat panel.
+
+**Planned persisted state:**
+
+1. **Checkpoints** — full graph state, for resuming `human_gate` interrupts across restarts
+2. **Suppression cache** — `(scope_id, finding_hash) → last_surfaced_at` to prevent re-notifying about already-known conditions beyond the current finding status
 3. **Dismissal log** — feedback for exponential-backoff suppression
 4. **Per-scope rate limits** — `last_run_at` per scope, enforced by the proactive trigger
 

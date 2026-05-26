@@ -2,9 +2,9 @@
  * FleetGraph state — what flows through the graph.
  *
  * Defined as a LangGraph `Annotation.Root` so the framework can:
- *   - merge parallel writes via the reducers on each field
- *   - serialize to PostgresSaver checkpoints
- *   - resume from human_gate interrupts after hours/days
+ *   - merge partial writes via the reducers on each field
+ *   - serialize to the configured checkpointer
+ *   - resume from human_gate interrupts
  *
  * See FLEETGRAPH.md § Graph Diagram → State shape for the full architecture.
  */
@@ -45,7 +45,7 @@ export interface Intent {
   requiredFetches: Array<'doc' | 'assocs' | 'load' | 'activity' | 'history'>;
 }
 
-// ─── Fetched data (merged across parallel fetch nodes) ──────────────────────
+// ─── Fetched data (merged across fetch nodes) ───────────────────────────────
 
 export interface FetchBundle {
   documents?: ShipDocument[];
@@ -79,11 +79,18 @@ export interface ShipAssociation {
 }
 
 export interface LoadSnapshot {
-  personId: string;
-  assignedIssueCount: number;
-  estimatedHoursAssigned: number;
-  capacityHours: number | null;
-  loadRatio: number | null;
+  scopeType: ScopeType;
+  scopeId: string;
+  people: Array<{
+    personId: string;
+    personTitle: string;
+    assignedIssueCount: number;
+    estimatedHoursAssigned: number;
+    capacityHours: number | null;
+    loadRatio: number | null;
+  }>;
+  unassignedIssueCount: number;
+  totalEstimatedHours: number;
 }
 
 export interface ActivityEvent {
@@ -132,7 +139,7 @@ export const FleetGraphState = Annotation.Root({
   }),
 
   fetchedData: Annotation<FetchBundle>({
-    // parallel fetch nodes write partial bundles; merge them
+    // Fetch nodes write partial bundles; merge them.
     reducer: (prev, next) => ({ ...prev, ...next }),
     default: () => ({}),
   }),

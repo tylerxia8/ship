@@ -1,5 +1,5 @@
 /**
- * fetch_assocs — load the document_associations for the scope (2-hop max).
+ * fetch_assocs — load the outgoing document_associations for the scope.
  * Runs when intent.requiredFetches includes 'assocs'.
  *
  * Uses Ship's GET /api/documents/:id/associations endpoint. Caps at 50 edges

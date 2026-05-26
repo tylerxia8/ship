@@ -112,6 +112,7 @@ research/
 
 # Deployment artifacts
 ship-api-*.zip
+agent/deploy-to-render.json
 
 # Vendor (local SDK links)
 vendor/

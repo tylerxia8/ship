@@ -3,6 +3,7 @@
  *
  * Two real routes:
  *   POST /agent/chat   — on-demand graph invocation, returns chat output or interrupt
+ *   POST /agent/scan   — manual proactive graph invocation for one scope
  *   POST /agent/resume — resume a paused HITL flow with user's decision
  *
  * Plus /health for Render's liveness check.
@@ -70,6 +71,14 @@ interface ChatRequest {
   userId: string;
   userMessage?: string;
   threadId?: string; // omit to start a new conversation; include to continue one
+}
+
+interface ScanRequest {
+  scopeType: ScopeType;
+  scopeId: string;
+  workspaceId: string;
+  userId?: string;
+  threadId?: string;
 }
 
 interface ChatResponse {
@@ -162,6 +171,57 @@ app.post('/agent/chat', requireSharedSecret, async (req: Request, res: Response)
   }
 });
 
+// ─── Manual proactive scan endpoint ─────────────────────────────────────────
+
+app.post('/agent/scan', requireSharedSecret, async (req: Request, res: Response) => {
+  const body = req.body as Partial<ScanRequest>;
+  const validation = validateScanBody(body);
+  if (!validation.ok) {
+    res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: validation.error },
+    });
+    return;
+  }
+
+  const threadId = body.threadId ?? `scan-${body.scopeId}-${Date.now()}`;
+  const runConfig = { configurable: { thread_id: threadId } };
+  const context: Context = {
+    scopeType: body.scopeType!,
+    scopeId: body.scopeId!,
+    workspaceId: body.workspaceId!,
+    userId: body.userId ?? null,
+    mode: 'proactive' satisfies TriggerMode,
+  };
+
+  const start = Date.now();
+
+  try {
+    const result = await fleetGraph.invoke({ context }, runConfig);
+    res.json({
+      ok: true,
+      threadId,
+      output: result.output,
+      intent: result.intent
+        ? { kind: result.intent.kind, confidence: result.intent.confidence }
+        : undefined,
+      reasoning: result.reasoning
+        ? {
+            confidence: result.reasoning.confidence,
+            findingHash: result.reasoning.findingHash,
+            citations: result.reasoning.citations,
+            suggestedActions: result.reasoning.suggestedActions,
+          }
+        : undefined,
+      elapsed_ms: Date.now() - start,
+    });
+  } catch (err) {
+    console.error('[agent/scan] graph error:', err);
+    res.status(500).json({
+      error: { code: 'GRAPH_ERROR', message: (err as Error).message },
+    });
+  }
+});
+
 // ─── Resume endpoint (HITL approval/dismiss/snooze) ────────────────────────
 
 interface ResumeRequest {
@@ -211,6 +271,22 @@ function validateChatBody(
   body: Partial<ChatRequest>,
 ): { ok: true } | { ok: false; error: string } {
   const required: Array<keyof ChatRequest> = ['scopeType', 'scopeId', 'workspaceId', 'userId'];
+  for (const field of required) {
+    if (!body[field] || typeof body[field] !== 'string') {
+      return { ok: false, error: `missing or invalid field: ${field}` };
+    }
+  }
+  const validScopes: ScopeType[] = ['issue', 'sprint', 'program', 'project', 'person', 'workspace'];
+  if (!validScopes.includes(body.scopeType as ScopeType)) {
+    return { ok: false, error: `scopeType must be one of: ${validScopes.join(', ')}` };
+  }
+  return { ok: true };
+}
+
+function validateScanBody(
+  body: Partial<ScanRequest>,
+): { ok: true } | { ok: false; error: string } {
+  const required: Array<keyof ScanRequest> = ['scopeType', 'scopeId', 'workspaceId'];
   for (const field of required) {
     if (!body[field] || typeof body[field] !== 'string') {
       return { ok: false, error: `missing or invalid field: ${field}` };

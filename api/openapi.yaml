@@ -3676,6 +3676,263 @@ components:
         - total
         - has_overdue
         - has_due_today
+    FleetGraphConfidence:
+      type: string
+      enum:
+        - high
+        - medium
+        - low
+      description: Agent confidence for a finding
+    FleetGraphFindingStatus:
+      type: string
+      enum:
+        - open
+        - dismissed
+        - snoozed
+        - resolved
+      description: Lifecycle state for a FleetGraph finding
+    FleetGraphFinding:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        workspace_id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        scope_type:
+          type: string
+        scope_id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        finding_hash:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        confidence:
+          type: string
+          enum:
+            - high
+            - medium
+            - low
+          description: Agent confidence for a finding
+        citations:
+          type: array
+          items:
+            type: string
+        suggested_actions:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              nullable: true
+        status:
+          type: string
+          enum:
+            - open
+            - dismissed
+            - snoozed
+            - resolved
+          description: Lifecycle state for a FleetGraph finding
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        last_seen_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+      required:
+        - id
+        - workspace_id
+        - scope_type
+        - scope_id
+        - finding_hash
+        - title
+        - body
+        - confidence
+        - citations
+        - suggested_actions
+        - status
+        - created_at
+        - updated_at
+        - last_seen_at
+    CreateFleetGraphFinding:
+      type: object
+      properties:
+        scopeType:
+          type: string
+        scopeId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        findingHash:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        confidence:
+          type: string
+          enum:
+            - high
+            - medium
+            - low
+          description: Agent confidence for a finding
+        citations:
+          type: array
+          items:
+            type: string
+          default:
+[]
+        suggestedActions:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              nullable: true
+          default:
+[]
+      required:
+        - scopeType
+        - scopeId
+        - findingHash
+        - title
+        - body
+        - confidence
+    FleetGraphScanRequest:
+      type: object
+      properties:
+        scopeType:
+          type: string
+          enum:
+            - issue
+            - sprint
+            - program
+            - project
+            - person
+            - workspace
+        scopeId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        threadId:
+          type: string
+      required:
+        - scopeType
+        - scopeId
+    FleetGraphScanResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          enum:
+            - true
+        threadId:
+          type: string
+        output:
+          type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - chat
+                - notification
+            text:
+              type: string
+            citations:
+              type: array
+              items:
+                type: string
+          required:
+            - kind
+            - text
+            - citations
+        intent:
+          type: object
+          properties:
+            kind:
+              type: string
+            confidence:
+              type: string
+              enum:
+                - high
+                - medium
+                - low
+              description: Agent confidence for a finding
+          required:
+            - kind
+            - confidence
+        reasoning:
+          type: object
+          properties:
+            confidence:
+              type: string
+              enum:
+                - high
+                - medium
+                - low
+              description: Agent confidence for a finding
+            findingHash:
+              type: string
+            citations:
+              type: array
+              items:
+                type: string
+            suggestedActions:
+              type: array
+              items:
+                type: object
+                additionalProperties:
+                  nullable: true
+          required:
+            - confidence
+            - findingHash
+            - citations
+            - suggestedActions
+        elapsed_ms:
+          type: number
+      required:
+        - ok
+        - threadId
+        - elapsed_ms
+    FleetGraphFindingsResponse:
+      type: object
+      properties:
+        findings:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/FleetGraphFinding"
+              - type: object
+                                default: 
+                                properties:
+                                  scope_title:
+                                    type: string
+                                  scope_document_type:
+                                    type: string
+        total:
+          type: integer
+      required:
+        - findings
+        - total
     WeeklyPlan:
       type: object
       properties:
@@ -7529,6 +7786,123 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccountabilityActionItemsResponse"
+  /fleetgraph/scan:
+    post:
+      tags:
+        - FleetGraph
+      summary: Run a manual FleetGraph proactive scan
+      description: Runs the FleetGraph proactive graph once for the provided scope and persists a finding when warranted.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FleetGraphScanRequest"
+      responses:
+        200:
+          description: Scan completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FleetGraphScanResponse"
+  /fleetgraph/findings:
+    get:
+      tags:
+        - FleetGraph
+      summary: List FleetGraph findings
+      description: Returns durable FleetGraph findings for the authenticated workspace.
+      parameters:
+        - schema:
+                      type: string
+                      enum:
+                        - open
+                        - dismissed
+                        - snoozed
+                        - resolved
+                        - all
+                    required: false
+                    name: status
+                    in: query
+      responses:
+        200:
+          description: FleetGraph findings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FleetGraphFindingsResponse"
+    post:
+      tags:
+        - FleetGraph
+      summary: Create or refresh a FleetGraph finding
+      description: Used by the FleetGraph agent service to persist proactive findings.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFleetGraphFinding"
+      responses:
+        201:
+          description: Finding persisted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  finding:
+                    $ref: "#/components/schemas/FleetGraphFinding"
+                required:
+                  - success
+                  - finding
+  /fleetgraph/findings/{id}:
+    patch:
+      tags:
+        - FleetGraph
+      summary: Update FleetGraph finding status
+      parameters:
+        - schema:
+                      type: string
+                      format: uuid
+                      description: UUID identifier
+                      example: 550e8400-e29b-41d4-a716-446655440000
+                    required: true
+                    name: id
+                    in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - open
+                    - dismissed
+                    - snoozed
+                    - resolved
+                  description: Lifecycle state for a FleetGraph finding
+              required:
+                - status
+      responses:
+        200:
+          description: Finding updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  finding:
+                    $ref: "#/components/schemas/FleetGraphFinding"
+                required:
+                  - success
+                  - finding
   /weekly-plans:
     post:
       tags:

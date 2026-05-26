@@ -5,13 +5,16 @@
  *     └─ context_resolver
  *          └─ intent_classifier
  *               └─ fetch_doc (always)
- *                    └─ fetch_assocs (early-returns when not required by intent)
- *                         └─ reasoner (Sonnet 4.6, structured output)
- *                              └─ action_decision
- *                                   ├─ needsHumanApproval=false → finalize
- *                                   └─ needsHumanApproval=true  → human_gate
- *                                        └─ finalize
- *                                             └─ END
+ *                    └─ fetch_assocs   (early-returns when not required)
+ *                         └─ fetch_load     (early-returns when not required)
+ *                              └─ fetch_activity (early-returns when not required)
+ *                                   └─ fetch_history (early-returns when not required)
+ *                                        └─ reasoner (Sonnet 4.6, structured output)
+ *                                             └─ action_decision
+ *                                                  ├─ needsHumanApproval=false → finalize
+ *                                                  └─ needsHumanApproval=true  → human_gate
+ *                                                       └─ finalize
+ *                                                            └─ END
  *
  * Conditional edge at action_decision is the one that produces visibly
  * different LangSmith traces — read-only paths skip human_gate, mutating
@@ -29,6 +32,9 @@ import {
   intentClassifier,
   fetchDoc,
   fetchAssocs,
+  fetchLoad,
+  fetchActivity,
+  fetchHistory,
   reasoner,
   actionDecision,
   humanGate,
@@ -44,6 +50,9 @@ const builder = new StateGraph(FleetGraphState)
   .addNode('intent_classifier', intentClassifier)
   .addNode('fetch_doc', fetchDoc)
   .addNode('fetch_assocs', fetchAssocs)
+  .addNode('fetch_load', fetchLoad)
+  .addNode('fetch_activity', fetchActivity)
+  .addNode('fetch_history', fetchHistory)
   .addNode('reasoner', reasoner)
   .addNode('action_decision', actionDecision)
   .addNode('human_gate', humanGate)
@@ -52,7 +61,10 @@ const builder = new StateGraph(FleetGraphState)
   .addEdge('context_resolver', 'intent_classifier')
   .addEdge('intent_classifier', 'fetch_doc')
   .addEdge('fetch_doc', 'fetch_assocs')
-  .addEdge('fetch_assocs', 'reasoner')
+  .addEdge('fetch_assocs', 'fetch_load')
+  .addEdge('fetch_load', 'fetch_activity')
+  .addEdge('fetch_activity', 'fetch_history')
+  .addEdge('fetch_history', 'reasoner')
   .addEdge('reasoner', 'action_decision')
   .addConditionalEdges('action_decision', routeAfterDecision)
   .addEdge('human_gate', 'finalize')

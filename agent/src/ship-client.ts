@@ -156,7 +156,7 @@ export interface ListDocumentsOptions {
 export async function listDocuments(opts: ListDocumentsOptions = {}): Promise<ShipDocument[]> {
   const params = new URLSearchParams();
   if (opts.workspaceId) params.set('workspace_id', opts.workspaceId);
-  if (opts.documentType) params.set('document_type', opts.documentType);
+  if (opts.documentType) params.set('type', opts.documentType);
   if (opts.programId) params.set('program_id', opts.programId);
   if (opts.projectId) params.set('project_id', opts.projectId);
   if (opts.limit) params.set('limit', String(opts.limit));
@@ -170,7 +170,32 @@ export async function getAssociations(documentId: string): Promise<ShipAssociati
   const body = await shipFetch(
     `/api/documents/${encodeURIComponent(documentId)}/associations`,
   );
-  return unwrap<ShipAssociation[]>(body);
+  return unwrap<RawAssociation[]>(body).map(normalizeAssociation);
+}
+
+export async function getReverseAssociations(
+  documentId: string,
+  type?: string,
+): Promise<ShipAssociation[]> {
+  const qs = type ? `?type=${encodeURIComponent(type)}` : '';
+  const body = await shipFetch(
+    `/api/documents/${encodeURIComponent(documentId)}/reverse-associations${qs}`,
+  );
+  return unwrap<RawAssociation[]>(body).map(normalizeAssociation);
+}
+
+type RawAssociation = Partial<ShipAssociation> & {
+  document_id?: string;
+  related_id?: string;
+};
+
+function normalizeAssociation(raw: RawAssociation): ShipAssociation {
+  return {
+    id: String(raw.id),
+    source_id: String(raw.source_id ?? raw.document_id),
+    target_id: String(raw.target_id ?? raw.related_id),
+    relationship_type: String(raw.relationship_type),
+  };
 }
 
 // ─── High-level helpers used by graph nodes ────────────────────────────────
@@ -209,4 +234,22 @@ export async function ping(): Promise<{ ok: true; status: number } | { ok: false
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
+}
+
+export interface CreateFindingInput {
+  scopeType: string;
+  scopeId: string;
+  findingHash: string;
+  title: string;
+  body: string;
+  confidence: 'high' | 'medium' | 'low';
+  citations: string[];
+  suggestedActions: Array<Record<string, unknown>>;
+}
+
+export async function createFleetGraphFinding(input: CreateFindingInput): Promise<void> {
+  await shipFetch('/api/fleetgraph/findings', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }

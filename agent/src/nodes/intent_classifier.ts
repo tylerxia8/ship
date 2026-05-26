@@ -4,7 +4,7 @@
  * Takes the normalized context + (for on-demand) user message and emits
  * a typed Intent telling the rest of the graph:
  *   - what kind of reasoning the user is asking for
- *   - which fetch nodes need to run (parallel where possible)
+ *   - which downstream fetch nodes need to activate
  *   - how confident the classification is
  *
  * For proactive runs (mode='proactive'), the intent is always 'proactive_scan'

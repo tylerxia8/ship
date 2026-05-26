@@ -15,7 +15,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { apiPost } from '../lib/api';
+import { apiGet, apiPatch, apiPost } from '../lib/api';
 
 interface ChatMessage {
   role: 'user' | 'agent';
@@ -45,6 +45,34 @@ interface AgentChatResponse {
   };
   intent?: { kind: string; confidence: string };
   elapsed_ms: number;
+}
+
+interface AgentScanResponse {
+  ok: true;
+  threadId: string;
+  output?: {
+    kind: 'chat' | 'notification';
+    text: string;
+    citations: string[];
+  };
+  reasoning?: {
+    confidence: 'high' | 'medium' | 'low';
+    findingHash: string;
+    citations: string[];
+    suggestedActions: AgentAction[];
+  };
+  elapsed_ms: number;
+}
+
+interface FleetGraphFinding {
+  id: string;
+  scope_id: string;
+  scope_type: string;
+  title: string;
+  body: string;
+  confidence: 'high' | 'medium' | 'low';
+  status: 'open' | 'dismissed' | 'snoozed' | 'resolved';
+  last_seen_at: string;
 }
 
 interface ScopeFromRoute {
@@ -77,6 +105,9 @@ export function FleetGraphChat(): JSX.Element | null {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [findings, setFindings] = useState<FleetGraphFinding[]>([]);
+  const [findingsLoading, setFindingsLoading] = useState(false);
   const [currentThreadId, setCurrentThreadId] = useState<string | undefined>();
   const scope = useCurrentScope();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -90,7 +121,13 @@ export function FleetGraphChat(): JSX.Element | null {
   useEffect(() => {
     setMessages([]);
     setCurrentThreadId(undefined);
+    setFindings([]);
   }, [scope?.scopeId]);
+
+  useEffect(() => {
+    if (!open || !scope) return;
+    void loadFindings();
+  }, [open, scope?.scopeId]);
 
   if (!scope) {
     // Don't render outside scope-bearing routes (the user isn't looking at
@@ -165,6 +202,71 @@ export function FleetGraphChat(): JSX.Element | null {
     }
   }
 
+  async function loadFindings(): Promise<void> {
+    if (!scope) return;
+    setFindingsLoading(true);
+    try {
+      const response = await apiGet('/api/fleetgraph/findings?status=open');
+      if (!response.ok) return;
+      const data = (await response.json()) as { findings: FleetGraphFinding[] };
+      setFindings(data.findings.filter((finding) => finding.scope_id === scope.scopeId).slice(0, 3));
+    } finally {
+      setFindingsLoading(false);
+    }
+  }
+
+  async function runScan(): Promise<void> {
+    if (!scope || scanning) return;
+    setScanning(true);
+    try {
+      const response = await apiPost('/api/fleetgraph/scan', {
+        scopeType: scope.scopeType,
+        scopeId: scope.scopeId,
+      });
+
+      if (!response.ok) {
+        const errBody = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+        setMessages((m) => [
+          ...m,
+          {
+            role: 'agent',
+            text: `Scan error: ${errBody?.error?.message ?? response.statusText}`,
+          },
+        ]);
+        return;
+      }
+
+      const data = (await response.json()) as AgentScanResponse;
+      setCurrentThreadId(data.threadId);
+      setMessages((m) => [
+        ...m,
+        {
+          role: 'agent',
+          text: data.output?.text ?? 'Scan complete. No response text was produced.',
+          citations: data.output?.citations,
+        },
+      ]);
+      await loadFindings();
+    } catch (err) {
+      setMessages((m) => [
+        ...m,
+        { role: 'agent', text: `Scan network error: ${(err as Error).message}` },
+      ]);
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function updateFindingStatus(
+    findingId: string,
+    status: 'dismissed' | 'resolved',
+  ): Promise<void> {
+    const response = await apiPatch(`/api/fleetgraph/findings/${findingId}`, { status });
+    if (response.ok) {
+      setFindings((current) => current.filter((finding) => finding.id !== findingId));
+    }
+  }
+
   async function handleApproval(
     threadId: string,
     decision: 'approved' | 'dismissed' | 'snoozed',
@@ -236,26 +338,75 @@ export function FleetGraphChat(): JSX.Element | null {
                 {scope.scopeType}: {scope.scopeId.slice(0, 8)}...
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded p-1 text-indigo-100 hover:bg-indigo-700 hover:text-white"
-              aria-label="Close chat"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => void runScan()}
+                disabled={scanning}
+                className="rounded px-2 py-1 text-xs font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white disabled:opacity-50"
+                aria-label="Run FleetGraph scan"
+              >
+                {scanning ? 'Scanning...' : 'Scan'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded p-1 text-indigo-100 hover:bg-indigo-700 hover:text-white"
+                aria-label="Close chat"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && (
-              <div className="text-sm text-gray-500 text-center py-8">
-                Ask about this {scope.scopeType}. The agent traverses the document graph
-                to answer questions that span multiple docs.
-                <div className="mt-3 text-xs text-gray-400">
-                  Try: "What's slipping?" · "Who's overloaded?" · "Is this blocking anything?"
+              <div className="space-y-4 py-4">
+                {findings.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold uppercase text-gray-500">
+                      Proactive findings
+                    </div>
+                    {findings.map((finding) => (
+                      <div key={finding.id} className="rounded border border-amber-200 bg-amber-50 p-3 text-left">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-amber-950">{finding.title}</div>
+                            <div className="mt-1 line-clamp-3 text-xs text-amber-900">{finding.body}</div>
+                          </div>
+                          <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                            {finding.confidence}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void updateFindingStatus(finding.id, 'resolved')}
+                            className="rounded bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700"
+                          >
+                            Resolve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void updateFindingStatus(finding.id, 'dismissed')}
+                            className="rounded bg-gray-500 px-2 py-1 text-xs font-medium text-white hover:bg-gray-600"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="text-sm text-gray-500 text-center py-4">
+                  Ask about this {scope.scopeType}. The agent traverses the document graph
+                  to answer questions that span multiple docs.
+                  <div className="mt-3 text-xs text-gray-400">
+                    {findingsLoading ? 'Checking for proactive findings...' : 'Try: "What\'s slipping?" · "Who\'s overloaded?" · "Is this blocking anything?"'}
+                  </div>
                 </div>
               </div>
             )}

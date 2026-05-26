@@ -29,7 +29,7 @@ These are the seed conditions. The agent's reasoner can also surface conditions 
 
 When a user invokes the chat from within Ship's UI, the agent receives the **scope of the current view** as context: which document the user is looking at, which mode (Programs / Weeks / Resource / Docs), and the user's question. Reasoning ranges from:
 
-- "Is this issue blocking anything else?" (traverses outgoing associations + walks 2 hops)
+- "Is this issue blocking anything else?" (MVP traverses the scoped document's outgoing associations; deeper traversal is a v2 expansion)
 - "What's slipping this week?" (reads sprint's child issues, compares state distribution to time elapsed)
 - "Who else is working on auth?" (semantic search across documents + association traversal)
 - "Should I take this issue on?" (compares my current load + this issue's complexity + my historical velocity)
@@ -43,6 +43,7 @@ The on-demand mode does NOT have to be a question. A user invoking with no messa
 - **Respond** to the requesting user with chat answers, citations, and recommended actions
 - **Surface a notification** to the requesting user's own notification rail
 - **Log findings** to LangSmith traces + an internal `fleetgraph_findings` table for analytics
+- **Persist proactive findings** to Ship via `/api/fleetgraph/findings`, deduped by `(workspace_id, scope_id, finding_hash)`
 - **Suppress** repeated findings via the dedup cache (no user-visible side effect)
 
 ### What it must always ask a human about
@@ -99,19 +100,13 @@ flowchart TD
 
     classifier[intent_classifier<br/>Haiku 4.5 · ~500ms]
 
-    classifier -->|blocker_check| fa[fetch_doc + fetch_assocs]
-    classifier -->|load_check| fb[fetch_doc + fetch_load]
-    classifier -->|slip_check| fc[fetch_doc + fetch_assocs + fetch_activity]
-    classifier -->|diff_query| fd[fetch_doc + fetch_history]
-    classifier -->|cross_program| fe[fetch_doc + fetch_assocs + fetch_load]
-    classifier -->|proactive_scan| fz[ALL fetches parallel]
+    classifier --> fetchdoc[fetch_doc<br/>always runs]
 
-    fa --> reasoner
-    fb --> reasoner
-    fc --> reasoner
-    fd --> reasoner
-    fe --> reasoner
-    fz --> reasoner
+    fetchdoc --> fetchassocs[fetch_assocs<br/>no-op unless requested]
+    fetchassocs --> fetchload[fetch_load<br/>no-op unless requested]
+    fetchload --> fetchactivity[fetch_activity<br/>no-op unless requested]
+    fetchactivity --> fetchhistory[fetch_history<br/>no-op unless requested]
+    fetchhistory --> reasoner
 
     reasoner[reasoner<br/>Sonnet 4.6 · tool: expand_doc · ~1–3s]
     reasoner --> decision
@@ -120,16 +115,8 @@ flowchart TD
     decision -->|read-only response| output
     decision -->|mutation OR notify-other| gate
 
-    gate[human_gate<br/>INTERRUPT — persisted to Postgres<br/>resume on user click]
-    gate -->|approve| executor
-    gate -->|dismiss| log[log dismissal<br/>feed dedup cache]
-    gate -->|snooze 1h/1d/1w| snoozed[persist snooze_until<br/>resume timer]
-
-    executor[executor<br/>Ship REST API calls<br/>service-account creds]
-
-    executor --> output
-    log --> output
-    snoozed --> output
+    gate[human_gate<br/>INTERRUPT — MemorySaver checkpoint<br/>resume on user click]
+    gate -->|approve / dismiss / snooze| output
 
     output([output<br/>chat response OR notification<br/>LangSmith trace finalized])
 ```
@@ -141,36 +128,32 @@ flowchart TD
 | `context_resolver` | Normalize trigger + scope into state object | — | ~50ms | Deterministic |
 | `intent_classifier` | Map question/state to one of 6 intents + required fetches | Haiku 4.5 | ~500ms | First conditional edge fans out from here |
 | `fetch_doc` | Load primary doc(s) for scope | — | ~100ms | Ship API or direct pg |
-| `fetch_assocs` | Load incoming + outgoing `document_associations`, 2-hop max | — | ~150ms | Capped at 50 edges/hop |
-| `fetch_load` | For person/sprint scopes — assigned issues + capacity | — | ~150ms | Aggregates `estimate_hours` |
-| `fetch_activity` | Recent state changes + comments within N days | — | ~100ms | Defaults to 7 days |
-| `fetch_history` | Previous sprint/week snapshot for diff queries | — | ~200ms | Reads `fleetgraph_snapshots` |
-| `reasoner` | Synthesize fetched data into structured finding | Sonnet 4.6 | ~1–3s | Has `expand_doc(id)` tool for follow-up traversal |
+| `fetch_assocs` | Load outgoing `document_associations` for the current scope | — | ~150ms | Capped at 50 edges; reverse sprint associations are used by `fetch_load` |
+| `fetch_load` | For person/sprint scopes — assigned issues + capacity | — | ~150ms | Aggregates `estimate_hours` via existing Ship APIs |
+| `fetch_activity` | Recent change signal | — | ~100ms | Derived from `updated_at` for scope + sprint issues |
+| `fetch_history` | Lightweight historical context for diff queries | — | ~100ms | Reads existing property history arrays; full snapshots are v2 |
+| `reasoner` | Synthesize fetched data into structured finding | Sonnet 4.6 | ~1–3s | Structured output only in MVP; follow-up traversal tool is v2 |
 | `action_decision` | Classify reasoning output as read-only or mutating; conditional edge | — | ~10ms | Deterministic; second conditional edge |
-| `human_gate` | INTERRUPT — pause graph, persist checkpoint, post proposal | — | indefinite | Third conditional edge (approve/dismiss/snooze) |
-| `executor` | Make Ship API calls for approved mutations | — | ~200ms | Records audit trail |
-| `output` | Format chat response or notification; finalize trace | — | ~50ms | Terminal node |
+| `human_gate` | INTERRUPT — pause graph and wait for approve/dismiss/snooze | — | indefinite | Resumes to output in MVP; mutation executor is v2 |
+| `output` | Format chat response or notification; persist proactive finding; finalize trace | — | ~50ms | Terminal node |
 
-**Parallelism:** the 4 fetch nodes can run concurrently within the same intent branch; `proactive_scan` always runs all 4 in parallel for full breadth.
+**Fetch strategy:** the MVP graph uses a deterministic fetch chain rather than LangGraph parallel fan-out. Each optional fetch node checks `intent.requiredFetches` and returns immediately when it is not needed. This produces stable traces while still making intent-specific runs materially different: `load_check` includes `fetch_load`, `slip_check` includes `fetch_activity`, `diff_query` includes `fetch_history`, and read-only blocker checks stay small.
 
-**State persistence:** LangGraph's `PostgresSaver` checkpoints state at every node boundary, indexed by `thread_id` (scope_id for proactive, conversation_id for on-demand). Used for:
-- Resuming from `human_gate` interrupts after hours or days
-- Dedup cache (`finding_hash → last_surfaced_at`)
-- Cross-run learning (dismiss patterns → suppression heuristics)
+**State persistence:** MVP uses LangGraph `MemorySaver` checkpoints indexed by `thread_id` so HITL interrupts can resume within the same running agent process. `PostgresSaver` is the planned hardening path for cross-restart persistence, dedup tables, and long-lived snoozes.
 
 ---
 
 ## Use Cases
 
-Six concrete use cases. The agent ships with detectors for all six, plus the reasoner's open-ended judgment for conditions outside this list (logged at lower confidence).
+Six concrete use cases. The MVP graph supports all six through scoped fetches plus the reasoner's structured output; deterministic hard-coded detectors are strongest for blocker, load, activity/staleness, and lightweight history signals. Fuller snapshot diffing and durable suppression are v2 hardening items.
 
 | # | Role | Trigger | Agent detects / produces | Human decides |
 |---|---|---|---|---|
-| 1 | Engineer | On-demand: opens chat on an issue, asks "is this blocking anything?" | Traverses outgoing `document_associations` (children + linked issues), filters to `state != 'done'`, walks 2 hops. Returns ranked list: "AUTH-42 blocks AUTH-43 (in_progress, Shawn, no update 4d), AUTH-44 (todo, unassigned), AUTH-49 (blocked, stale 7d)." Cites each blocked doc. | Whether to escalate, unblock, or de-scope. Agent will draft an escalation comment on request — gated. |
+| 1 | Engineer | On-demand: opens chat on an issue, asks "is this blocking anything?" | Traverses outgoing `document_associations` for the scoped issue, filters to unfinished related docs, and returns a cited blocker summary. Deeper multi-hop traversal is the next hardening step once reverse/typed associations are normalized across all document kinds. | Whether to escalate, unblock, or de-scope. Agent will draft an escalation comment on request — gated. |
 | 2 | PM | On-demand: opens chat on a sprint, asks "what's slipping?" | Reads sprint's child issues, computes (in_progress count) vs. (days remaining × team velocity), flags issues with no `updated_at` in 48h+, surfaces tail risk: "5 issues remain in_progress with 2 days left at current pace; PAY-12 and PAY-19 haven't changed state since Monday." | Which slips to triage, which to accept, which to escalate to the program owner. |
 | 3 | Director | On-demand: in Resource mode, asks "who's overloaded this week?" | Pulls all `person` documents in workspace, joins to their assigned issues this week via `document_associations`, sums `properties.estimate_hours`, compares to each person's `properties.capacity_hours`. Returns ranked list: "Shawn at 132% (52h assigned vs 40h capacity), Maria at 118%, Jordan at 95%." | Whether to rebalance, hire, de-scope, or accept. Agent will propose specific reassignment moves — gated. |
 | 4 | PM | **Proactive**: every 4 min per active sprint | Detects **blocker chain** — issue A `state=blocked` linked to B `state=blocked` linked to C, all with `updated_at` older than 48h. Posts a notification card to the sprint owner proposing escalation to the program owner. | Approve (agent drafts and posts escalation comment), Dismiss (silences for exponential backoff), Snooze. |
-| 5 | Engineer | On-demand: on a program page, asks "what changed since last week's retro?" | Diffs current sprint's issue list vs. the previous sprint's snapshot: added scope, removed scope, state regressions (`in_progress → backlog`), assignee changes. Returns structured diff with counts and 3-5 most-significant items called out. | Whether to update the retro doc with the diff. Agent will write the diff into the retro doc — gated. |
+| 5 | Engineer | On-demand: on a program/page asks "what changed since last week's retro?" | MVP reads lightweight history already present on the scoped document and recent activity for adjacent docs. Full current-vs-previous sprint snapshot diffing is documented as the v2 path. | Whether to update the retro doc with the diff. Agent will draft the diff — gated before any write. |
 | 6 | PM | **Proactive**: triggered on sprint creation event (detected by next poll cycle) | Reads new sprint's planned issues, sums `estimate_hours` vs. team capacity for that week. If sum >80% of capacity, identifies the lowest-priority issues that fit the overage and proposes de-scope: "AUTH-101 (low priority, 8h) and AUTH-105 (low, 6h) would bring the sprint to 78% capacity." | Whether to actually de-scope. Agent makes the moves on approval — gated. |
 
 **Pattern across all six:** every use case requires reasoning over 2+ document types AND 2+ associations. Single-document UI views can't produce these answers without manual clicking. That's the agent's value moat.
@@ -213,7 +196,7 @@ When event volume justifies the move:
 
 ### On-demand: in-band synchronous
 
-User chat in the Ship UI → Ship API forwards to agent service `POST /agent/chat` → graph runs synchronously, streams response via SSE. Sub-second perceived latency for the first token; full response in ~2–4s for typical reasoning.
+User chat in the Ship UI → Ship API forwards to agent service `POST /agent/chat` → graph runs synchronously and returns a JSON response. A manual proactive scan is also exposed as `POST /api/fleetgraph/scan` from the scoped chat panel, which forwards to `POST /agent/scan` and runs the same proactive graph once for the current document so reviewers can exercise the proactive path without waiting for the scheduler.
 
 ### Cost projection at scale (preview — full breakdown in Cost Analysis section)
 
@@ -288,7 +271,10 @@ Same compiled graph, two visibly different node traversals based on the reasoner
 | `context_resolver` | Validate + normalize trigger input into `Context` | No |
 | `intent_classifier` | Map on-demand message → typed `Intent` (one of 7 kinds); fast-path for proactive | Haiku 4.5, structured output via Zod + `withStructuredOutput()` |
 | `fetch_doc` | Load primary document for scope (always runs) | No (Ship API) |
-| `fetch_assocs` | Load `document_associations` 2-hop max (capped 50 edges); early-return if not in `intent.requiredFetches` | No (Ship API) |
+| `fetch_assocs` | Load `document_associations` for the scope (capped 50 edges); early-return if not required | No (Ship API) |
+| `fetch_load` | Build person/sprint capacity snapshot from issues, people, and sprint associations | No (Ship API) |
+| `fetch_activity` | Build recent activity from `updated_at` on scope and sprint issues | No (Ship API) |
+| `fetch_history` | Build lightweight history snapshot from existing document properties | No (Ship API) |
 | `reasoner` | Synthesize fetched data into `ReasonerOutput` with citations + suggestedActions | Sonnet 4.6, structured output via Zod |
 | `action_decision` | Classify actions: requester-only notify → read-only path; mutations → HITL gate | No |
 | `human_gate` | LangGraph `interrupt()` — pauses graph, persists state, resumes via `Command({resume})` | No |
@@ -298,7 +284,7 @@ Each node has a single responsibility. Per-stage observability is cheap because 
 
 ### 3. State management
 
-**In-run state.** `Annotation.Root` with typed fields. The `fetchedData` field uses a merge reducer so parallel writes from fetch nodes don't clobber each other. The `messages` field uses a sliding-window reducer capped at 10 turns to bound context size for follow-up chat.
+**In-run state.** `Annotation.Root` with typed fields. The `fetchedData` field uses a merge reducer so each fetch node can add its slice of context without clobbering earlier fetches. The `messages` field uses a sliding-window reducer capped at 10 turns to bound context size for follow-up chat.
 
 **Checkpoints.** `MemorySaver` for v1 (in-process; survives across `interrupt()` pauses within the same agent service lifetime). `PostgresSaver` is the planned upgrade for cross-restart persistence; deferred since MVP only needs in-process resume.
 
@@ -319,7 +305,7 @@ Both at https://ship-api-76ez.onrender.com and https://ship-agent.onrender.com r
 
 Migration 039 (`api/src/db/migrations/039_service_account.sql`) added `users.is_service_account` boolean for future audit-log differentiation. Optional in MVP; the existing api_tokens flow gives us auth without depending on the migration.
 
-**Scheduler.** `setInterval(60_000)` in the agent service process polls active sprints in `FLEETGRAPH_TARGET_WORKSPACE_ID`. Per-scope cooldown of 4 minutes via in-memory `Map<scopeId, lastRunAt>`. Gated by `FLEETGRAPH_POLLER_ENABLED=true`; left `false` in deploy until we confirm chat path stability + want to enable proactive runs.
+**Scheduler.** `setInterval(60_000)` in the agent service process polls active sprints in `FLEETGRAPH_TARGET_WORKSPACE_ID`. Per-scope cooldown of 4 minutes via in-memory `Map<scopeId, lastRunAt>`. Gated by `FLEETGRAPH_POLLER_ENABLED=true`; manual scans through `/api/fleetgraph/scan` use the same proactive graph on demand for demos and verification.
 
 ### 5. Observability
 
@@ -327,7 +313,7 @@ Migration 039 (`api/src/db/migrations/039_service_account.sql`) added `users.is_
 
 **Trace tagging.** Each invocation runs under a thread_id (`chat-{ts}-{rand}` for on-demand, `proactive-{scope_id}` for the poller), making it trivial to grep traces for a specific conversation or scope.
 
-**Trace shape distinguishes paths.** Read-only paths produce traces of the form `… → reasoner → action_decision → finalize`. Mutating paths produce `… → reasoner → action_decision → human_gate → finalize`. The presence/absence of the `human_gate` span is the visible "different execution paths" the PRD's pipeline-test requires.
+**Trace shape distinguishes paths.** Read-only paths produce traces of the form `… → reasoner → action_decision → finalize`. Mutating paths produce `… → reasoner → action_decision → human_gate → finalize`. Intent-specific fetch nodes also show different no-op/active behavior in their spans. The presence/absence of the `human_gate` span is the clearest visible "different execution paths" signal for the PRD's pipeline-test.
 
 ### 6. Web UI integration
 
@@ -336,6 +322,8 @@ Migration 039 (`api/src/db/migrations/039_service_account.sql`) added `users.is_
 **Scope auto-detection.** Reads `useParams<{id?}>()` + `useLocation()`. When the URL matches `/documents/:id`, `/sprints/:id`, `/issues/:id` etc., the chat panel infers the scope and sends it with every message. Conversation thread resets when `scope.scopeId` changes (prevents the "I keep answering about issue X but the user is now on sprint Y" footgun).
 
 **HITL UI.** When the agent response contains `pendingInterrupt`, the component renders Approve / Dismiss / Snooze buttons inline with the agent message. Clicking dispatches `POST /api/fleetgraph/resume` with the threadId. The resumed graph's output replaces the proposed-actions block.
+
+**Proactive findings UI.** Medium/high-confidence proactive findings are persisted in `fleetgraph_findings` via `POST /api/fleetgraph/findings`. When the scoped chat panel opens, it calls `GET /api/fleetgraph/findings?status=open` and shows findings for the current document with Resolve/Dismiss controls backed by `PATCH /api/fleetgraph/findings/:id`.
 
 **No standalone chatbot.** Per the PRD's hard constraint — chat is invoked from within scope-bearing routes only. The panel doesn't render outside those (Dashboard, My-Week, etc.).
 
@@ -419,14 +407,14 @@ curl https://ship-api-76ez.onrender.com/api/fleetgraph/health
 | Graph Diagram | MVP | ✅ |
 | Use Cases | MVP | ✅ (6 use cases) |
 | Trigger Model | MVP | ✅ |
-| Test Cases | Early Submission (Thu 11:59 PM) | ✅ Real evidence from 6 test runs + 3 browser E2E screenshots. **LangSmith share links pending — UI step on user's side** |
+| Test Cases | Early Submission (Thu 11:59 PM) | ✅ Real evidence from 6 test runs + 3 browser E2E screenshots + 2 public LangSmith trace links |
 | Architecture Decisions | Early Submission | ✅ All 6 decisions documented with rationale, trade-offs, code-level pointers |
 | Cost Analysis | Final Submission (Sun noon) | ⏳ Cost model defined; actuals tally from Anthropic Console at end-of-week |
 
-## PRD MVP checklist (10/10 once trace links pasted)
+## PRD MVP checklist
 
 - [x] Graph running with at least one proactive detection wired end-to-end
-- [x] LangSmith tracing enabled (2+ trace links pending — captured in Test Cases table)
+- [x] LangSmith tracing enabled (2+ public trace links captured in Test Cases table)
 - [x] FLEETGRAPH.md submitted with Agent Responsibility + Use Cases (6 defined)
 - [x] Graph outline (node types, edges, conditional branches) documented
 - [x] At least one human-in-the-loop gate implemented (verified end-to-end in browser)
