@@ -41,7 +41,7 @@ The on-demand mode does NOT have to be a question. A user invoking with no messa
 
 - **Read** any document the requesting user can read (or any document, for proactive runs using the service account's workspace-wide read scope)
 - **Respond** to the requesting user with chat answers, citations, and recommended actions
-- **Surface a notification** to the requesting user's own notification rail
+- **Surface a finding** in the scoped FleetGraph panel for the requesting user
 - **Log findings** to LangSmith traces + an internal `fleetgraph_findings` table for analytics
 - **Persist proactive findings** to Ship via `/api/fleetgraph/findings`, deduped by `(workspace_id, scope_id, finding_hash)`
 - **Suppress** repeated findings via the dedup cache (no user-visible side effect)
@@ -53,14 +53,14 @@ The on-demand mode does NOT have to be a question. A user invoking with no messa
 - **Triggering external side effects** — posting to Slack/email (future), creating calendar events (future)
 - **Modifying its own behavior** — e.g., subscribing/unsubscribing from a detection rule on behalf of the user
 
-The gate UI lives in Ship's existing notification rail: a card showing the agent's reasoning, citations, and the proposed action, with **Approve / Dismiss / Snooze (1h / 1d / 1w)** controls.
+The gate UI lives inline in the scoped FleetGraph panel: a card showing the agent's reasoning, citations, and the proposed action, with **Approve / Dismiss / Snooze** controls.
 
 ### Who it notifies and under what conditions
 
 | Recipient | Conditions | Gate? |
 |---|---|---|
 | Requester (on-demand) | Always, in response to their question | No |
-| Requester (proactive subscription) | A proactive finding for a scope the user has opted into following | No |
+| Requester (scoped panel) | A proactive finding for the scope the user is viewing | No |
 | Issue/sprint owner (other than requester) | Proactive finding the agent's reasoner judges relevant to the owner | Yes |
 | Workspace admins | Compliance-class findings — orphaned-ownership, retro-gap, persistent slip across 2+ sprints | Yes, batched daily |
 
@@ -238,7 +238,7 @@ Real-data evidence captured against the local Ship instance seeded with 257 docu
 | 4 | HITL Approve flow (continuation of test 2) | Graph resumes from `human_gate`, records the human decision, and finalize returns approved output | ✅ POST `/api/fleetgraph/resume` with `{threadId, decision: "approved"}` → graph resumed → finalize formatted message with `✓ Approved.` prefix. DOM verified via Playwright. Screenshot: [fleetgraph-chat-approved.png](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 2 — second leg) |
 | 5 | Browser end-to-end (logged in as `dev@ship.local`, navigated to `/documents/{issue-id}`, opened chat panel, submitted question) | Full UI roundtrip: chat panel renders, scope auto-detected from URL, message dispatched, response rendered with citations | ✅ Verified via Playwright. Screenshots: [working](shipshape/fleetgraph-evidence/fleetgraph-chat-working.png), [HITL](shipshape/fleetgraph-evidence/fleetgraph-chat-hitl-approval.png), [approved](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 1 — same shape as test 1) |
 | 6 | Latency check — graph end-to-end against real Ship + Anthropic | Total ≤ 5 min including poll + graph | ✅ Graph run time 7.64s (trace 1, read-only) and 19.23s (trace 2, HITL) — both well under the 5-min SLA. 4-min poll cadence gives ~4:14 worst-case event-to-surface | (latencies visible in trace 1 + trace 2 above) |
-| 7 | Production manual scan on Week 17 (`9fd08ede...`) from `ship-henna.vercel.app` | Same proactive graph runs on demand, persists a durable finding, and the scoped panel displays it | ✅ `POST /api/fleetgraph/scan` returned output and persisted finding `e722608b-10ff-4198-9156-44ac239fbe27`; Playwright verified the FleetGraph button renders on the Week 17 document, opens with `sprint: 9fd08ede...`, and shows the proactive finding with Resolve/Dismiss controls | Production smoke, 2026-05-26 |
+| 7 | Production manual scan on Week 17 (`9fd08ede...`) from `ship-henna.vercel.app` | Same proactive graph runs on demand, persists a durable finding, and the scoped panel displays it | ✅ `POST /api/fleetgraph/scan` returned output and persisted finding `e722608b-10ff-4198-9156-44ac239fbe27`; Playwright verified the FleetGraph button renders on the Week 17 document, opens with `sprint: 9fd08ede...`, and shows the proactive finding with Resolve/Dismiss controls. Screenshot: [fleetgraph-production-week17.png](shipshape/fleetgraph-evidence/fleetgraph-production-week17.png) | Production smoke, 2026-05-26 |
 
 **Trace shape demonstrates "graph, not pipeline":**
 
@@ -410,7 +410,7 @@ curl https://ship-api-76ez.onrender.com/api/fleetgraph/health
 | Graph Diagram | MVP | ✅ |
 | Use Cases | MVP | ✅ (6 use cases) |
 | Trigger Model | MVP | ✅ |
-| Test Cases | Early Submission (Thu 11:59 PM) | ✅ Real evidence from 6 test runs + 3 browser E2E screenshots + 2 public LangSmith trace links |
+| Test Cases | Early Submission (Thu 11:59 PM) | ✅ Real evidence from 7 test runs + 4 browser/production screenshots + 2 public LangSmith trace links |
 | Architecture Decisions | Early Submission | ✅ All 6 decisions documented with rationale, trade-offs, code-level pointers |
 | Cost Analysis | Final Submission (Sun noon) | ⏳ Cost model defined; actuals tally from Anthropic Console at end-of-week |
 

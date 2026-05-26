@@ -34,7 +34,7 @@ Pre-search answers driving the architecture decisions in [FLEETGRAPH.md](FLEETGR
 
 - Read any document (subject to requesting user's ACL for on-demand; service-account workspace-wide for proactive)
 - Respond to chat with structured answers + citations
-- Surface findings to the requester's own notification rail
+- Surface findings in the requester's scoped FleetGraph panel
 - Suppress repeated findings via dedup cache
 - Log findings to LangSmith + internal analytics table
 
@@ -153,7 +153,7 @@ Distinct intents produce distinct trace shapes. This is the PRD's pipeline-vs-gr
 
 **Which actions require confirmation**: every mutation to Ship state; every notification to a user other than the requester; every subscription change. Read-only responses to the requester are never gated.
 
-**Confirmation experience in Ship**: a notification card in the existing notification rail (4-panel layout, properties sidebar 256px column) showing:
+**Confirmation experience in Ship**: an inline card in the scoped FleetGraph panel showing:
 
 - Agent's reasoning (1–2 sentences)
 - Citations as clickable doc references (Ship's existing markdown-link pattern)
