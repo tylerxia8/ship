@@ -247,27 +247,21 @@ Real-data evidence captured against the local Ship instance seeded with 257 docu
 
 | # | Ship State | Expected Output | Observed | Trace Link |
 |---|---|---|---|---|
-| 1 | On-demand chat from an issue (`fc466b06...` — "Create mobile app", state=backlog, priority=low, 40h estimate) | Agent reads doc + associations, returns blocker status with citation | ✅ Agent identified backlog/low/40h, "no blocker relationships detected," cited the issue ID. Path: `context_resolver → intent_classifier (blocker_check, high) → fetch_doc → fetch_assocs → reasoner → action_decision (no actions) → finalize` | (paste shared URL from LangSmith UI) |
-| 2 | On-demand chat from a sprint (`09e44014...` — "Week 16", confidence_score=42.4%, no goals/criteria set) | Agent identifies low-confidence signal, proposes notify_user + comment actions, HITL gate engages | ✅ Surfaced "very low confidence score 42.4%," "no plan/goals/vision," proposed 4 actions (notify sprint owner, comment, notify 2 assignees). Path: `... → reasoner → action_decision (mutations) → human_gate INTERRUPT` | (paste shared URL) |
-| 3 | Proactive scan on a sprint (no user message; agent decides what's worth surfacing) | Agent identifies signal-worthy state without prompting | ✅ Same Week 16 sprint: proactive_scan intent (fast-path, no LLM call for intent), reasoner-medium-confidence finding generated, 2 actions proposed. Path: distinct from on-demand because `intent_classifier` skips the LLM | (paste shared URL) |
-| 4 | HITL Approve flow (continuation of test 2) | Graph resumes from `human_gate`, executor runs, finalize returns approved output | ✅ POST `/api/fleetgraph/resume` with `{threadId, decision: "approved"}` → graph resumed → finalize formatted message with `✓ Approved.` prefix. DOM verified via Playwright. Screenshot: [fleetgraph-chat-approved.png](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (paste shared URL) |
-| 5 | Browser end-to-end (logged in as `dev@ship.local`, navigated to `/documents/{issue-id}`, opened chat panel, submitted question) | Full UI roundtrip: chat panel renders, scope auto-detected from URL, message dispatched, response rendered with citations | ✅ Verified via Playwright. Screenshots: [working](shipshape/fleetgraph-evidence/fleetgraph-chat-working.png), [HITL](shipshape/fleetgraph-evidence/fleetgraph-chat-hitl-approval.png), [approved](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (paste shared URL) |
-| 6 | Latency check — graph end-to-end against real Ship + Anthropic | Total ≤ 5 min including poll + graph | ✅ Graph run time 13.5–13.6s per scenario (Sonnet reasoner is the dominant cost). 4-min poll cadence gives ~4:14 worst-case event-to-surface; well under SLA | (paste shared URL) |
+| 1 | On-demand chat from an issue (`fc466b06...` — "Create mobile app", state=backlog, priority=low, 40h estimate) | Agent reads doc + associations, returns blocker status with citation | ✅ Agent identified backlog/low/40h, "no blocker relationships detected," cited the issue ID. Path: `context_resolver → intent_classifier (blocker_check, high) → fetch_doc → fetch_assocs → reasoner → action_decision (no actions) → finalize` | [trace](https://smith.langchain.com/public/aed63ea9-170a-4042-820c-c4e811800ebc/r) (read-only path) |
+| 2 | On-demand chat from a sprint (`09e44014...` — "Week 16", confidence_score=42.4%, no goals/criteria set) | Agent identifies low-confidence signal, proposes notify_user + comment actions, HITL gate engages | ✅ Surfaced "very low confidence score 42.4%," "no plan/goals/vision," proposed 4 actions (notify sprint owner, comment, notify 2 assignees). Path: `... → reasoner → action_decision (mutations) → human_gate INTERRUPT` | [trace](https://smith.langchain.com/public/cac0e57f-7436-4dd3-b360-3f0f2119fb93/r) (HITL path, 19.23s, has `human_gate` span) |
+| 3 | Proactive scan on a sprint (no user message; agent decides what's worth surfacing) | Agent identifies signal-worthy state without prompting | ✅ Same Week 16 sprint: proactive_scan intent (fast-path, no LLM call for intent), reasoner-medium-confidence finding generated, 2 actions proposed. Path: distinct from on-demand because `intent_classifier` skips the LLM | (covered by trace 2 — same shape) |
+| 4 | HITL Approve flow (continuation of test 2) | Graph resumes from `human_gate`, executor runs, finalize returns approved output | ✅ POST `/api/fleetgraph/resume` with `{threadId, decision: "approved"}` → graph resumed → finalize formatted message with `✓ Approved.` prefix. DOM verified via Playwright. Screenshot: [fleetgraph-chat-approved.png](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 2 — second leg) |
+| 5 | Browser end-to-end (logged in as `dev@ship.local`, navigated to `/documents/{issue-id}`, opened chat panel, submitted question) | Full UI roundtrip: chat panel renders, scope auto-detected from URL, message dispatched, response rendered with citations | ✅ Verified via Playwright. Screenshots: [working](shipshape/fleetgraph-evidence/fleetgraph-chat-working.png), [HITL](shipshape/fleetgraph-evidence/fleetgraph-chat-hitl-approval.png), [approved](shipshape/fleetgraph-evidence/fleetgraph-chat-approved.png) | (covered by trace 1 — same shape as test 1) |
+| 6 | Latency check — graph end-to-end against real Ship + Anthropic | Total ≤ 5 min including poll + graph | ✅ Graph run time 7.64s (trace 1, read-only) and 19.23s (trace 2, HITL) — both well under the 5-min SLA. 4-min poll cadence gives ~4:14 worst-case event-to-surface | (latencies visible in trace 1 + trace 2 above) |
 
 **Trace shape demonstrates "graph, not pipeline":**
 
-- Tests 1+5 (read-only, no actions proposed) → `action_decision` routes directly to `finalize`, skipping `human_gate`
-- Tests 2+3+4 (actions proposed) → `action_decision` routes to `human_gate` INTERRUPT
+| Trace | Latency | Spans | Distinguishing node |
+|---|---|---|---|
+| [trace 1](https://smith.langchain.com/public/aed63ea9-170a-4042-820c-c4e811800ebc/r) (read-only) | 7.64s | 16 | `action_decision → finalize` (no `human_gate` span exists) |
+| [trace 2](https://smith.langchain.com/public/cac0e57f-7436-4dd3-b360-3f0f2119fb93/r) (HITL) | 19.23s | 16 | `action_decision → human_gate` (interrupt visible in trace) |
 
-The same compiled graph produces visibly different node traversals based on the reasoner's findings. Picking any two of {test 1, test 2} in LangSmith and viewing their traces side-by-side satisfies the PRD's *"at least two shared trace links submitted showing different execution paths"* requirement.
-
-### How to capture the trace share links
-
-1. https://smith.langchain.com → select org/workspace
-2. Open project **`fleetgraph-dev`** (or `fleetgraph-prod` once deployed)
-3. Pick a recent trace from the runs list
-4. Top-right corner → **Share** button → **Create public link**
-5. Paste the resulting URL into the table above
+Same compiled graph, two visibly different node traversals based on the reasoner's findings. Opening both URLs side-by-side and comparing the node-tree views satisfies the PRD's *"at least two shared trace links submitted showing different execution paths"* requirement.
 
 ---
 
