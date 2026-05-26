@@ -21,7 +21,7 @@ import { useTeamMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { cn, getContrastTextColor } from '@/lib/cn';
 import { buildDocumentTree, DocumentTreeNode } from '@/lib/documentTree';
 import { CommandPalette } from '@/components/CommandPalette';
-import { FleetGraphChat } from '@/components/FleetGraphChat';
+import { FleetGraphChat, FleetGraphScope } from '@/components/FleetGraphChat';
 import { SessionTimeoutModal } from '@/components/SessionTimeoutModal';
 import { UploadNavigationWarning } from '@/components/UploadNavigationWarning';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
@@ -200,6 +200,24 @@ export function AppLayout() {
   };
 
   const activeDocumentId = getActiveDocumentId();
+
+  const fleetGraphScope = useMemo<FleetGraphScope | null>(() => {
+    if (!activeDocumentId) return null;
+
+    switch (currentDocumentType) {
+      case 'sprint':
+      case 'program':
+      case 'project':
+      case 'person':
+      case 'issue':
+        return { scopeType: currentDocumentType, scopeId: activeDocumentId };
+      default:
+        // Keep FleetGraph available on unified document routes while the
+        // document type is loading, and for document-like types the agent can
+        // still resolve from the id.
+        return { scopeType: 'issue', scopeId: activeDocumentId };
+    }
+  }, [activeDocumentId, currentDocumentType]);
 
   const handleModeClick = (mode: Mode) => {
     switch (mode) {
@@ -551,7 +569,7 @@ export function AppLayout() {
       </div>
 
       {/* FleetGraph agent chat — floating panel, scoped to current document route */}
-      <FleetGraphChat />
+      <FleetGraphChat scopeOverride={fleetGraphScope} />
 
       {/* Command Palette (Cmd+K) */}
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />

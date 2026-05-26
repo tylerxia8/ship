@@ -75,12 +75,12 @@ interface FleetGraphFinding {
   last_seen_at: string;
 }
 
-interface ScopeFromRoute {
+export interface FleetGraphScope {
   scopeType: 'issue' | 'sprint' | 'program' | 'project' | 'person' | 'workspace';
   scopeId: string;
 }
 
-function useCurrentScope(): ScopeFromRoute | null {
+function useCurrentScope(): FleetGraphScope | null {
   const { id } = useParams<{ id?: string }>();
   const location = useLocation();
 
@@ -91,7 +91,7 @@ function useCurrentScope(): ScopeFromRoute | null {
   // to learn the document_type, but for the agent's intent classifier any
   // scope type works as a starting hint. Default to 'issue' since most data
   // is issues; the reasoner figures out the actual type from the fetched doc.
-  let scopeType: ScopeFromRoute['scopeType'] = 'issue';
+  let scopeType: FleetGraphScope['scopeType'] = 'issue';
   if (location.pathname.startsWith('/sprints')) scopeType = 'sprint';
   else if (location.pathname.startsWith('/projects')) scopeType = 'project';
   else if (location.pathname.startsWith('/programs')) scopeType = 'program';
@@ -100,7 +100,11 @@ function useCurrentScope(): ScopeFromRoute | null {
   return { scopeType, scopeId: id };
 }
 
-export function FleetGraphChat(): JSX.Element | null {
+interface FleetGraphChatProps {
+  scopeOverride?: FleetGraphScope | null;
+}
+
+export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Element | null {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -109,7 +113,8 @@ export function FleetGraphChat(): JSX.Element | null {
   const [findings, setFindings] = useState<FleetGraphFinding[]>([]);
   const [findingsLoading, setFindingsLoading] = useState(false);
   const [currentThreadId, setCurrentThreadId] = useState<string | undefined>();
-  const scope = useCurrentScope();
+  const routeScope = useCurrentScope();
+  const scope = scopeOverride ?? routeScope;
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages arrive
