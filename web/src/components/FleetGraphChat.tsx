@@ -110,6 +110,8 @@ const confidenceLabels: Record<FleetGraphFinding['confidence'], string> = {
   low: 'Early signal',
 };
 
+const MAX_ASSISTANT_MESSAGE_CHARS = 4_000;
+
 function friendlyScope(scope: FleetGraphScope): string {
   return scopeLabels[scope.scopeType] ?? 'item';
 }
@@ -612,8 +614,9 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                 aria-label={`Ask the project assistant about this ${scopeLabel}`}
                 type="text"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => setInput(e.target.value.slice(0, MAX_ASSISTANT_MESSAGE_CHARS))}
                 placeholder={`Ask about this ${scopeLabel}...`}
+                maxLength={MAX_ASSISTANT_MESSAGE_CHARS}
                 disabled={loading}
                 className="flex-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50"
               />
