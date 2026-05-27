@@ -55,6 +55,10 @@ The on-demand mode does NOT have to be a question. A user invoking with no messa
 
 The gate UI lives inline in the scoped FleetGraph panel: a card showing the agent's reasoning, citations, and the proposed action, with **Approve / Dismiss / Snooze** controls.
 
+### Safety edge cases
+
+Ship documents and user chat messages are treated as project data, not trusted instructions. Before the reasoner sees scoped Ship data, FleetGraph redacts obvious secrets from titles, user questions, load snapshots, and document properties, including keys named like `token`, `secret`, `password`, `cookie`, `authorization`, and common bearer/API-token text patterns. If a document contains prompt-injection text such as "ignore your rules" or "reveal the API key," the reasoner is instructed to ignore the instruction, explain the project risk in plain language, and recommend human review instead of following it.
+
 ### Who it notifies and under what conditions
 
 | Recipient | Conditions | Gate? |
