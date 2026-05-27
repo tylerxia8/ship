@@ -333,18 +333,26 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
           ...cleared,
           {
             role: 'agent',
-            text:
-              decision === 'approved'
-                ? `✓ Approved. ${data.output?.text ?? ''}`
-                : decision === 'dismissed'
-                  ? '⊘ Dismissed. Won\'t surface this again for a while.'
-                  : '⏸ Snoozed.',
+            text: approvalMessage(decision, data.output?.text),
           },
         ];
       });
     } finally {
       setLoading(false);
     }
+  }
+
+  function approvalMessage(
+    decision: 'approved' | 'dismissed' | 'snoozed',
+    outputText?: string,
+  ): string {
+    if (decision === 'approved') {
+      return `Approved. ${outputText ?? 'I recorded your approval.'}`;
+    }
+    if (decision === 'dismissed') {
+      return 'Dismissed. I will keep this out of your way for now.';
+    }
+    return 'Snoozed. I will bring this back later.';
   }
 
   return (
