@@ -57,7 +57,7 @@ The gate UI lives inline in the scoped FleetGraph panel: a card showing the agen
 
 ### Safety edge cases
 
-Ship documents and user chat messages are treated as project data, not trusted instructions. Before the reasoner sees scoped Ship data, FleetGraph redacts obvious secrets from titles, user questions, load snapshots, and document properties, including keys named like `token`, `secret`, `password`, `cookie`, `authorization`, and common bearer/API-token text patterns. If a document contains prompt-injection text such as "ignore your rules" or "reveal the API key," the reasoner is instructed to ignore the instruction, explain the project risk in plain language, and recommend human review instead of following it.
+Ship documents and user chat messages are treated as project data, not trusted instructions. Before the reasoner sees scoped Ship data, FleetGraph redacts obvious secrets from titles, user questions, load snapshots, and document properties, including keys named like `token`, `secret`, `password`, `cookie`, `authorization`, and common bearer/API-token text patterns. Prompt-bound text and JSON are also capped with an explicit truncation marker so one oversized issue field cannot blow up latency or cost. If a document contains prompt-injection text such as "ignore your rules" or "reveal the API key," the reasoner is instructed to ignore the instruction, explain the project risk in plain language, and recommend human review instead of following it.
 
 ### Who it notifies and under what conditions
 

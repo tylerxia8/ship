@@ -20,7 +20,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { z } from 'zod';
 import { config } from '../config.js';
 import type { FleetGraphStateType, ReasonerOutput } from '../state.js';
-import { redactForPrompt } from '../utils/redaction.js';
+import { safePromptJson, safePromptText } from '../utils/redaction.js';
 
 const SuggestedActionSchema = z.object({
   type: z.enum(['notify_user', 'change_state', 'reassign', 'comment', 'descope']),
@@ -217,7 +217,7 @@ function buildPrompt(
 
   lines.push(`Scope: ${context.scopeType} ${context.scopeId} (workspace ${context.workspaceId})`);
   lines.push(`Mode: ${context.mode}`);
-  if (context.userMessage) lines.push(`User question: ${redactForPrompt(context.userMessage)}`);
+  if (context.userMessage) lines.push(`User question: ${safePromptText(context.userMessage)}`);
   if (intent) lines.push(`Detected intent: ${intent.kind} (confidence: ${intent.confidence})`);
   lines.push('');
 
@@ -225,7 +225,7 @@ function buildPrompt(
     lines.push(`Primary document(s) (${fetchedData.documents.length}):`);
     for (const d of fetchedData.documents.slice(0, 5)) {
       lines.push(
-        `  - id=${d.id} type=${d.document_type} title="${redactForPrompt(d.title)}" properties=${JSON.stringify(redactForPrompt(d.properties))}`,
+        `  - id=${d.id} type=${d.document_type} title="${safePromptText(d.title, 500)}" properties=${safePromptJson(d.properties)}`,
       );
     }
     if (fetchedData.documents.length > 5) {
@@ -246,7 +246,7 @@ function buildPrompt(
   }
 
   if (fetchedData.load) {
-    lines.push(`Load snapshot: ${JSON.stringify(redactForPrompt(fetchedData.load))}`);
+    lines.push(`Load snapshot: ${safePromptJson(fetchedData.load)}`);
     lines.push('');
   }
 

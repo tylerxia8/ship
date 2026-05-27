@@ -29,17 +29,32 @@ export function redactForPrompt(value: unknown): unknown {
   return value;
 }
 
+export function safePromptText(text: string, maxChars = 2_000): string {
+  return truncatePromptText(redactForPrompt(text), maxChars);
+}
+
+export function safePromptJson(value: unknown, maxChars = 4_000): string {
+  return truncatePromptText(JSON.stringify(redactForPrompt(value)), maxChars);
+}
+
 function isSensitiveKey(key: string): boolean {
   return /(?:api[_-]?key|token|secret|password|passwd|session|cookie|authorization|bearer)/i.test(key);
 }
 
 function redactSecretText(text: string): string {
   return text
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{12,}/gi, 'Bearer [redacted]')
-    .replace(/\b(?:sk|ant|claude|ship|ghp|github_pat)[_-][A-Za-z0-9._-]{16,}\b/gi, '[redacted secret]')
-    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, '[redacted token]')
     .replace(
       /\b(api[_-]?key|token|secret|password|passwd|session|cookie|authorization)\b\s*[:=]\s*["']?[^"'\s,;}{]{8,}["']?/gi,
       '$1=[redacted]',
-    );
+    )
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{12,}/gi, 'Bearer [redacted]')
+    .replace(/\b(?:sk|ant|claude|ship|ghp|github_pat)[_-][A-Za-z0-9._-]{16,}\b/gi, '[redacted secret]')
+    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, '[redacted token]');
+}
+
+function truncatePromptText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) {
+    return text;
+  }
+  return `${text.slice(0, maxChars)}...[truncated ${text.length - maxChars} chars]`;
 }
