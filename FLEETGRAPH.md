@@ -332,6 +332,8 @@ Both at https://ship-api-76ez.onrender.com and https://ship-agent.onrender.com r
 - Ship API → ship-agent: `X-Agent-Secret` header validated against `AGENT_SHARED_SECRET` env on both sides
 - ship-agent → Ship API: Bearer token via `api_tokens` table (the `SHIP_SERVICE_ACCOUNT_KEY`), plus the shared `X-Agent-Secret` header for FleetGraph finding writes
 
+**Proxy reliability.** Ship API bounds calls to the agent with `FLEETGRAPH_AGENT_TIMEOUT_MS` (default 25s; `/health` uses 5s) and returns `504 AGENT_TIMEOUT` instead of leaving the browser waiting indefinitely when the agent service is slow.
+
 Migration 039 (`api/src/db/migrations/039_service_account.sql`) added `users.is_service_account` boolean for future audit-log differentiation. Optional in MVP; the existing api_tokens flow gives us auth without depending on the migration.
 
 **Scheduler.** `setInterval(60_000)` in the agent service process polls active sprints in `FLEETGRAPH_TARGET_WORKSPACE_ID`. Per-scope cooldown of 4 minutes via in-memory `Map<scopeId, lastRunAt>`. Gated by `FLEETGRAPH_POLLER_ENABLED=true`; manual scans through `/api/fleetgraph/scan` use the same proactive graph on demand for demos and verification.

@@ -21,11 +21,13 @@ import { z } from 'zod';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { authCtx } from '../middleware/auth-context.js';
+import { fetchWithTimeout, isFetchTimeoutError, parseTimeoutMs } from '../utils/fetch-with-timeout.js';
 
 const router = Router();
 
 const AGENT_URL = process.env.FLEETGRAPH_AGENT_URL ?? 'http://localhost:4000';
 const AGENT_SECRET = process.env.FLEETGRAPH_AGENT_SHARED_SECRET ?? '';
+const AGENT_TIMEOUT_MS = parseTimeoutMs(process.env.FLEETGRAPH_AGENT_TIMEOUT_MS, 25_000);
 
 interface ChatProxyBody {
   scopeType?: string;
@@ -119,24 +121,27 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
   };
 
   try {
-    const agentResponse = await fetch(`${AGENT_URL}/agent/chat`, {
+    const agentResponse = await fetchWithTimeout(`${AGENT_URL}/agent/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(AGENT_SECRET ? { 'X-Agent-Secret': AGENT_SECRET } : {}),
       },
       body: JSON.stringify(agentBody),
-    });
+    }, AGENT_TIMEOUT_MS);
 
     const responseBody = (await agentResponse.json().catch(() => null)) as unknown;
     res.status(agentResponse.status).json(responseBody);
   } catch (err) {
     console.error('[fleetgraph/chat] proxy error:', err);
-    res.status(502).json({
+    const timedOut = isFetchTimeoutError(err);
+    res.status(timedOut ? 504 : 502).json({
       success: false,
       error: {
-        code: 'AGENT_UNREACHABLE',
-        message: `FleetGraph agent at ${AGENT_URL} unreachable: ${(err as Error).message}`,
+        code: timedOut ? 'AGENT_TIMEOUT' : 'AGENT_UNREACHABLE',
+        message: timedOut
+          ? `FleetGraph agent did not respond within ${AGENT_TIMEOUT_MS}ms`
+          : `FleetGraph agent at ${AGENT_URL} unreachable: ${(err as Error).message}`,
       },
     });
   }
@@ -153,24 +158,27 @@ router.post('/resume', authMiddleware, async (req: Request, res: Response) => {
   }
 
   try {
-    const agentResponse = await fetch(`${AGENT_URL}/agent/resume`, {
+    const agentResponse = await fetchWithTimeout(`${AGENT_URL}/agent/resume`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(AGENT_SECRET ? { 'X-Agent-Secret': AGENT_SECRET } : {}),
       },
       body: JSON.stringify({ threadId: body.threadId, decision: body.decision }),
-    });
+    }, AGENT_TIMEOUT_MS);
 
     const responseBody = (await agentResponse.json().catch(() => null)) as unknown;
     res.status(agentResponse.status).json(responseBody);
   } catch (err) {
     console.error('[fleetgraph/resume] proxy error:', err);
-    res.status(502).json({
+    const timedOut = isFetchTimeoutError(err);
+    res.status(timedOut ? 504 : 502).json({
       success: false,
       error: {
-        code: 'AGENT_UNREACHABLE',
-        message: `FleetGraph agent unreachable: ${(err as Error).message}`,
+        code: timedOut ? 'AGENT_TIMEOUT' : 'AGENT_UNREACHABLE',
+        message: timedOut
+          ? `FleetGraph agent did not respond within ${AGENT_TIMEOUT_MS}ms`
+          : `FleetGraph agent unreachable: ${(err as Error).message}`,
       },
     });
   }
@@ -189,7 +197,7 @@ router.post('/scan', authMiddleware, async (req: Request, res: Response) => {
   }
 
   try {
-    const agentResponse = await fetch(`${AGENT_URL}/agent/scan`, {
+    const agentResponse = await fetchWithTimeout(`${AGENT_URL}/agent/scan`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -202,17 +210,20 @@ router.post('/scan', authMiddleware, async (req: Request, res: Response) => {
         userId,
         threadId: body.threadId,
       }),
-    });
+    }, AGENT_TIMEOUT_MS);
 
     const responseBody = (await agentResponse.json().catch(() => null)) as unknown;
     res.status(agentResponse.status).json(responseBody);
   } catch (err) {
     console.error('[fleetgraph/scan] proxy error:', err);
-    res.status(502).json({
+    const timedOut = isFetchTimeoutError(err);
+    res.status(timedOut ? 504 : 502).json({
       success: false,
       error: {
-        code: 'AGENT_UNREACHABLE',
-        message: `FleetGraph agent unreachable: ${(err as Error).message}`,
+        code: timedOut ? 'AGENT_TIMEOUT' : 'AGENT_UNREACHABLE',
+        message: timedOut
+          ? `FleetGraph agent did not respond within ${AGENT_TIMEOUT_MS}ms`
+          : `FleetGraph agent unreachable: ${(err as Error).message}`,
       },
     });
   }
@@ -347,7 +358,7 @@ router.patch('/findings/:id', authMiddleware, async (req: Request, res: Response
 
 router.get('/health', async (_req: Request, res: Response) => {
   try {
-    const r = await fetch(`${AGENT_URL}/health`);
+    const r = await fetchWithTimeout(`${AGENT_URL}/health`, {}, 5_000);
     const body = (await r.json().catch(() => null)) as unknown;
     res.status(r.status).json({ proxy_ok: true, agent: body });
   } catch (err) {
