@@ -202,11 +202,11 @@ User chat in the Ship UI → Ship API forwards to agent service `POST /agent/cha
 
 ### Cost projection at scale (preview — full breakdown in Cost Analysis section)
 
-| Scale | Active sprints | Proactive runs/day | On-demand runs/day | Combined $/month |
+| Scale | Active sprints | Proactive runs/day | On-demand runs/day | Combined model $/month |
 |---|---|---|---|---|
-| 100 users (~20 sprints) | 20 | 7,200 | 100 | ~$2,800/mo |
-| 1,000 users (~200 sprints) | 200 | 72,000 | 1,000 | ~$28,000/mo |
-| 10,000 users (~2,000 sprints) | 2,000 | 720,000 | 10,000 | ~$280,000/mo |
+| 100 users (~20 sprints) | 20 | 7,200 | 100 | ~$2,630/mo |
+| 1,000 users (~200 sprints) | 200 | 72,000 | 1,000 | ~$26,300/mo |
+| 10,000 users (~2,000 sprints) | 2,000 | 720,000 | 10,000 | ~$263,000/mo |
 
 Linear scaling; reasoner is the dominant cost (~$0.012/run). Cost cliffs documented in the Cost Analysis section at final submission.
 
@@ -215,7 +215,7 @@ Linear scaling; reasoner is the dominant cost (~$0.012/run). Cost cliffs documen
 | Metric | Goal | FleetGraph result |
 |---|---|---|
 | Problem detection latency | <5 min from Ship event to surfaced finding | Poller wakes every 60s and runs each active sprint at most every 4 min. Measured graph runs are 7.64s and 19.23s in the public traces, so the documented worst-case budget is ~4:20. |
-| Cost per graph run | Documented and defended | ~$0.013/run, dominated by the Sonnet reasoner. Actual development/test spend from Anthropic token export: ~$0.34 total. |
+| Cost per graph run | Documented and defended | Proactive: ~$0.012/run; on-demand: ~$0.0126/run. Both are dominated by the Sonnet reasoner. Actual development/test spend from Anthropic token export: ~$0.34 total. |
 | Estimated runs per day | Documented and defended | At 100 users: ~7,300/day (7,200 proactive + 100 on-demand). Scale table above documents 100 / 1,000 / 10,000-user projections. |
 
 ### Detection-latency verification plan
@@ -377,32 +377,36 @@ Model breakdown:
 
 Pricing used: Anthropic API pricing as of 2026-05-26: Haiku 4.5 at $1 / MTok input and $5 / MTok output; Sonnet 4.6 at $3 / MTok input and $15 / MTok output.
 
-Token budget per production graph run (working numbers, refined at final):
+Token budget per production graph run:
 
 | Step | Model | Input tokens | Output tokens | $/run |
 |---|---|---|---|---|
-| `intent_classifier` | claude-haiku-4-5 | ~200 | ~80 | ~$0.0003 |
+| `intent_classifier` | claude-haiku-4-5 | ~200 | ~80 | ~$0.0006 |
 | `reasoner` | claude-sonnet-4-6 | ~2,000 | ~400 | ~$0.012 |
-| **Total per graph run** | | | | **~$0.013** |
+| **Proactive run** | no classifier fast-path + reasoner | ~2,000 | ~400 | **~$0.0120** |
+| **On-demand run** | classifier + reasoner | ~2,200 | ~480 | **~$0.0126** |
 
 ### Production Cost Projections
 
 | 100 Users | 1,000 Users | 10,000 Users |
 |---|---|---|
-| ~$2,800/mo | ~$28,000/mo | ~$280,000/mo |
+| ~$2,630/mo | ~$26,300/mo | ~$263,000/mo |
 
 **Assumptions:**
 
 - **Active sprints per 100 users:** ~20 (5 programs × 4 active sprints, typical Treasury-style PM rhythm)
-- **Proactive runs per project per day:** 360 (one every 4 min, 24 h)
+- **Proactive runs per active sprint per day:** 360 (one every 4 min, 24 h)
 - **On-demand invocations per user per day:** ~1 average (heavy users 5+, most users 0–1)
 - **Average tokens per invocation:** ~2,600 (intent + reasoner combined)
-- **Cost per run:** ~$0.013
+- **Proactive cost per run:** ~$0.0120 (Sonnet reasoner only; proactive intent is deterministic)
+- **On-demand cost per run:** ~$0.0126 (Haiku classifier + Sonnet reasoner)
 - **Estimated runs per day at 100 users:** ~7,300 (7,200 proactive + 100 on-demand)
+- **Monthly formula at 100 users:** `((7,200 × $0.0120) + (100 × $0.0126)) × 30 = ~$2,630`
+- **Inference-only estimate:** excludes Render/Vercel/Neon infrastructure because those are already part of Ship's app hosting; add ~$7/mo for the FleetGraph Render Starter service if counted separately.
 
 **Cost cliffs to be aware of:**
 
-1. **Reasoner is the spend driver** — 92% of per-run cost. Mitigations: cache fetched data within a graph run; suppress reasoner calls when the finding hash matches a recent dismissal.
+1. **Reasoner is the spend driver** — ~95% of on-demand cost and nearly all proactive cost. Mitigations: deterministic pre-filter before Sonnet, cache fetched data within a graph run, and suppress reasoner calls when the finding hash matches a recent dismissal.
 2. **`fetch_assocs` unbounded** — a document with hundreds of associations would balloon context. Hard cap at 50 edges per hop, 100 total per run.
 3. **Conversation history growth** — chat threads with 20+ turns blow context. Bounded to 10 turns; older turns summarized into a single system message.
 4. **Polling × active sprints** — linear cost growth. At 1,000+ users we'd want to switch to event-driven (webhooks) to avoid paying for polls that find nothing.

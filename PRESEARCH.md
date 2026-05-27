@@ -93,8 +93,8 @@ The 5-min SLA is set by the most-time-sensitive proactive case (blocker chain on
 
 **Cost at scale**:
 
-- 100 projects (~20 active sprints) × 360 polls/day = 7,200 proactive runs/day = ~$94/day = $2,820/mo on proactive alone (at the conservative $0.013/run including occasional bounded reasoner calls). Refined in Cost Analysis.
-- 1,000 projects (~200 active sprints) → ~$28,200/mo proactive. This is the threshold where webhook migration becomes economic.
+- 100 users (~20 active sprints) × 360 polls/day = 7,200 proactive runs/day = ~$86/day = ~$2,590/mo proactive-only (at ~$0.012/run for the Sonnet reasoner; proactive intent is deterministic). Refined in Cost Analysis.
+- 1,000 users (~200 active sprints) → ~$25,900/mo proactive-only. This is the threshold where webhook migration becomes economic.
 
 ---
 
@@ -210,9 +210,10 @@ Distinct intents produce distinct trace shapes. This is the PRD's pipeline-vs-gr
 
 | Step | Model | Input | Output | Cost |
 |---|---|---|---|---|
-| `intent_classifier` | Haiku 4.5 | ~200 | ~80 | $0.0003 |
+| `intent_classifier` | Haiku 4.5 | ~200 | ~80 | $0.0006 |
 | `reasoner` | Sonnet 4.6 | ~2,000 | ~400 | $0.012 |
-| **Total** | | | | **~$0.013** |
+| **Proactive total** | | | | **~$0.012** |
+| **On-demand total** | | | | **~$0.0126** |
 
 Bounded by:
 - Conversation history capped at 10 turns
@@ -221,7 +222,7 @@ Bounded by:
 
 **Cost cliffs**:
 
-1. **Reasoner** is 92% of per-run cost. Mitigation: aggressive dedup of identical findings.
+1. **Reasoner** is ~95% of on-demand cost and nearly all proactive cost. Mitigation: deterministic pre-filtering plus aggressive dedup of identical findings.
 2. **Unbounded `fetch_assocs`** — a document with hundreds of edges would balloon context. Hard caps in place.
 3. **Long chat sessions** — sliding-window summarization caps prompt size.
 4. **Polling × N sprints** linear. At ~200 sprints (1k users) we'd want to switch to webhook delivery.
