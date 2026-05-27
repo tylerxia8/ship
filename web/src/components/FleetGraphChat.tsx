@@ -80,6 +80,37 @@ export interface FleetGraphScope {
   scopeId: string;
 }
 
+const scopeLabels: Record<FleetGraphScope['scopeType'], string> = {
+  issue: 'issue',
+  sprint: 'sprint',
+  program: 'program',
+  project: 'project',
+  person: 'team member',
+  workspace: 'workspace',
+};
+
+const actionLabels: Record<string, string> = {
+  notify_user: 'Notify someone',
+  change_state: 'Update status',
+  reassign: 'Reassign work',
+  comment: 'Add a comment',
+  descope: 'Move work out of scope',
+};
+
+const confidenceLabels: Record<FleetGraphFinding['confidence'], string> = {
+  high: 'Strong signal',
+  medium: 'Worth review',
+  low: 'Early signal',
+};
+
+function friendlyScope(scope: FleetGraphScope): string {
+  return scopeLabels[scope.scopeType] ?? 'item';
+}
+
+function friendlyAction(type: string): string {
+  return actionLabels[type] ?? type.replace(/_/g, ' ');
+}
+
 function useCurrentScope(): FleetGraphScope | null {
   const { id } = useParams<{ id?: string }>();
   const location = useLocation();
@@ -116,6 +147,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
   const routeScope = useCurrentScope();
   const scope = scopeOverride ?? routeScope;
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scopeLabel = scope ? friendlyScope(scope) : 'item';
 
   // Scroll to bottom when messages arrive
   useEffect(() => {
@@ -163,7 +195,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
           ...m,
           {
             role: 'agent',
-            text: `Error: ${errBody?.error?.message ?? response.statusText}`,
+            text: `I could not check this ${scopeLabel} yet. ${errBody?.error?.message ?? response.statusText}`,
           },
         ]);
         return;
@@ -200,7 +232,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
     } catch (err) {
       setMessages((m) => [
         ...m,
-        { role: 'agent', text: `Network error: ${(err as Error).message}` },
+        { role: 'agent', text: `I could not reach the project assistant. Please try again. Details: ${(err as Error).message}` },
       ]);
     } finally {
       setLoading(false);
@@ -235,7 +267,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
           ...m,
           {
             role: 'agent',
-            text: `Scan error: ${errBody?.error?.message ?? response.statusText}`,
+            text: `I could not check this ${scopeLabel} yet. ${errBody?.error?.message ?? response.statusText}`,
           },
         ]);
         return;
@@ -247,7 +279,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
         ...m,
         {
           role: 'agent',
-          text: data.output?.text ?? 'Scan complete. No response text was produced.',
+          text: data.output?.text ?? 'I checked this page and did not find anything new to flag.',
           citations: data.output?.citations,
         },
       ]);
@@ -255,7 +287,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
     } catch (err) {
       setMessages((m) => [
         ...m,
-        { role: 'agent', text: `Scan network error: ${(err as Error).message}` },
+        { role: 'agent', text: `I could not run the page check. Please try again. Details: ${(err as Error).message}` },
       ]);
     } finally {
       setScanning(false);
@@ -287,7 +319,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
         const errBody = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
         setMessages((m) => [
           ...m,
-          { role: 'agent', text: `Resume error: ${errBody?.error?.message ?? response.statusText}` },
+          { role: 'agent', text: `I could not record that choice. ${errBody?.error?.message ?? response.statusText}` },
         ]);
         return;
       }
@@ -324,7 +356,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
           type="button"
           onClick={() => setOpen(true)}
           className="fixed bottom-20 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          aria-label="Open FleetGraph chat"
+          aria-label="Open project assistant"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -334,13 +366,13 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 flex h-[600px] w-96 flex-col rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div className="fixed bottom-20 right-6 z-50 flex h-[640px] w-[440px] max-w-[calc(100vw-2rem)] flex-col rounded-lg border border-gray-200 bg-white shadow-xl">
           {/* Header */}
           <div className="flex items-center justify-between rounded-t-lg border-b border-gray-200 bg-indigo-600 px-4 py-3 text-white">
             <div>
-              <div className="text-sm font-semibold">FleetGraph</div>
+              <div className="text-sm font-semibold">Project Assistant</div>
               <div className="text-xs text-indigo-100">
-                {scope.scopeType}: {scope.scopeId.slice(0, 8)}...
+                Reviewing this {scopeLabel}
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -349,9 +381,9 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                 onClick={() => void runScan()}
                 disabled={scanning}
                 className="rounded px-2 py-1 text-xs font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white disabled:opacity-50"
-                aria-label="Run FleetGraph scan"
+                aria-label="Check this page for project risks"
               >
-                {scanning ? 'Scanning...' : 'Scan'}
+                {scanning ? 'Checking...' : 'Check page'}
               </button>
               <button
                 type="button"
@@ -373,7 +405,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                 {findings.length > 0 && (
                   <div className="space-y-2">
                     <div className="text-xs font-semibold uppercase text-gray-500">
-                      Proactive findings
+                      Things to review
                     </div>
                     {findings.map((finding) => (
                       <div key={finding.id} className="rounded border border-amber-200 bg-amber-50 p-3 text-left">
@@ -383,7 +415,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                             <div className="mt-1 line-clamp-3 text-xs text-amber-900">{finding.body}</div>
                           </div>
                           <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
-                            {finding.confidence}
+                            {confidenceLabels[finding.confidence]}
                           </span>
                         </div>
                         <div className="mt-2 flex gap-2">
@@ -392,14 +424,14 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                             onClick={() => void updateFindingStatus(finding.id, 'resolved')}
                             className="rounded bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700"
                           >
-                            Resolve
+                            Mark resolved
                           </button>
                           <button
                             type="button"
                             onClick={() => void updateFindingStatus(finding.id, 'dismissed')}
                             className="rounded bg-gray-500 px-2 py-1 text-xs font-medium text-white hover:bg-gray-600"
                           >
-                            Dismiss
+                            Not useful
                           </button>
                         </div>
                       </div>
@@ -407,10 +439,9 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                   </div>
                 )}
                 <div className="text-sm text-gray-500 text-center py-4">
-                  Ask about this {scope.scopeType}. The agent traverses the document graph
-                  to answer questions that span multiple docs.
+                  Ask about this {scopeLabel}. I can help spot risks, blockers, and next steps.
                   <div className="mt-3 text-xs text-gray-400">
-                    {findingsLoading ? 'Checking for proactive findings...' : 'Try: "What\'s slipping?" · "Who\'s overloaded?" · "Is this blocking anything?"'}
+                    {findingsLoading ? 'Checking for items that may need attention...' : 'Try: "What needs attention?" or "Who may need help?"'}
                   </div>
                 </div>
               </div>
@@ -430,19 +461,19 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                   <div className="whitespace-pre-wrap">{msg.text}</div>
                   {msg.citations && msg.citations.length > 0 && (
                     <div className="mt-2 text-xs text-gray-500">
-                      Cites: {msg.citations.slice(0, 3).map((c) => c.slice(0, 8)).join(', ')}
+                      Sources checked: {msg.citations.slice(0, 3).map((c) => c.slice(0, 8)).join(', ')}
                       {msg.citations.length > 3 && ` +${msg.citations.length - 3}`}
                     </div>
                   )}
                   {msg.pendingActions && msg.pendingActions.length > 0 && msg.threadId && (
                     <div className="mt-3 border-t border-gray-300 pt-3 space-y-2">
                       <div className="text-xs font-semibold text-gray-700">
-                        Proposed actions ({msg.pendingActions.length}):
+                        Suggested next steps ({msg.pendingActions.length}):
                       </div>
                       <ul className="text-xs space-y-1 list-disc list-inside text-gray-700">
                         {msg.pendingActions.map((a, j) => (
                           <li key={j}>
-                            <span className="font-mono text-indigo-700">{a.type}</span>{' '}
+                            <span className="font-medium text-indigo-700">{friendlyAction(a.type)}</span>{' '}
                             — {a.description}
                           </li>
                         ))}
@@ -454,7 +485,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                           disabled={loading}
                           className="flex-1 rounded bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
                         >
-                          Approve
+                          Approve action
                         </button>
                         <button
                           type="button"
@@ -462,7 +493,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                           disabled={loading}
                           className="flex-1 rounded bg-gray-500 px-2 py-1 text-xs font-medium text-white hover:bg-gray-600 disabled:opacity-50"
                         >
-                          Dismiss
+                          Not now
                         </button>
                         <button
                           type="button"
@@ -470,7 +501,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                           disabled={loading}
                           className="flex-1 rounded bg-yellow-500 px-2 py-1 text-xs font-medium text-white hover:bg-yellow-600 disabled:opacity-50"
                         >
-                          Snooze
+                          Remind later
                         </button>
                       </div>
                     </div>
@@ -481,7 +512,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
             {loading && (
               <div className="flex justify-start">
                 <div className="rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-500">
-                  <span className="inline-block animate-pulse">Thinking...</span>
+                  <span className="inline-block animate-pulse">Checking the project details...</span>
                 </div>
               </div>
             )}
@@ -501,7 +532,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={`Ask about this ${scope.scopeType}...`}
+                placeholder={`Ask about this ${scopeLabel}...`}
                 disabled={loading}
                 className="flex-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50"
               />
