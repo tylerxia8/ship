@@ -147,6 +147,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
   const routeScope = useCurrentScope();
   const scope = scopeOverride ?? routeScope;
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const scopeLabel = scope ? friendlyScope(scope) : 'item';
 
   // Scroll to bottom when messages arrive
@@ -165,6 +166,21 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
     if (!open || !scope) return;
     void loadFindings();
   }, [open, scope?.scopeId]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    panelRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
 
   if (!scope) {
     // Don't render outside scope-bearing routes (the user isn't looking at
@@ -374,12 +390,20 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 flex h-[640px] w-[440px] max-w-[calc(100vw-2rem)] flex-col rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="project-assistant-title"
+          aria-describedby="project-assistant-scope"
+          tabIndex={-1}
+          className="fixed bottom-20 right-6 z-50 flex h-[640px] w-[440px] max-w-[calc(100vw-2rem)] flex-col rounded-lg border border-gray-200 bg-white shadow-xl focus:outline-none"
+        >
           {/* Header */}
           <div className="flex items-center justify-between rounded-t-lg border-b border-gray-200 bg-indigo-600 px-4 py-3 text-white">
             <div>
-              <div className="text-sm font-semibold">Project Assistant</div>
-              <div className="text-xs text-indigo-100">
+              <div id="project-assistant-title" className="text-sm font-semibold">Project Assistant</div>
+              <div id="project-assistant-scope" className="text-xs text-indigo-100">
                 Reviewing this {scopeLabel}
               </div>
             </div>
@@ -407,7 +431,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3" role="log" aria-live="polite" aria-relevant="additions">
             {messages.length === 0 && (
               <div className="space-y-4 py-4">
                 {findings.length > 0 && (
@@ -537,6 +561,7 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
           >
             <div className="flex gap-2">
               <input
+                aria-label={`Ask the project assistant about this ${scopeLabel}`}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
