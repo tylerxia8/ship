@@ -181,6 +181,37 @@ describe('FleetGraph findings API', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
-    expect(response.body.error.message).toBe('scopeType and scopeId are required');
+    expect(response.body.error.message).toBe('scopeType and scopeId are required and must be valid');
+  });
+
+  it('rejects invalid chat scope before proxying to the agent', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/chat')
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        scopeType: 'admin',
+        scopeId,
+        userMessage: 'What needs attention?',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.message).toBe('scopeType and scopeId are required and must be valid');
+  });
+
+  it('rejects invalid human-gate decisions before proxying to the agent', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/resume')
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        threadId: 'chat-test-thread',
+        decision: 'force_approve',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.message).toBe('threadId and decision are required and must be valid');
   });
 });

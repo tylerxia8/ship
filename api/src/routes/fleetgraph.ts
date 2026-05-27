@@ -29,23 +29,25 @@ const AGENT_URL = process.env.FLEETGRAPH_AGENT_URL ?? 'http://localhost:4000';
 const AGENT_SECRET = process.env.FLEETGRAPH_AGENT_SHARED_SECRET ?? '';
 const AGENT_TIMEOUT_MS = parseTimeoutMs(process.env.FLEETGRAPH_AGENT_TIMEOUT_MS, 25_000);
 
-interface ChatProxyBody {
-  scopeType?: string;
-  scopeId?: string;
-  userMessage?: string;
-  threadId?: string;
-}
+const fleetGraphScopeSchema = z.enum(['issue', 'sprint', 'program', 'project', 'person', 'workspace']);
 
-interface ResumeProxyBody {
-  threadId?: string;
-  decision?: string;
-}
+const chatProxySchema = z.object({
+  scopeType: fleetGraphScopeSchema,
+  scopeId: z.string().uuid(),
+  userMessage: z.string().max(4_000).optional(),
+  threadId: z.string().min(1).max(128).optional(),
+});
 
-interface ScanProxyBody {
-  scopeType?: string;
-  scopeId?: string;
-  threadId?: string;
-}
+const resumeProxySchema = z.object({
+  threadId: z.string().min(1).max(128),
+  decision: z.enum(['approved', 'dismissed', 'snoozed', 'modified']),
+});
+
+const scanProxySchema = z.object({
+  scopeType: fleetGraphScopeSchema,
+  scopeId: z.string().uuid(),
+  threadId: z.string().min(1).max(128).optional(),
+});
 
 const createFindingSchema = z.object({
   scopeType: z.string().min(1).max(50),
@@ -99,17 +101,28 @@ async function requireFleetGraphWriter(req: Request, res: Response): Promise<boo
   return true;
 }
 
+function fleetGraphValidationMessage(error: z.ZodError): string {
+  const missing = new Set(error.issues.map((issue) => issue.path[0]));
+  if (missing.has('scopeType') || missing.has('scopeId')) {
+    return 'scopeType and scopeId are required and must be valid';
+  }
+  if (missing.has('threadId') || missing.has('decision')) {
+    return 'threadId and decision are required and must be valid';
+  }
+  return 'invalid FleetGraph request';
+}
+
 router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
   const { userId, workspaceId } = authCtx(req);
-  const body = req.body as ChatProxyBody;
-
-  if (!body.scopeType || !body.scopeId) {
+  const parsed = chatProxySchema.safeParse(req.body);
+  if (!parsed.success) {
     res.status(400).json({
       success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'scopeType and scopeId are required' },
+      error: { code: 'VALIDATION_ERROR', message: fleetGraphValidationMessage(parsed.error) },
     });
     return;
   }
+  const body = parsed.data;
 
   const agentBody = {
     scopeType: body.scopeType,
@@ -148,14 +161,15 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
 });
 
 router.post('/resume', authMiddleware, async (req: Request, res: Response) => {
-  const body = req.body as ResumeProxyBody;
-  if (!body.threadId || !body.decision) {
+  const parsed = resumeProxySchema.safeParse(req.body);
+  if (!parsed.success) {
     res.status(400).json({
       success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'threadId and decision are required' },
+      error: { code: 'VALIDATION_ERROR', message: fleetGraphValidationMessage(parsed.error) },
     });
     return;
   }
+  const body = parsed.data;
 
   try {
     const agentResponse = await fetchWithTimeout(`${AGENT_URL}/agent/resume`, {
@@ -186,15 +200,15 @@ router.post('/resume', authMiddleware, async (req: Request, res: Response) => {
 
 router.post('/scan', authMiddleware, async (req: Request, res: Response) => {
   const { userId, workspaceId } = authCtx(req);
-  const body = req.body as ScanProxyBody;
-
-  if (!body.scopeType || !body.scopeId) {
+  const parsed = scanProxySchema.safeParse(req.body);
+  if (!parsed.success) {
     res.status(400).json({
       success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'scopeType and scopeId are required' },
+      error: { code: 'VALIDATION_ERROR', message: fleetGraphValidationMessage(parsed.error) },
     });
     return;
   }
+  const body = parsed.data;
 
   try {
     const agentResponse = await fetchWithTimeout(`${AGENT_URL}/agent/scan`, {
