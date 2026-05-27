@@ -64,6 +64,13 @@ interface AgentScanResponse {
   elapsed_ms: number;
 }
 
+interface AgentErrorBody {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+}
+
 interface FleetGraphFinding {
   id: string;
   scope_id: string;
@@ -109,6 +116,25 @@ function friendlyScope(scope: FleetGraphScope): string {
 
 function friendlyAction(type: string): string {
   return actionLabels[type] ?? type.replace(/_/g, ' ');
+}
+
+function assistantErrorMessage(
+  errBody: AgentErrorBody | null,
+  fallback: string,
+  scopeLabel: string,
+): string {
+  switch (errBody?.error?.code) {
+    case 'AGENT_TIMEOUT':
+      return `The project assistant is taking longer than expected. Please try again in a minute, or use "Check page" later for this ${scopeLabel}.`;
+    case 'AGENT_UNREACHABLE':
+      return 'The project assistant service is temporarily unavailable. Your Ship data is still safe, and you can keep working here.';
+    case 'VALIDATION_ERROR':
+      return `I could not check this ${scopeLabel} because some page context was missing. Refresh the page and try again.`;
+    default:
+      return errBody?.error?.message
+        ? `I could not check this ${scopeLabel} yet. ${errBody.error.message}`
+        : fallback;
+  }
 }
 
 function useCurrentScope(): FleetGraphScope | null {
@@ -206,12 +232,16 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
       });
 
       if (!response.ok) {
-        const errBody = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+        const errBody = (await response.json().catch(() => null)) as AgentErrorBody | null;
         setMessages((m) => [
           ...m,
           {
             role: 'agent',
-            text: `I could not check this ${scopeLabel} yet. ${errBody?.error?.message ?? response.statusText}`,
+            text: assistantErrorMessage(
+              errBody,
+              `I could not check this ${scopeLabel} yet. ${response.statusText}`,
+              scopeLabel,
+            ),
           },
         ]);
         return;
@@ -248,7 +278,12 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
     } catch (err) {
       setMessages((m) => [
         ...m,
-        { role: 'agent', text: `I could not reach the project assistant. Please try again. Details: ${(err as Error).message}` },
+        {
+          role: 'agent',
+          text: `I could not reach the project assistant. Please try again in a minute. ${(
+            err as Error
+          ).message}`,
+        },
       ]);
     } finally {
       setLoading(false);
@@ -278,12 +313,16 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
       });
 
       if (!response.ok) {
-        const errBody = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+        const errBody = (await response.json().catch(() => null)) as AgentErrorBody | null;
         setMessages((m) => [
           ...m,
           {
             role: 'agent',
-            text: `I could not check this ${scopeLabel} yet. ${errBody?.error?.message ?? response.statusText}`,
+            text: assistantErrorMessage(
+              errBody,
+              `I could not check this ${scopeLabel} yet. ${response.statusText}`,
+              scopeLabel,
+            ),
           },
         ]);
         return;
@@ -303,7 +342,10 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
     } catch (err) {
       setMessages((m) => [
         ...m,
-        { role: 'agent', text: `I could not run the page check. Please try again. Details: ${(err as Error).message}` },
+        {
+          role: 'agent',
+          text: `I could not run the page check. Please try again in a minute. ${(err as Error).message}`,
+        },
       ]);
     } finally {
       setScanning(false);
@@ -332,10 +374,16 @@ export function FleetGraphChat({ scopeOverride }: FleetGraphChatProps): JSX.Elem
       });
 
       if (!response.ok) {
-        const errBody = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+        const errBody = (await response.json().catch(() => null)) as AgentErrorBody | null;
         setMessages((m) => [
           ...m,
-          { role: 'agent', text: `I could not record that choice. ${errBody?.error?.message ?? response.statusText}` },
+          {
+            role: 'agent',
+            text:
+              errBody?.error?.code === 'AGENT_TIMEOUT'
+                ? 'I could not record that choice because the assistant took too long to respond. Please try again.'
+                : `I could not record that choice. ${errBody?.error?.message ?? response.statusText}`,
+          },
         ]);
         return;
       }
