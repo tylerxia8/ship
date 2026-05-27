@@ -19,7 +19,13 @@ Architecture: see [FLEETGRAPH.md](../FLEETGRAPH.md) at the repo root.
 | `SHIP_SERVICE_ACCOUNT_KEY` | yes (prod) | Long-lived agent API key |
 | `AGENT_SHARED_SECRET` | yes (prod) | Shared service secret; validates browser-to-agent proxy calls and agent-to-Ship finding writes |
 | `DATABASE_URL` | yes (prod) | Postgres for PostgresSaver checkpoints |
+| `FLEETGRAPH_POLLER_ENABLED` | no (default `false`) | Enables the proactive polling loop when set to `true` |
+| `FLEETGRAPH_TARGET_WORKSPACE_ID` | yes (prod poller) | Workspace UUID monitored by proactive scans |
 | `PORT` | no (default `4000`) | HTTP server port |
+
+Ship API also uses `FLEETGRAPH_AGENT_URL`, `FLEETGRAPH_AGENT_SHARED_SECRET`,
+and optional `FLEETGRAPH_AGENT_TIMEOUT_MS` (default `25000`) for the browser
+proxy to this service.
 
 **Never commit env files** with real values. Set vars in your shell or via
 Render's encrypted env var UI.

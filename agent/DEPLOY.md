@@ -70,6 +70,7 @@ to inject as the `X-Agent-Secret` header on outbound calls. On the existing
 |---|---|
 | `FLEETGRAPH_AGENT_URL` | `https://ship-agent-<your-suffix>.onrender.com` (URL from step 1) |
 | `FLEETGRAPH_AGENT_SHARED_SECRET` | The same random string from step 2 |
+| `FLEETGRAPH_AGENT_TIMEOUT_MS` | Optional; default `25000`. Keep under the hosting platform request timeout. |
 
 ship-api auto-redeploys.
 
@@ -86,8 +87,8 @@ curl https://ship-api-76ez.onrender.com/api/fleetgraph/health
 ```
 
 If both come back ok, the deploy is wired. Open https://ship-henna.vercel.app
-in a browser, log in, navigate to any document, and the chat panel (bottom-
-right) should be talking to the live deployed agent.
+in a browser, log in, navigate to any document, and the Project Assistant
+panel (bottom-right) should be talking to the live deployed agent.
 
 ## Step 5 — Watch the first proactive run
 

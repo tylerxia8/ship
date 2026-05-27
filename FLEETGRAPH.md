@@ -437,7 +437,7 @@ The actual development spend is low because the final FleetGraph graph runs are 
 
 1. Open the production Week 17 sprint: https://ship-henna.vercel.app/documents/9fd08ede-475e-488d-8909-ffdef4340ddf
 2. Sign in with an authorized Ship account.
-3. Click the FleetGraph button in the app chrome.
+3. Click the Project Assistant button in the app chrome.
 4. Confirm the panel scope reads `sprint: 9fd08ede-475e-488d-8909-ffdef4340ddf`.
 5. Ask: "Who's overloaded this week?" Expected: `load_check` path, with human approval required before any reassignment-style action.
 6. Ask: "What changed since last week's retro?" Expected: `diff_query` path, read-only answer when history is insufficient.
