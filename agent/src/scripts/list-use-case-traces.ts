@@ -26,6 +26,7 @@ interface RunSummary {
   childCount: number;
   hasHumanGate: boolean;
   matchedText: string;
+  score: number;
 }
 
 interface TraceTarget {
@@ -95,11 +96,8 @@ function stringifyRun(run: unknown): string {
   }).toLowerCase();
 }
 
-function firstMatchingNeedle(haystack: string, needles: string[]): string | null {
-  for (const needle of needles) {
-    if (haystack.includes(needle.toLowerCase())) return needle;
-  }
-  return null;
+function matchingNeedles(haystack: string, needles: string[]): string[] {
+  return needles.filter((needle) => haystack.includes(needle.toLowerCase()));
 }
 
 async function summarizeRun(
@@ -107,6 +105,7 @@ async function summarizeRun(
   childCount: number,
   hasHumanGate: boolean,
   matchedText: string,
+  score: number,
 ): Promise<RunSummary> {
   return {
     id: run.id,
@@ -116,6 +115,7 @@ async function summarizeRun(
     childCount,
     hasHumanGate,
     matchedText,
+    score,
   };
 }
 
@@ -126,7 +126,7 @@ async function main(): Promise<void> {
   });
 
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-  const matches = new Map<string, RunSummary>();
+  const candidates = new Map<string, RunSummary[]>();
 
   console.log(`[trace-matrix] project: ${config.langsmith.project}`);
   console.log(`[trace-matrix] searching top-level runs since ${cutoff.toISOString()}`);
@@ -149,11 +149,31 @@ async function main(): Promise<void> {
     }
 
     for (const target of traceTargets) {
-      if (matches.has(target.id)) continue;
-      const matchedText = firstMatchingNeedle(haystack, target.needles);
-      if (!matchedText) continue;
-      matches.set(target.id, await summarizeRun(run, childCount, hasHumanGate, matchedText));
+      const matchedNeedles = matchingNeedles(haystack, target.needles);
+      if (matchedNeedles.length === 0) continue;
+      const summary = await summarizeRun(
+        run,
+        childCount,
+        hasHumanGate,
+        matchedNeedles.join(', '),
+        matchedNeedles.length,
+      );
+      candidates.set(target.id, [...(candidates.get(target.id) ?? []), summary]);
     }
+  }
+
+  const matches = new Map<string, RunSummary>();
+  const usedRunIds = new Set<string>();
+
+  for (const target of traceTargets) {
+    const sortedCandidates = (candidates.get(target.id) ?? []).sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.start.localeCompare(a.start);
+    });
+    const uniqueCandidate = sortedCandidates.find((candidate) => !usedRunIds.has(candidate.id));
+    if (!uniqueCandidate) continue;
+    matches.set(target.id, uniqueCandidate);
+    usedRunIds.add(uniqueCandidate.id);
   }
 
   console.log('| Test Case | Unique LangSmith Run ID | Shape | Public Trace URL |');
@@ -167,7 +187,7 @@ async function main(): Promise<void> {
     }
 
     const shape = match.hasHumanGate ? 'HITL / human_gate' : 'read-only or proactive finalize';
-    console.log(`| ${target.id} - ${target.label} | ${match.id} | ${shape} | TODO: Share this run in LangSmith |`);
+    console.log(`| ${target.id} - ${target.label} | ${match.id} | ${shape}; matched ${match.matchedText} | TODO: Share this run in LangSmith |`);
   }
 
   console.log('');
