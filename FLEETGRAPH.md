@@ -96,33 +96,52 @@ Both proactive and on-demand modes traverse the same graph. Only the entry node 
 
 ```mermaid
 flowchart TD
-    proactive([proactive trigger<br/>poll every 4 min<br/>per active sprint]) --> resolver
-    ondemand([on-demand trigger<br/>chat from Ship UI]) --> resolver
+    proactive["proactive trigger<br/>poll every 4 min<br/>per active sprint"] --> resolver
+    ondemand["on-demand trigger<br/>chat from Ship UI"] --> resolver
 
-    resolver[context_resolver<br/>~50ms · no LLM]
+    resolver["context_resolver<br/>~50ms; no LLM"]
     resolver --> classifier
 
-    classifier[intent_classifier<br/>Haiku 4.5 · ~500ms]
+    classifier["intent_classifier<br/>Haiku 4.5; ~500ms"]
 
-    classifier --> fetchdoc[fetch_doc<br/>always runs]
+    classifier --> fetchdoc["fetch_doc<br/>always runs"]
 
-    fetchdoc --> fetchassocs[fetch_assocs<br/>no-op unless requested]
-    fetchassocs --> fetchload[fetch_load<br/>no-op unless requested]
-    fetchload --> fetchactivity[fetch_activity<br/>no-op unless requested]
-    fetchactivity --> fetchhistory[fetch_history<br/>no-op unless requested]
+    fetchdoc --> fetchassocs["fetch_assocs<br/>no-op unless requested"]
+    fetchassocs --> fetchload["fetch_load<br/>no-op unless requested"]
+    fetchload --> fetchactivity["fetch_activity<br/>no-op unless requested"]
+    fetchactivity --> fetchhistory["fetch_history<br/>no-op unless requested"]
     fetchhistory --> reasoner
 
-    reasoner[reasoner<br/>Sonnet 4.6 · tool: expand_doc · ~1–3s]
+    reasoner["reasoner<br/>Sonnet 4.6; tool: expand_doc; ~1-3s"]
     reasoner --> decision
 
-    decision{action_decision<br/>needs human approval?}
+    decision{"action_decision<br/>needs human approval?"}
     decision -->|read-only OR proactive finding| output
     decision -->|on-demand mutation OR notify-other| gate
 
-    gate[human_gate<br/>INTERRUPT — MemorySaver checkpoint<br/>resume on user click]
+    gate["human_gate<br/>INTERRUPT; MemorySaver checkpoint<br/>resume on user click"]
     gate -->|approve / dismiss / snooze| output
 
-    output([output<br/>chat response OR notification<br/>LangSmith trace finalized])
+    output["output<br/>chat response OR notification<br/>LangSmith trace finalized"]
+```
+
+Text fallback for reviewers if Mermaid rendering is unavailable:
+
+```text
+proactive trigger -\
+                    -> context_resolver -> intent_classifier -> fetch_doc
+on-demand trigger -/                                      |
+                                                          v
+fetch_assocs -> fetch_load -> fetch_activity -> fetch_history -> reasoner
+                                                                     |
+                                                                     v
+                                                       action_decision
+                                                        /           \
+                                                       v             v
+                                                finalize output   human_gate
+                                                                       |
+                                                                       v
+                                                                finalize output
 ```
 
 **Node responsibilities at a glance:**
