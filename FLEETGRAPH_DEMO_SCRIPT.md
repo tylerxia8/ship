@@ -1,71 +1,99 @@
-# FleetGraph Early Submission Demo Script
+# FleetGraph Final Submission Demo Script
 
-Target length: 5 minutes.
+Target length: 6 minutes. If the video limit is shorter, use the 3-minute version at the bottom.
 
-## Pre-Recording Checklist
+## Websites To Open
 
-- Open `FLEETGRAPH.md`.
-- Open production Ship:
-  `https://ship-henna.vercel.app/documents/9fd08ede-475e-488d-8909-ffdef4340ddf`
-- Open these LangSmith traces:
-  - Read-only path: `https://smith.langchain.com/public/aed63ea9-170a-4042-820c-c4e811800ebc/r`
-  - Human-gated path: `https://smith.langchain.com/public/cac0e57f-7436-4dd3-b360-3f0f2119fb93/r`
-- Optional health-check tabs:
-  - `https://ship-agent.onrender.com/health`
-  - `https://ship-api-76ez.onrender.com/api/fleetgraph/health`
-- Zoom browser to 90-100%.
+Open these before recording, in this order:
+
+1. GitHub `FLEETGRAPH.md`
+   - https://github.com/tylerxia8/ship/blob/fleetgraph/main/FLEETGRAPH.md
+2. Production Ship, Week 17 sprint
+   - https://ship-henna.vercel.app/documents/9fd08ede-475e-488d-8909-ffdef4340ddf
+3. Read-only representative LangSmith trace
+   - https://smith.langchain.com/public/aed63ea9-170a-4042-820c-c4e811800ebc/r
+4. Human-gated representative LangSmith trace
+   - https://smith.langchain.com/public/cac0e57f-7436-4dd3-b360-3f0f2119fb93/r
+5. Unique production load-query trace
+   - https://smith.langchain.com/public/b89b4bed-1e49-45be-b39c-d83630be8a15/r
+6. Unique timed proactive-scan trace
+   - https://smith.langchain.com/public/f422a7cc-9340-436f-a072-f3c45d7b9dff/r
+7. Optional health checks
+   - https://ship-agent.onrender.com/health
+   - https://ship-api-76ez.onrender.com/api/fleetgraph/health
+
+Recording setup:
+
+- Browser zoom: 90-100%.
 - Hide bookmarks, notifications, and unrelated tabs.
+- Keep GitHub first so the grader sees the deliverable file immediately.
+- If Ship is logged out or slow, do not spend the video debugging login. Switch to `FLEETGRAPH.md` evidence and LangSmith traces.
 
 ## What The Video Must Prove
 
-- Same LangGraph powers proactive and on-demand modes.
-- Chat is embedded in Ship and scoped to the current document.
-- Proactive detection is wired end to end against real Ship data.
-- Human-in-the-loop gate exists for mutating/notification actions.
-- LangSmith traces show different graph paths.
-- `FLEETGRAPH.md` contains agent responsibility, use cases, graph outline, trigger model, test cases, and deployment evidence.
+- FleetGraph is a graph agent, not a standalone chatbot.
+- Proactive and on-demand modes use the same graph architecture.
+- The assistant is embedded in Ship and scoped to the current document.
+- Human-in-the-loop is implemented for actions that mutate Ship or notify others.
+- The app runs against real Ship data and is deployed publicly.
+- The final critique is addressed: test cases now have unique LangSmith trace links.
+- Final cost analysis is complete and defensible.
 
 ## 0:00-0:30 - Opening
 
-Show `FLEETGRAPH.md` title and Agent Responsibility.
+Show `FLEETGRAPH.md` in GitHub.
 
 Say:
 
-> This is FleetGraph, a project intelligence agent for Ship. The core idea is that Ship already shows project state, but FleetGraph watches and reasons over the graph of issues, sprints, projects, people, and associations. It has two modes: proactive, where it surfaces risks without being asked, and on-demand, where a user asks from inside the Ship interface. Both modes use the same graph; the trigger is what changes.
+> This is the final FleetGraph submission. FleetGraph is a project intelligence agent for Ship. Ship already shows project state, but FleetGraph watches the document graph, reasons over issues, sprints, projects, people, and associations, and then either answers in context or surfaces something proactively.
 
 Point to:
 
-- Agent Responsibility
-- What it monitors proactively
-- What it must ask a human about
+- `Agent Responsibility`
+- `Use Cases`
+- `Graph Diagram`
 
-## 0:30-1:15 - Graph Architecture
+## 0:30-1:15 - Agent Responsibility And Scope
 
-Scroll to Graph Diagram.
+Scroll to `Agent Responsibility`.
 
 Say:
 
-> The graph starts by resolving the current Ship context, classifies the user's intent, then activates the fetch nodes needed for that intent. It always reasons over real Ship data, then `action_decision` decides whether the answer can be returned immediately or has to pause at `human_gate`. That branching is important because the assignment asks for a graph, not a fixed pipeline.
+> The agent is responsible for graph-traversal reasoning. It is intentionally not for single-document facts the UI already shows. It monitors blocker chains, capacity overruns, slip risk, stale assignments, orphaned ownership, and retro gaps. For actions, it can answer, surface findings, and persist proactive cards autonomously, but it must ask a human before changing Ship data or notifying another person.
+
+Point to:
+
+- What it monitors proactively
+- What it can do autonomously
+- What it must always ask a human about
+
+## 1:15-2:00 - Same Graph, Two Modes
+
+Scroll to `Graph Diagram`.
+
+Say:
+
+> Both modes enter the same LangGraph. The difference is the trigger. On-demand starts from the Ship page the user is viewing. Proactive starts from the scheduler or manual scan. After that, both go through context resolution, intent classification, scoped fetches, reasoning, action decision, and either final output or the human gate.
 
 Point to:
 
 - `context_resolver`
 - `intent_classifier`
-- `fetch_doc`, `fetch_assocs`, `fetch_load`, `fetch_activity`, `fetch_history`
-- `reasoner`
+- `fetch_load`, `fetch_activity`, `fetch_history`
 - `action_decision`
 - `human_gate`
-- `output`
 
-## 1:15-2:20 - On-Demand Context-Aware Chat
+## 2:00-3:00 - Live UI: Embedded Context-Aware Assistant
 
-Switch to Ship production Week 17 page.
+Switch to production Ship Week 17:
 
-Click the **Project Assistant** button.
+`https://ship-henna.vercel.app/documents/9fd08ede-475e-488d-8909-ffdef4340ddf`
+
+Click **Project Assistant**.
 
 Say:
 
-> This is the on-demand mode. It is not a standalone chatbot page. The assistant is embedded in Ship, and this panel starts from the document I am looking at. Here the scope is this sprint.
+> This is the on-demand mode. It is embedded in Ship, not a separate chatbot page. Because I opened it from a sprint document, the assistant receives this sprint as scope and uses that as the starting point for the graph.
 
 Ask:
 
@@ -75,96 +103,95 @@ Who's overloaded this week?
 
 While it runs, say:
 
-> This should classify as a load check, fetch the sprint and related people/work, and any reassignment-style action should require human approval before anything changes.
+> This should classify as a load check, fetch the sprint and related people and work, and gate any reassignment-style action before anything changes.
 
-If approval buttons appear, say:
+If an approval card appears:
 
-> This is the human-in-the-loop gate. The agent can recommend an action, but it cannot mutate Ship or notify another person without an explicit human decision.
+> This is the human-in-the-loop gate. The agent can recommend action, but it cannot mutate Ship or notify someone else without approval.
 
-If it returns read-only output instead, say:
+If it returns read-only output:
 
-> In this current data state the answer came back read-only, but the human-gated path is documented in the trace I will show next.
+> This live data state returned a read-only answer, but the human-gated path is captured in the LangSmith trace I will show next.
 
-## 2:20-3:00 - Proactive Scan In The UI
+## 3:00-3:35 - Live UI: Proactive Scan
 
-Click **Check page**.
+In the same assistant panel, click **Check page**.
 
 Say:
 
-> This manually triggers the proactive path for the demo. The deployed poller uses the same graph on a four-minute cadence per active sprint, but the button lets a reviewer exercise the proactive detection immediately. If a finding is worth surfacing, it is persisted as a scoped finding and deduped so repeated scans refresh the same condition instead of spamming the user.
+> This manually exercises the proactive path for the demo. In production, the agent polls active sprints on a four-minute cadence, leaving one minute of buffer under the five-minute detection requirement. When it finds something worth surfacing, it persists a scoped finding and dedupes repeated detections.
 
 Expected:
 
-- A notification-style assistant response appears.
-- Existing "Things to review" finding cards may appear or refresh.
+- A proactive assistant response appears, or
+- Existing "Things to review" cards appear or refresh.
 
-## 3:00-4:00 - LangSmith Trace Proof
+## 3:35-4:40 - LangSmith Proof
 
-Show read-only trace.
+Show the read-only representative trace:
 
-Say:
-
-> This first public trace is the read-only path. It goes through context resolution, intent classification, fetches, reasoner, action decision, and finalizes without `human_gate`, because no action needed approval.
-
-Show human-gated trace.
+`https://smith.langchain.com/public/aed63ea9-170a-4042-820c-c4e811800ebc/r`
 
 Say:
 
-> This second trace uses the same compiled graph but takes a different route. The reasoner proposed actions that require approval, so `action_decision` routed into `human_gate`. This is the clearest evidence that the implementation is a graph with conditional execution, not a linear pipeline.
+> This trace shows the read-only route. It reaches `action_decision` and finalizes without entering `human_gate`.
 
-Point out:
+Show the human-gated representative trace:
 
-- Trace 1: no `human_gate`
-- Trace 2: has `human_gate`
-- Same graph, different traversal
-
-## 4:00-4:40 - Trigger Model And Deployment
-
-Return to `FLEETGRAPH.md`.
-
-Show Trigger Model and Reviewer Walkthrough / health checks.
+`https://smith.langchain.com/public/cac0e57f-7436-4dd3-b360-3f0f2119fb93/r`
 
 Say:
 
-> For the trigger model, I chose polling every four minutes per active sprint, with a one-minute buffer under the five-minute detection requirement. Webhooks would be faster, but Ship does not have an event bus yet, so polling is the defensible MVP choice. The frontend, Ship API proxy, and FleetGraph agent are deployed publicly, and the API proxy has a timeout so a slow agent does not hang the UI.
+> This is the same compiled graph, but the reasoner proposed actions requiring approval, so `action_decision` routed into `human_gate`. That different traversal is the key evidence that this is a graph, not a fixed pipeline.
 
-Optional show:
-
-- Agent health JSON
-- Ship API FleetGraph health JSON
-
-## 4:40-5:10 - MVP Checklist Close
-
-Scroll to PRD MVP checklist.
+Then show `FLEETGRAPH.md` Test Cases.
 
 Say:
 
-> The early submission requirements are covered here: graph running with proactive detection, two public LangSmith traces with different paths, completed agent responsibility and use cases, documented graph nodes and branches, human-in-the-loop, real Ship data, UI chat and notifications, deployment, and a defended trigger model.
+> The early feedback noted that reused traces were not enough. I addressed that by adding a unique public LangSmith trace for every test case row. The two traces I just showed are representative shape proof; the table has distinct trace links for the individual tests.
+
+## 4:40-5:20 - Trigger Model, Deployment, And Performance
+
+Scroll to `Trigger Model`, `Performance requirements`, and `Deployment / Public Access`.
+
+Say:
+
+> The trigger model is polling every four minutes per active sprint. Webhooks would be faster, but Ship does not yet have an event bus, so polling is the defensible MVP choice. The worst-case detection budget is about four minutes plus graph runtime, which stays under the five-minute requirement. The frontend, Ship API proxy, and FleetGraph agent are all publicly deployed.
+
+Optional: briefly show health checks.
+
+## 5:20-6:00 - Cost Analysis And Close
+
+Scroll to `Cost Analysis`.
+
+Say:
+
+> For final submission, I added actual development and testing spend from the Anthropic token export, plus production cost projections for 100, 1,000, and 10,000 users. The main cost driver is the Sonnet reasoner, so the documented tradeoff is clear: proactive scan frequency gives faster detection, but increases linear cost.
 
 End with:
 
-> The main thing I want the grader to see is that FleetGraph is not just a dashboard or chatbot. It is a context-aware graph agent that watches Ship, reasons over relationships, and knows when to act versus when to wait for a human.
+> FleetGraph makes Ship more useful because it does not wait for someone to stare at a dashboard. It watches real project state, reasons over relationships, surfaces problems proactively, and knows when to stop for human judgment.
 
-## Backup Lines If Something Fails
+## Backup Lines
 
 If Ship is slow:
 
-> The deployed app is slow right now, so I am switching to the documented production evidence in `FLEETGRAPH.md`. The same Week 17 scan and on-demand runs are recorded in the Test Cases table with timestamps, thread IDs, and trace links.
+> The deployed app is slow right now, so I am switching to the documented production evidence in `FLEETGRAPH.md`. The Week 17 scan and on-demand runs are recorded in the Test Cases table with thread IDs and unique public traces.
 
 If LangSmith is slow:
 
-> The trace page is slow to load, but the two public trace URLs are in the Test Cases table. Trace 1 is the read-only route and trace 2 is the human-gated route.
+> LangSmith is slow to load in the browser, but each public trace URL is linked directly in the Test Cases table. I verified the public links return successfully.
 
 If the live answer differs:
 
-> The exact answer can change because this is running against live Ship data. What matters for the demo is the path: scoped request, graph run, citations or finding, and human gate when actions are proposed.
+> This is running against live Ship data, so the exact text can change. The evidence that matters is the scoped request, graph route, trace, and human gate behavior when actions are proposed.
 
 If the assistant times out:
 
-> The timeout message is expected hardening. The Ship API proxy returns a clear timeout instead of leaving the user waiting indefinitely.
+> The timeout message is expected hardening. The Ship API proxy returns a clear timeout instead of leaving the UI hanging.
 
-## Short Version
+## 3-Minute Version
 
-Use this if you only have 2 minutes:
+Use this if time is tight:
 
-> FleetGraph is a project intelligence agent for Ship with two modes: proactive scans and on-demand context-aware chat. Both use the same LangGraph. The current Ship page provides scope, so the assistant knows whether I am on an issue, sprint, project, or person. The graph classifies intent, fetches only the needed Ship data, reasons over it, and then either returns a read-only answer, persists a proactive finding, or pauses at a human gate for actions. These two LangSmith traces prove different execution paths: one read-only path without `human_gate`, and one gated path with `human_gate`. The MVP checklist in `FLEETGRAPH.md` documents the trigger model, use cases, tests, trace links, deployment, and real-data evidence.
+> FleetGraph is a project intelligence agent embedded in Ship. It has two modes: proactive scans and on-demand context-aware chat. Both use the same LangGraph; only the trigger changes. The current Ship page provides scope, so a chat opened on a sprint starts from that sprint instead of acting like a generic chatbot. The graph resolves context, classifies intent, fetches only the needed Ship data, reasons over it, and either returns an answer, persists a proactive finding, or pauses at `human_gate` for approval. The LangSmith traces prove different graph paths: a read-only path that finalizes immediately and a gated path that routes through `human_gate`. The final submission also fixes the early feedback: each test case row now has its own unique public LangSmith trace. The trigger model, deployment evidence, performance target, and cost analysis are all documented in `FLEETGRAPH.md`.
