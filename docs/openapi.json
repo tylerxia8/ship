@@ -232,6 +232,41 @@
         }
       }
     },
+    "/oauth/apps/{id}/deactivate": {
+      "post": {
+        "tags": [
+          "OAuth Apps"
+        ],
+        "summary": "Deactivate an OAuth app",
+        "x-required-scope": null,
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deactivated OAuth app"
+          },
+          "404": {
+            "description": "OAuth app not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents": {
       "get": {
         "tags": [

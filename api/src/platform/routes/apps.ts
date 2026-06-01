@@ -156,4 +156,34 @@ router.post('/:id/rotate-secret', authMiddleware, async (req, res, next) => {
   }
 });
 
+router.post('/:id/deactivate', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const workspaceId = req.workspaceId;
+    if (!userId || !workspaceId) {
+      throw new ApiError(401, 'unauthorized', 'Login required');
+    }
+
+    await requireWorkspaceAdmin(userId, workspaceId);
+
+    const result = await pool.query(
+      `UPDATE oauth_apps
+          SET active = FALSE, updated_at = NOW()
+        WHERE id = $1 AND workspace_id = $2
+        RETURNING id, workspace_id, owner_user_id, name, client_id, redirect_uris,
+                  requested_scopes, active, created_at, updated_at`,
+      [req.params.id, workspaceId],
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new ApiError(404, 'not_found', 'OAuth app not found');
+    }
+
+    res.json({ app: publicOAuthApp(row) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

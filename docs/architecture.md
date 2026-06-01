@@ -374,6 +374,9 @@ without returning `client_secret` or `client_secret_hash`, link to
 subscription creation, and webhook tailing.
 Workspace admins can rotate an app secret; the old secret stops working
 immediately and the new raw secret is returned once.
+Workspace admins can also deactivate an app as an emergency stop. Inactive apps
+cannot start OAuth flows, and existing bearer tokens for inactive apps are
+rejected by public API auth.
 
 ## Audit Evidence
 

@@ -38,6 +38,7 @@ export function DeveloperPortalPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [rotatingAppId, setRotatingAppId] = useState<string | null>(null);
+  const [deactivatingAppId, setDeactivatingAppId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadApps();
@@ -88,6 +89,26 @@ export function DeveloperPortalPage() {
     }
 
     setSecretResult({ ...body, action: 'rotated' });
+    setApps((previous) => previous.map((existing) => (existing.id === app.id ? body.app : existing)));
+  }
+
+  async function deactivateApp(app: OAuthApp) {
+    const confirmed = window.confirm(`Deactivate ${app.name}? Existing access tokens for this app will stop working immediately.`);
+    if (!confirmed) return;
+
+    setDeactivatingAppId(app.id);
+    setError('');
+    setSecretResult(null);
+
+    const response = await apiPost(`/api/v1/oauth/apps/${app.id}/deactivate`);
+    const body = await response.json();
+    setDeactivatingAppId(null);
+
+    if (!response.ok) {
+      setError(body.error?.message || body.message || 'Could not deactivate the OAuth app.');
+      return;
+    }
+
     setApps((previous) => previous.map((existing) => (existing.id === app.id ? body.app : existing)));
   }
 
@@ -209,6 +230,14 @@ export function DeveloperPortalPage() {
                         className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {rotatingAppId === app.id ? 'Rotating...' : 'Rotate secret'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void deactivateApp(app)}
+                        disabled={!app.active || deactivatingAppId === app.id}
+                        className="rounded border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deactivatingAppId === app.id ? 'Deactivating...' : 'Deactivate'}
                       </button>
                       <span className="rounded border border-border px-2 py-1 text-xs text-muted">
                         {app.active ? 'Active' : 'Inactive'}

@@ -641,4 +641,35 @@ describe('Plugforge public API foundation', () => {
 
     expect(auditRow.route).toBe('/api/v1/documents/');
   });
+
+  it('deactivates OAuth apps and immediately rejects their bearer tokens', async () => {
+    const deactivatedToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+    await pool.query(
+      `INSERT INTO oauth_access_tokens
+        (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+       VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+      [hashToken(deactivatedToken), oauthAppId, adminUserId, workspaceId, ['documents:read']],
+    );
+
+    const beforeResponse = await request(app)
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${deactivatedToken}`);
+    expect(beforeResponse.status).toBe(200);
+
+    const deactivateResponse = await request(app)
+      .post(`/api/v1/oauth/apps/${oauthAppId}/deactivate`)
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken);
+
+    expect(deactivateResponse.status).toBe(200);
+    expect(deactivateResponse.body.app.active).toBe(false);
+    expect(deactivateResponse.body.app.client_secret).toBeUndefined();
+    expect(deactivateResponse.body.app.client_secret_hash).toBeUndefined();
+
+    const afterResponse = await request(app)
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${deactivatedToken}`);
+    expect(afterResponse.status).toBe(401);
+    expect(afterResponse.body.code).toBe('unauthorized');
+  });
 });
