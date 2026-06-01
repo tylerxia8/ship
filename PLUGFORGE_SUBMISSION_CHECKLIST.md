@@ -41,6 +41,7 @@ The Plugforge fitness command covers:
 
 - Public OpenAPI contract serving and static artifact freshness.
 - Public/internal route boundary.
+- Workspace admin enforcement for OAuth app management.
 - OAuth app registration, secret rotation, and deactivation.
 - Authorization Code + PKCE happy path and wrong-verifier failure.
 - Device Authorization Grant pending, slow-down, approve, consume, and replay paths.

@@ -24,6 +24,8 @@ describe('Plugforge public API foundation', () => {
   let memberUserId: string;
   let sessionCookie: string;
   let csrfToken: string;
+  let memberSessionCookie: string;
+  let memberCsrfToken: string;
   let clientId: string;
   let clientSecret: string;
   let oauthAppId: string;
@@ -116,6 +118,23 @@ describe('Plugforge public API foundation', () => {
     if (connectSidCookie) {
       sessionCookie = `${sessionCookie}; ${connectSidCookie}`;
     }
+
+    const memberSessionId = crypto.randomBytes(32).toString('hex');
+    await pool.query(
+      `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
+       VALUES ($1, $2, $3, now() + interval '1 hour')`,
+      [memberSessionId, memberUserId, workspaceId],
+    );
+    memberSessionCookie = `session_id=${memberSessionId}`;
+
+    const memberCsrfResponse = await request(app)
+      .get('/api/csrf-token')
+      .set('Cookie', memberSessionCookie);
+    memberCsrfToken = memberCsrfResponse.body.token;
+    const memberConnectSidCookie = memberCsrfResponse.headers['set-cookie']?.[0]?.split(';')[0] || '';
+    if (memberConnectSidCookie) {
+      memberSessionCookie = `${memberSessionCookie}; ${memberConnectSidCookie}`;
+    }
   });
 
   afterAll(async () => {
@@ -181,6 +200,28 @@ describe('Plugforge public API foundation', () => {
       ],
       next_cursor: null,
     });
+  });
+
+  it('rejects OAuth app management for non-admin workspace members', async () => {
+    const listResponse = await request(app)
+      .get('/api/v1/oauth/apps')
+      .set('Cookie', memberSessionCookie);
+
+    expect(listResponse.status).toBe(403);
+    expect(listResponse.body.code).toBe('forbidden');
+
+    const createResponse = await request(app)
+      .post('/api/v1/oauth/apps')
+      .set('Cookie', memberSessionCookie)
+      .set('x-csrf-token', memberCsrfToken)
+      .send({
+        name: 'Member App',
+        redirect_uris: ['https://example.com/member-callback'],
+        requested_scopes: ['documents:read'],
+      });
+
+    expect(createResponse.status).toBe(403);
+    expect(createResponse.body.code).toBe('forbidden');
   });
 
   it('registers an OAuth app and shows the raw secret once', async () => {
