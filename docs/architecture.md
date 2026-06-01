@@ -371,7 +371,10 @@ SHIP_URL=http://localhost:3000 SHIP_TOKEN=ship_at_... node scripts/plugforge-ttf
 
 The token must include `documents:write` and `webhooks:manage`. The script prints
 a JSON result with elapsed time, document id, subscription id, delivery id,
-delivery status, response status, and signature verification.
+delivery status, response status, and signature verification. It deactivates the
+temporary subscription by default so repeated drills do not accumulate live
+webhook endpoints; `KEEP_WEBHOOK=1` preserves the subscription for manual
+inspection.
 
 ## Developer Portal
 

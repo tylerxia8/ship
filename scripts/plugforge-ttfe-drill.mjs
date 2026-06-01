@@ -15,6 +15,7 @@ Required:
 
 Optional:
   SHIP_URL     Ship API base URL, default http://localhost:3000
+  KEEP_WEBHOOK Set to 1 to leave the temporary webhook subscription active
 
 Example:
   SHIP_URL=https://ship.example.gov SHIP_TOKEN=ship_at_... node scripts/plugforge-ttfe-drill.mjs
@@ -74,6 +75,7 @@ async function waitForDelivery(idempotencyKey) {
 }
 
 const received = [];
+let subscriptionId = null;
 const receiver = http.createServer((req, res) => {
   const chunks = [];
   req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
@@ -100,6 +102,7 @@ try {
       target_url: targetUrl,
     }),
   });
+  subscriptionId = subscription.data.id;
 
   const created = await requestJson('/api/v1/documents', {
     method: 'POST',
@@ -128,11 +131,12 @@ try {
     elapsed_ms: Date.now() - startedAt,
     ship_url: shipUrl,
     document_id: created.data.id,
-    subscription_id: subscription.data.id,
+    subscription_id: subscriptionId,
     delivery_id: delivery.id,
     delivery_status: delivery.status,
     response_status: delivery.response_status,
     signature_verified: signatureOk,
+    subscription_deactivated: process.env.KEEP_WEBHOOK === '1' ? false : true,
   }, null, 2));
 
   if (!signatureOk || delivery.status !== 'delivered') {
@@ -142,5 +146,15 @@ try {
   console.error(err instanceof Error ? err.message : err);
   process.exitCode = 1;
 } finally {
+  if (subscriptionId && process.env.KEEP_WEBHOOK !== '1') {
+    try {
+      await requestJson(`/api/v1/webhooks/subscriptions/${subscriptionId}/deactivate`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.error(`Could not deactivate temporary webhook subscription ${subscriptionId}:`, err instanceof Error ? err.message : err);
+      process.exitCode = 1;
+    }
+  }
   await new Promise((resolve) => receiver.close(() => resolve()));
 }

@@ -88,3 +88,5 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:30
   pnpm/corepack on PATH.
 - The TTFE drill needs a real public API bearer token with `documents:write` and
   `webhooks:manage`.
+- The TTFE drill deactivates its temporary webhook subscription by default. Set
+  `KEEP_WEBHOOK=1` only when you want to inspect the subscription afterward.
