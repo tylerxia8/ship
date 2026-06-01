@@ -2,6 +2,36 @@
 
 Plugforge turns Ship into a developer platform. The platform contract is deliberately small: a versioned `/api/v1` public API, OAuth apps and tokens, scopes-as-data, generated OpenAPI, a typed SDK, signed webhooks, and a CLI reference integration. Internal Ship routes remain under `/api/*`; public consumers use `/api/v1/*`.
 
+## Architectural Defense Coverage
+
+| PRD-required section | Covered here |
+|---|---|
+| Module Layout | Module Layout |
+| SOLID Rationale | SOLID Rationale |
+| Composition Root | Composition Root |
+| Public/Internal Boundary | Public/Internal Boundary |
+| OAuth Flows | OAuth Flows |
+| Webhook Pipeline | Webhook Pipeline |
+| SDK Surface | SDK Surface |
+| Agent-as-Citizen | Agent As Citizen |
+| Failure Modes | Failure Modes |
+| Scope and risk discipline | MVP Cut, Risk Register, Architectural Decisions To Defend |
+
+## MVP Cut
+
+Tuesday MVP is intentionally narrower than the final platform. The MVP must prove the contract spine:
+
+- OAuth app registration with hashed `client_secret` and raw secret shown once.
+- Authorization Code + PKCE happy path and wrong-verifier negative path.
+- Bearer token middleware on `/api/v1/*`.
+- Scope registry and `requireScope(scope)` middleware.
+- Public documents API: list, get by id, and create.
+- Consistent `ApiError` shape with `request_id`.
+- Generated `/api/v1/openapi.json`.
+- SDK skeleton where `new ShipClient({ token }).me()` works against a running server.
+
+Post-MVP scope adds Device Grant, webhooks, CLI, TTFE drill, developer portal, rate-limit hardening, and FleetGraph's agent-as-citizen rewire. The defense is that OAuth + public API correctness is the foundation; webhooks and CLI become meaningful only after tokens, scopes, errors, and OpenAPI are stable.
+
 ## Module Layout
 
 Planned backend layout:
@@ -112,6 +142,30 @@ Ship UI
 
 This preserves Ship's existing UI while giving external developers a stable, versioned contract.
 
+```mermaid
+sequenceDiagram
+    participant App as External App
+    participant V1 as /api/v1 Router
+    participant Auth as Bearer Auth
+    participant Scope as Scope Middleware
+    participant Audit as Audit Logger
+    participant Domain as Document Service
+    participant DB as Postgres
+
+    App->>V1: GET /api/v1/documents
+    V1->>Auth: validate access token
+    Auth-->>V1: app, user, granted scopes
+    V1->>Scope: require documents:read
+    Scope-->>V1: allowed
+    V1->>Audit: start request record
+    V1->>Domain: list documents
+    Domain->>DB: SELECT documents
+    DB-->>Domain: rows
+    Domain-->>V1: documents
+    V1->>Audit: finish status/latency/scope
+    V1-->>App: { data, next_cursor }
+```
+
 ## OAuth Flows
 
 ### Authorization Code + PKCE
@@ -129,6 +183,25 @@ client -> /api/v1/* with Bearer access token
 
 Wrong or missing `code_verifier` returns `400 invalid_grant`. Auth codes are single-use and short-lived.
 
+```mermaid
+sequenceDiagram
+    participant Browser as Browser App
+    participant Ship as Ship OAuth
+    participant User as User
+    participant Token as Token Service
+    participant API as /api/v1
+
+    Browser->>Ship: GET /oauth/authorize + code_challenge
+    Ship->>User: consent screen
+    User-->>Ship: approve scopes
+    Ship-->>Browser: redirect with authorization code
+    Browser->>Token: POST /oauth/token + code_verifier
+    Token->>Token: verify PKCE challenge
+    Token-->>Browser: access token + refresh token
+    Browser->>API: Bearer access token
+    API-->>Browser: scoped response
+```
+
 ### Device Authorization Grant
 
 ```text
@@ -141,6 +214,24 @@ CLI stores tokens in file token store
 ```
 
 Polling faster than the issued interval returns `slow_down`. Expired or denied device codes return explicit OAuth errors.
+
+```mermaid
+sequenceDiagram
+    participant CLI as Ship CLI
+    participant OAuth as Ship OAuth
+    participant User as User Browser
+    participant Store as Token Store
+
+    CLI->>OAuth: POST /oauth/device/code
+    OAuth-->>CLI: device_code, user_code, verification_uri, interval
+    CLI->>OAuth: poll /oauth/token
+    OAuth-->>CLI: authorization_pending
+    User->>OAuth: open verification_uri and enter user_code
+    OAuth-->>User: consent approved
+    CLI->>OAuth: poll /oauth/token
+    OAuth-->>CLI: access token + refresh token
+    CLI->>Store: persist tokens
+```
 
 ### Refresh Token Rotation
 
@@ -171,6 +262,26 @@ document write
 ```
 
 The signature is HMAC-SHA256 over `timestamp + "." + rawBody`. The SDK verifier rejects missing `v1`, tampered bodies, and timestamps older than 5 minutes by default. Replays preserve the original idempotency key.
+
+```mermaid
+sequenceDiagram
+    participant Write as Document Write
+    participant Bus as IEventBus
+    participant Matcher as Subscription Matcher
+    participant Signer as HMAC Signer
+    participant Deliverer as Webhook Deliverer
+    participant Target as Subscriber URL
+    participant Log as Delivery Log
+
+    Write->>Bus: publish document.created
+    Bus->>Matcher: find active subscriptions
+    Matcher->>Signer: raw payload + signing secret
+    Signer-->>Deliverer: Ship-Signature + Idempotency-Key
+    Deliverer->>Target: POST signed event
+    Target-->>Deliverer: 2xx / 4xx / 5xx
+    Deliverer->>Log: record attempt, latency, response
+    Deliverer->>Deliverer: retry or DLQ if needed
+```
 
 ## SDK Surface
 
@@ -223,6 +334,26 @@ FleetGraph OAuth app -> @ship/sdk -> /api/v1 -> scope middleware -> audit log ->
 
 The payoff is that the agent has the same scopes, rate limits, and audit trail as an external developer app. The final proof should be an audit-log row showing FleetGraph's app identity, route, scope, status, and latency.
 
+```mermaid
+sequenceDiagram
+    participant Agent as FleetGraph Agent
+    participant SDK as @ship/sdk
+    participant API as /api/v1
+    participant Scope as Scope Middleware
+    participant Audit as Public Audit Log
+    participant Domain as Ship Domain Services
+
+    Agent->>SDK: client.documents.list()
+    SDK->>API: GET /api/v1/documents + Bearer token
+    API->>Scope: require documents:read
+    Scope-->>API: allowed
+    API->>Audit: record app/user/scope/route
+    API->>Domain: read document graph
+    Domain-->>API: documents
+    API-->>SDK: typed public response
+    SDK-->>Agent: typed documents
+```
+
 ## Failure Modes
 
 **Token store corrupted.** SDK treats unreadable token stores as logged-out state and asks the user to login again. It must not silently reuse partial tokens.
@@ -236,6 +367,18 @@ The payoff is that the agent has the same scopes, rate limits, and audit trail a
 **OAuth app owner deleted.** Deactivate the app and require admin transfer before reactivation. This is safer than leaving orphaned credentials active.
 
 **Rate limiter misconfigured.** Public API should default closed: conservative per-token limits and explicit headers on every response. Missing limiter config should not mean unlimited traffic.
+
+## Risk Register
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| OAuth correctness slips | MVP blocker and security risk | Implement PKCE first, include Playwright happy path and wrong-verifier `invalid_grant` test |
+| Public/internal route leakage | Contract becomes unstable | Add boundary test/lint rule banning imports from internal route handlers into `api/src/platform/api-v1` |
+| OpenAPI drift | SDK and docs lie | Generate spec from route metadata and add route/spec/SDK parity fitness tests |
+| Webhook retry tests become flaky | CI instability | Inject fake clock/scheduler; avoid real sleeps in retry tests |
+| TTFE drill fails late | Final rubric risk | Add first TTFE drill as soon as SDK + documents + webhooks work, then keep it in CI |
+| SDK grows heavy | Fails install-size target | Keep `@ship/sdk` dependency-light; put CLI dependencies in `integrations/cli` |
+| Agent rewire breaks Week 5 behavior | Regression risk | Feature flag public-API mode and run tests with flag on/off |
 
 ## Implementation Order
 
@@ -262,3 +405,15 @@ The payoff is that the agent has the same scopes, rate limits, and audit trail a
 **In-memory webhooks first.** In-memory delivery is enough for demo and test determinism. Interfaces are shaped so Redis/SQS can replace it later.
 
 **SDK hand-written, parity-tested.** Generated SDKs often expose awkward types. A hand-written SDK gives good DX, while parity tests prevent missing methods.
+
+## Defense Talking Points
+
+**Why separate `/api/v1` from internal `/api`?** Internal routes are optimized for Ship's first-party UI and session model. Public routes need OAuth, scopes, rate-limit headers, cursor pagination, stable errors, OpenAPI metadata, and audit logging. Mixing them would make the public contract inherit internal UI churn.
+
+**Why Authorization Code + PKCE for web apps and Device Grant for CLI?** Browser/web integrations can redirect through a consent screen and use PKCE to bind the code to the original client. CLIs cannot safely host a browser redirect or keep a client secret, so Device Grant gives a user-code approval flow designed for terminals.
+
+**Why generated OpenAPI?** The spec is the platform contract. A hand-written spec will drift from handlers. Route metadata plus Zod schemas lets the server, docs, tests, and SDK parity checks all read from the same source of truth.
+
+**Why in-memory webhooks for MVP?** The PRD allows an in-process must-ship implementation. The interface shape (`IEventBus`, `IWebhookDeliverer`) lets us prove signing, logging, retry, DLQ, and replay without adding Redis/SQS operational risk during the learning sprint.
+
+**Why make FleetGraph an OAuth app?** It proves Ship is actually a platform. The agent should not have a privileged shortcut that external developers cannot use. Going through OAuth + SDK gives scopes, rate limits, and audit rows for the agent just like any other integration.
