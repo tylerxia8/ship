@@ -20,6 +20,7 @@ async function main() {
   // Now import app after secrets are loaded
   const { createApp } = await import('./app.js');
   const { setupCollaboration } = await import('./collaboration/index.js');
+  const { startWebhookRetryWorker } = await import('./platform/webhooks.js');
 
   const PORT = process.env.PORT || 3000;
   const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
@@ -34,6 +35,10 @@ async function main() {
 
   // Setup WebSocket collaboration server (with Origin allow-list)
   setupCollaboration(server, CORS_ORIGIN);
+
+  // Process Plugforge webhook retries in-process for MVP. The retry state is
+  // persisted in Postgres, so this can move to a separate worker later.
+  startWebhookRetryWorker();
 
   // Start server
   server.listen(PORT, () => {

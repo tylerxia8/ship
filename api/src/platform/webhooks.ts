@@ -152,6 +152,17 @@ export async function processDueWebhookDeliveries(limit = 25): Promise<number> {
   return result.rowCount ?? 0;
 }
 
+export function startWebhookRetryWorker(intervalMs = 15_000): NodeJS.Timeout {
+  const timer = setInterval(() => {
+    processDueWebhookDeliveries().catch((err) => {
+      console.error('[plugforge/webhooks] retry worker failed:', err);
+    });
+  }, intervalMs);
+
+  timer.unref?.();
+  return timer;
+}
+
 export async function publishWebhookEvent(input: PublishWebhookEventInput): Promise<string> {
   const eventResult = await pool.query<WebhookEventInsertRow>(
     `INSERT INTO webhook_events (workspace_id, event_type, payload, idempotency_key)
