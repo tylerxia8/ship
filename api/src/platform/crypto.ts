@@ -26,6 +26,16 @@ export function generateRefreshToken(): string {
   return `${REFRESH_PREFIX}${crypto.randomBytes(32).toString('base64url')}`;
 }
 
+export function generateDeviceCode(): string {
+  return `ship_dc_${crypto.randomBytes(32).toString('base64url')}`;
+}
+
+export function generateUserCode(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const chars = Array.from({ length: 8 }, () => alphabet[crypto.randomInt(alphabet.length)]);
+  return `${chars.slice(0, 4).join('')}-${chars.slice(4).join('')}`;
+}
+
 export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }

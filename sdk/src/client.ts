@@ -1,6 +1,7 @@
 import { DocumentsClient, type Transport } from './documents.js';
+import { deviceLogin } from './auth.js';
 import { ShipSDKError, kindForStatus, type ShipApiErrorBody } from './errors.js';
-import type { ShipClientOptions, ShipMe } from './types.js';
+import type { DeviceLoginOptions, OAuthTokenResponse, ShipClientOptions, ShipMe } from './types.js';
 
 export class ShipClient implements Transport {
   readonly documents: DocumentsClient;
@@ -13,6 +14,10 @@ export class ShipClient implements Transport {
     this.token = options.token;
     this.fetchImpl = options.fetch ?? fetch;
     this.documents = new DocumentsClient(this);
+  }
+
+  static deviceLogin(options: DeviceLoginOptions): Promise<OAuthTokenResponse> {
+    return deviceLogin(options);
   }
 
   me(): Promise<ShipMe> {

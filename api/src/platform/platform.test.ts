@@ -26,8 +26,10 @@ describe('Plugforge public API foundation', () => {
   let accessToken: string;
 
   beforeAll(async () => {
-    const migrationSql = readFileSync(join(__dirname, '../db/migrations/041_plugforge_platform.sql'), 'utf8');
-    await pool.query(migrationSql);
+    const migration041Sql = readFileSync(join(__dirname, '../db/migrations/041_plugforge_platform.sql'), 'utf8');
+    const migration042Sql = readFileSync(join(__dirname, '../db/migrations/042_device_code_consumed_at.sql'), 'utf8');
+    await pool.query(migration041Sql);
+    await pool.query(migration042Sql);
 
     const workspace = await pool.query(
       'INSERT INTO workspaces (name) VALUES ($1) RETURNING id',
@@ -178,6 +180,91 @@ describe('Plugforge public API foundation', () => {
     expect(tokenResponse.body.access_token).toMatch(/^ship_at_/);
     expect(tokenResponse.body.refresh_token).toMatch(/^ship_rt_/);
     expect(tokenResponse.body.scope).toBe('documents:read documents:write');
+  });
+
+  it('completes Device Authorization Grant with pending and slow_down branches', async () => {
+    const deviceCodeResponse = await request(app)
+      .post('/oauth/device/code')
+      .send({
+        client_id: clientId,
+        scope: 'documents:read',
+      });
+
+    expect(deviceCodeResponse.status).toBe(200);
+    expect(deviceCodeResponse.body.device_code).toMatch(/^ship_dc_/);
+    expect(deviceCodeResponse.body.user_code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    expect(deviceCodeResponse.body.interval).toBe(5);
+
+    const pendingResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+        client_id: clientId,
+        device_code: deviceCodeResponse.body.device_code,
+      });
+
+    expect(pendingResponse.status).toBe(400);
+    expect(pendingResponse.body.code).toBe('authorization_pending');
+
+    const slowDownResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+        client_id: clientId,
+        device_code: deviceCodeResponse.body.device_code,
+      });
+
+    expect(slowDownResponse.status).toBe(400);
+    expect(slowDownResponse.body.code).toBe('slow_down');
+
+    const verifyResponse = await request(app)
+      .post('/oauth/device/verify')
+      .set('Cookie', sessionCookie)
+      .send({
+        user_code: ` ${deviceCodeResponse.body.user_code.toLowerCase()} `,
+        approve: 'true',
+      });
+
+    expect(verifyResponse.status).toBe(200);
+    expect(verifyResponse.body.approved).toBe(true);
+
+    await pool.query(
+      `UPDATE oauth_device_codes
+          SET last_polled_at = NOW() - INTERVAL '30 seconds'
+        WHERE device_code_hash = $1`,
+      [hashToken(deviceCodeResponse.body.device_code)],
+    );
+
+    const tokenResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+        client_id: clientId,
+        device_code: deviceCodeResponse.body.device_code,
+      });
+
+    expect(tokenResponse.status).toBe(200);
+    expect(tokenResponse.body.access_token).toMatch(/^ship_at_/);
+    expect(tokenResponse.body.refresh_token).toMatch(/^ship_rt_/);
+    expect(tokenResponse.body.scope).toBe('documents:read');
+
+    const meResponse = await request(app)
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${tokenResponse.body.access_token}`);
+
+    expect(meResponse.status).toBe(200);
+    expect(meResponse.body.workspace.id).toBe(workspaceId);
+
+    const replayResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+        client_id: clientId,
+        device_code: deviceCodeResponse.body.device_code,
+      });
+
+    expect(replayResponse.status).toBe(400);
+    expect(replayResponse.body.code).toBe('invalid_grant');
   });
 
   it('returns ApiError shape for missing bearer token', async () => {

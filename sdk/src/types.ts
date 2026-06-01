@@ -4,6 +4,32 @@ export interface ShipClientOptions {
   fetch?: typeof fetch;
 }
 
+export interface DeviceCodeResponse {
+  device_code: string;
+  user_code: string;
+  verification_uri: string;
+  expires_in: number;
+  interval: number;
+}
+
+export interface OAuthTokenResponse {
+  token_type: 'Bearer';
+  access_token: string;
+  expires_in: number;
+  refresh_token: string;
+  scope: string;
+}
+
+export interface DeviceLoginOptions {
+  clientId: string;
+  scope?: string;
+  shipUrl?: string;
+  fetch?: typeof fetch;
+  signal?: AbortSignal;
+  pollIntervalMs?: number;
+  onCode?: (code: DeviceCodeResponse) => void | Promise<void>;
+}
+
 export interface ShipUser {
   id: string;
   email: string;

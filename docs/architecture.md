@@ -29,8 +29,10 @@ Tuesday MVP is intentionally narrower than the final platform. The MVP must prov
 - Consistent `ApiError` shape with `request_id`.
 - Generated `/api/v1/openapi.json`.
 - SDK skeleton where `new ShipClient({ token }).me()` works against a running server.
+- Device Authorization Grant for CLI-style integrations, including `authorization_pending`
+  and `slow_down` branches.
 
-Post-MVP scope adds Device Grant, webhooks, CLI, TTFE drill, developer portal, rate-limit hardening, and FleetGraph's agent-as-citizen rewire. The defense is that OAuth + public API correctness is the foundation; webhooks and CLI become meaningful only after tokens, scopes, errors, and OpenAPI are stable.
+Post-MVP scope adds webhooks, CLI, TTFE drill, developer portal, rate-limit hardening, and FleetGraph's agent-as-citizen rewire. The defense is that OAuth + public API correctness is the foundation; webhooks and CLI become meaningful only after tokens, scopes, errors, and OpenAPI are stable.
 
 ## Module Layout
 
@@ -306,8 +308,11 @@ Auth helpers:
 
 ```ts
 await ShipClient.deviceLogin({
-  onUserCode: (code, url) => console.log(code, url),
-  tokenStore,
+  clientId: "ship_app_...",
+  scope: "documents:read documents:write",
+  onCode: ({ user_code, verification_uri }) => {
+    console.log(`Open ${verification_uri} and enter ${user_code}`);
+  },
 });
 ```
 
