@@ -11,6 +11,8 @@ export type {
   DeviceLoginOptions,
   OAuthTokenResponse,
   Page,
+  PublicScope,
+  PublicScopeDefinition,
   RefreshTokenOptions,
   RotateWebhookSubscriptionSecretResponse,
   ShipClientOptions,

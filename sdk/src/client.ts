@@ -1,7 +1,7 @@
 import { DocumentsClient, type Transport } from './documents.js';
 import { deviceLogin, refreshAccessToken } from './auth.js';
 import { ShipSDKError, kindForStatus, type ShipApiErrorBody } from './errors.js';
-import type { DeviceLoginOptions, OAuthTokenResponse, RefreshTokenOptions, ShipClientOptions, ShipMe } from './types.js';
+import type { DeviceLoginOptions, OAuthTokenResponse, Page, PublicScopeDefinition, RefreshTokenOptions, ShipClientOptions, ShipMe } from './types.js';
 import { WebhooksClient } from './webhook-client.js';
 
 export class ShipClient implements Transport {
@@ -29,6 +29,10 @@ export class ShipClient implements Transport {
 
   me(): Promise<ShipMe> {
     return this.request<ShipMe>('/me');
+  }
+
+  scopes(): Promise<Page<PublicScopeDefinition>> {
+    return this.request<Page<PublicScopeDefinition>>('/scopes');
   }
 
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {

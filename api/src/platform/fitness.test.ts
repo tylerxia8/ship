@@ -39,7 +39,11 @@ describe('Plugforge platform fitness checks', () => {
   it('keeps public OpenAPI paths paired with SDK client methods', () => {
     const documentsClient = readRepo('sdk/src/documents.ts');
     const webhooksClient = readRepo('sdk/src/webhook-client.ts');
+    const rootClient = readRepo('sdk/src/client.ts');
     const paths = publicOpenApiDocument.paths;
+
+    expect(paths['/scopes'].get['x-required-scope']).toBeNull();
+    expect(rootClient).toContain('scopes(');
 
     expect(paths['/documents'].get['x-required-scope']).toBe('documents:read');
     expect(documentsClient).toContain('list(');

@@ -31,6 +31,25 @@ export const publicOpenApiDocument = {
           next_cursor: { type: ['string', 'null'] },
         },
       },
+      ScopeDefinition: {
+        type: 'object',
+        required: ['name', 'description'],
+        properties: {
+          name: {
+            type: 'string',
+            enum: ['documents:read', 'documents:write', 'issues:read', 'issues:write', 'sprints:read', 'sprints:write', 'webhooks:manage'],
+          },
+          description: { type: 'string' },
+        },
+      },
+      PageOfScopes: {
+        type: 'object',
+        required: ['data', 'next_cursor'],
+        properties: {
+          data: { type: 'array', items: { $ref: '#/components/schemas/ScopeDefinition' } },
+          next_cursor: { type: ['string', 'null'] },
+        },
+      },
       Document: {
         type: 'object',
         required: ['id', 'workspace_id', 'document_type', 'title', 'properties', 'created_at', 'updated_at'],
@@ -69,6 +88,17 @@ export const publicOpenApiDocument = {
         responses: {
           '200': { description: 'Authenticated user and app context' },
           '401': { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } } },
+        },
+      },
+    },
+    '/scopes': {
+      get: {
+        tags: ['Scopes'],
+        summary: 'List public API scopes',
+        'x-required-scope': null,
+        security: [],
+        responses: {
+          '200': { description: 'Public scope registry', content: { 'application/json': { schema: { $ref: '#/components/schemas/PageOfScopes' } } } },
         },
       },
     },

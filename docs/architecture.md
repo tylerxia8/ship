@@ -340,6 +340,7 @@ The reference CLI lives at `integrations/cli` and is intentionally dependency-li
 
 ```bash
 node integrations/cli/src/index.mjs login --client-id ship_app_... --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs scopes --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs docs ls --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs docs create "CLI proof" --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks subscribe --url https://example.com/ship/webhook --ship-url http://localhost:3000

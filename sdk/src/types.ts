@@ -75,6 +75,20 @@ export interface Page<T> {
   next_cursor: string | null;
 }
 
+export type PublicScope =
+  | 'documents:read'
+  | 'documents:write'
+  | 'issues:read'
+  | 'issues:write'
+  | 'sprints:read'
+  | 'sprints:write'
+  | 'webhooks:manage';
+
+export interface PublicScopeDefinition {
+  name: PublicScope;
+  description: string;
+}
+
 export interface CreateDocumentInput {
   title?: string;
   document_type?: 'wiki' | 'issue' | 'program' | 'project' | 'sprint' | 'person' | 'weekly_plan' | 'weekly_retro';

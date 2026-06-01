@@ -21,6 +21,7 @@ function usage() {
 
 Usage:
   ship login --client-id <id> [--ship-url <url>] [--scope <scopes>]
+  ship scopes [--ship-url <url>]
   ship me [--ship-url <url>]
   ship docs ls [--ship-url <url>]
   ship docs create <title> [--ship-url <url>]
@@ -210,6 +211,11 @@ async function main() {
 
   if (command === 'login') {
     await login([subcommand, ...rest].filter(Boolean));
+    return;
+  }
+
+  if (command === 'scopes') {
+    console.log(JSON.stringify(await requestJson(shipUrl, '/api/v1/scopes'), null, 2));
     return;
   }
 

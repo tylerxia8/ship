@@ -142,10 +142,28 @@ describe('Plugforge public API foundation', () => {
     expect(response.status).toBe(200);
     expect(response.headers['ratelimit-limit']).toBeDefined();
     expect(response.body.openapi).toBe('3.1.0');
+    expect(response.body.paths['/scopes'].get['x-required-scope']).toBeNull();
     expect(response.body.paths['/documents'].get['x-required-scope']).toBe('documents:read');
     expect(response.body.paths['/documents'].post['x-required-scope']).toBe('documents:write');
     expect(response.body.paths['/webhooks/subscriptions'].post['x-required-scope']).toBe('webhooks:manage');
     expect(response.body.paths['/webhooks/deliveries'].get['x-required-scope']).toBe('webhooks:manage');
+  });
+
+  it('serves the public scope registry without a bearer token', async () => {
+    const response = await request(app).get('/api/v1/scopes');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        name: 'documents:read',
+        description: expect.any(String),
+      }),
+      expect.objectContaining({
+        name: 'webhooks:manage',
+        description: expect.any(String),
+      }),
+    ]));
+    expect(response.body.next_cursor).toBeNull();
   });
 
   it('registers an OAuth app and shows the raw secret once', async () => {
