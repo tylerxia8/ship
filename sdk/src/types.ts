@@ -93,6 +93,22 @@ export interface ShipWebhookSubscription {
   updated_at: string;
 }
 
+export interface ShipWebhookDelivery {
+  id: string;
+  subscription_id: string;
+  event_id: string;
+  event_type: WebhookEventType;
+  attempt_number: number;
+  response_status: number | null;
+  response_excerpt: string | null;
+  latency_ms: number | null;
+  idempotency_key: string;
+  status: 'delivered' | 'retry_pending' | 'dead_letter';
+  next_attempt_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+}
+
 export interface CreateWebhookSubscriptionInput {
   event_type: WebhookEventType;
   target_url: string;

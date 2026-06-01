@@ -342,6 +342,7 @@ node integrations/cli/src/index.mjs login --client-id ship_app_... --ship-url ht
 node integrations/cli/src/index.mjs docs ls --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs docs create "CLI proof" --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks subscribe --url https://example.com/ship/webhook --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:3000
 ```
 
 `SHIP_TOKEN` can override the local token store for repeatable demos. By default, successful device login stores tokens in `~/.ship/plugforge-cli.json`.
@@ -388,7 +389,9 @@ sequenceDiagram
 
 **Subscriber signing secret rotated mid-flight.** New deliveries use the new secret. Old delivery rows record which subscription and attempt were used. MVP does not support dual-secret grace periods, so a subscriber must update its secret before expecting future signatures to verify.
 
-**Queue deliverer crashes.** MVP in-memory delivery is process-local and therefore not durable across crash. The interface is designed for a queue-backed deliverer that persists pending deliveries before send. Subscribers must treat delivery as at-least-once and dedupe by idempotency key.
+**Queue deliverer crashes.** MVP in-memory delivery is process-local and therefore not durable across crash. Every delivery attempt is persisted with status, response, latency, and next retry time, so the retry scanner can resume visible failures after the process is healthy. Subscribers must treat delivery as at-least-once and dedupe by idempotency key.
+
+**Webhook retries.** Transient failures (`5xx`, `429`, or network errors) become `retry_pending` with the schedule `1s, 4s, 16s, 1m, 5m, 30m`. Permanent `4xx` failures go straight to `dead_letter`. After six attempts, transient failures also move to `dead_letter`. Replay preserves the original event idempotency key.
 
 **OpenAPI generator throws at boot.** Fail fast in non-production/test. In production, serve the last generated static `docs/openapi.json` only if available and log an error; do not silently serve a partial spec.
 

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { hashToken } from './crypto.js';
+import { processDueWebhookDeliveries } from './webhooks.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -125,6 +126,7 @@ describe('Plugforge public API foundation', () => {
     expect(response.body.paths['/documents'].get['x-required-scope']).toBe('documents:read');
     expect(response.body.paths['/documents'].post['x-required-scope']).toBe('documents:write');
     expect(response.body.paths['/webhooks/subscriptions'].post['x-required-scope']).toBe('webhooks:manage');
+    expect(response.body.paths['/webhooks/deliveries'].get['x-required-scope']).toBe('webhooks:manage');
   });
 
   it('registers an OAuth app and shows the raw secret once', async () => {
@@ -418,6 +420,94 @@ describe('Plugforge public API foundation', () => {
         status: 'delivered',
         response_status: 204,
         attempt_number: 1,
+      });
+    } finally {
+      await new Promise<void>((resolve) => receiver.close(() => resolve()));
+    }
+  });
+
+  it('schedules retry_pending webhooks and processes due retries', async () => {
+    let fail = true;
+    const received: string[] = [];
+    const receiver = http.createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        received.push(Buffer.concat(chunks).toString('utf8'));
+        if (fail) {
+          res.writeHead(500).end('temporary failure');
+        } else {
+          res.writeHead(204).end();
+        }
+      });
+    });
+
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+    const address = receiver.address();
+    if (!address || typeof address === 'string') throw new Error('Expected receiver port');
+
+    try {
+      const webhookToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+        [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:write', 'webhooks:manage']],
+      );
+
+      await request(app)
+        .post('/api/v1/webhooks/subscriptions')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({
+          event_type: 'document.created',
+          target_url: `http://127.0.0.1:${address.port}/ship-webhook-retry`,
+        })
+        .expect(201);
+
+      const createResponse = await request(app)
+        .post('/api/v1/documents')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({ title: 'Webhook Retry Proof' })
+        .expect(201);
+
+      const pending = await pool.query(
+        `SELECT id, status, response_status, attempt_number, next_attempt_at
+           FROM webhook_deliveries
+          WHERE idempotency_key = $1
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [`document.created:${createResponse.body.data.id}`],
+      );
+      expect(pending.rows[0]).toMatchObject({
+        status: 'retry_pending',
+        response_status: 500,
+        attempt_number: 1,
+      });
+      expect(pending.rows[0].next_attempt_at).toBeTruthy();
+
+      fail = false;
+      await pool.query(
+        `UPDATE webhook_deliveries
+            SET next_attempt_at = NOW() - INTERVAL '1 second'
+          WHERE id = $1`,
+        [pending.rows[0].id],
+      );
+
+      const processed = await processDueWebhookDeliveries();
+      expect(processed).toBeGreaterThanOrEqual(1);
+      expect(received).toHaveLength(2);
+
+      const deliveriesResponse = await request(app)
+        .get('/api/v1/webhooks/deliveries')
+        .set('Authorization', `Bearer ${webhookToken}`);
+
+      expect(deliveriesResponse.status).toBe(200);
+      expect(deliveriesResponse.body.data[0]).toMatchObject({
+        status: 'delivered',
+        response_status: 204,
+        attempt_number: 2,
       });
     } finally {
       await new Promise<void>((resolve) => receiver.close(() => resolve()));

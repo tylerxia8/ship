@@ -4,6 +4,9 @@ import { signWebhookPayload } from './crypto.js';
 export const WEBHOOK_EVENTS = ['document.created'] as const;
 export type WebhookEventType = typeof WEBHOOK_EVENTS[number];
 
+const RETRY_DELAYS_SECONDS = [1, 4, 16, 60, 300, 1800] as const;
+const MAX_ATTEMPTS = RETRY_DELAYS_SECONDS.length;
+
 interface WebhookSubscriptionRow {
   id: string;
   target_url: string;
@@ -36,6 +39,19 @@ function responseExcerpt(text: string): string {
   return text.slice(0, 1000);
 }
 
+function deliveryStatus(responseStatus: number | null, ok: boolean, attemptNumber: number): string {
+  if (ok) return 'delivered';
+  if (responseStatus !== null && responseStatus >= 400 && responseStatus < 500 && responseStatus !== 429) {
+    return 'dead_letter';
+  }
+  return attemptNumber >= MAX_ATTEMPTS ? 'dead_letter' : 'retry_pending';
+}
+
+function nextAttemptDelaySeconds(attemptNumber: number): number | null {
+  if (attemptNumber >= MAX_ATTEMPTS) return null;
+  return RETRY_DELAYS_SECONDS[attemptNumber] ?? null;
+}
+
 export async function deliverWebhook(subscriptionId: string, eventId: string): Promise<void> {
   const result = await pool.query<WebhookDeliveryRow>(
     `SELECT s.id, s.target_url, s.signing_secret,
@@ -63,6 +79,7 @@ export async function deliverWebhook(subscriptionId: string, eventId: string): P
   let responseStatus: number | null = null;
   let responseText = '';
   let status = 'failed';
+  let ok = false;
 
   try {
     const response = await fetch(row.target_url, {
@@ -78,17 +95,23 @@ export async function deliverWebhook(subscriptionId: string, eventId: string): P
     });
     responseStatus = response.status;
     responseText = await response.text();
-    status = response.ok ? 'delivered' : (response.status >= 500 || response.status === 429 ? 'retry_pending' : 'dead_letter');
+    ok = response.ok;
+    status = deliveryStatus(responseStatus, ok, attemptNumber);
   } catch (err) {
     responseText = err instanceof Error ? err.message : 'Webhook delivery failed';
-    status = 'retry_pending';
+    status = deliveryStatus(null, false, attemptNumber);
   }
 
+  const nextDelaySeconds = status === 'retry_pending' ? nextAttemptDelaySeconds(attemptNumber) : null;
   await pool.query(
     `INSERT INTO webhook_deliveries
       (subscription_id, event_id, attempt_number, response_status, response_excerpt,
-       latency_ms, idempotency_key, status, delivered_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $8 = 'delivered' THEN NOW() ELSE NULL END)`,
+       latency_ms, idempotency_key, status, next_attempt_at, delivered_at)
+     VALUES (
+       $1, $2, $3, $4, $5, $6, $7, $8,
+       CASE WHEN $9::int IS NULL THEN NULL ELSE NOW() + ($9::text || ' seconds')::interval END,
+       CASE WHEN $8 = 'delivered' THEN NOW() ELSE NULL END
+     )`,
     [
       subscriptionId,
       eventId,
@@ -98,8 +121,35 @@ export async function deliverWebhook(subscriptionId: string, eventId: string): P
       Date.now() - startedAt,
       row.idempotency_key,
       status,
+      nextDelaySeconds,
     ],
   );
+}
+
+export async function processDueWebhookDeliveries(limit = 25): Promise<number> {
+  const result = await pool.query<{ subscription_id: string; event_id: string }>(
+    `SELECT DISTINCT ON (d.subscription_id, d.event_id)
+            d.subscription_id, d.event_id
+       FROM webhook_deliveries d
+      WHERE d.status = 'retry_pending'
+        AND d.next_attempt_at <= NOW()
+        AND NOT EXISTS (
+          SELECT 1
+            FROM webhook_deliveries newer
+           WHERE newer.subscription_id = d.subscription_id
+             AND newer.event_id = d.event_id
+             AND newer.created_at > d.created_at
+        )
+      ORDER BY d.subscription_id, d.event_id, d.created_at ASC
+      LIMIT $1`,
+    [limit],
+  );
+
+  for (const row of result.rows) {
+    await deliverWebhook(row.subscription_id, row.event_id);
+  }
+
+  return result.rowCount ?? 0;
 }
 
 export async function publishWebhookEvent(input: PublishWebhookEventInput): Promise<string> {

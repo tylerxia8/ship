@@ -125,6 +125,16 @@ export const publicOpenApiDocument = {
         },
       },
     },
+    '/webhooks/deliveries': {
+      get: {
+        tags: ['Webhooks'],
+        summary: 'List webhook delivery attempts for the authenticated app',
+        'x-required-scope': 'webhooks:manage',
+        responses: {
+          '200': { description: 'Webhook delivery attempts page' },
+        },
+      },
+    },
     '/webhooks/deliveries/{id}/replay': {
       post: {
         tags: ['Webhooks'],

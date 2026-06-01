@@ -16,6 +16,8 @@ Usage:
   ship docs ls [--ship-url <url>]
   ship docs create <title> [--ship-url <url>]
   ship webhooks subscribe --url <target> [--event document.created] [--ship-url <url>]
+  ship webhooks deliveries [--ship-url <url>]
+  ship webhooks tail [--ship-url <url>] [--interval 2]
 
 Environment:
   SHIP_URL            Default Ship URL
@@ -185,6 +187,32 @@ async function main() {
       }),
     }), null, 2));
     return;
+  }
+
+  if (command === 'webhooks' && subcommand === 'deliveries') {
+    console.log(JSON.stringify(await api(shipUrl, '/webhooks/deliveries'), null, 2));
+    return;
+  }
+
+  if (command === 'webhooks' && subcommand === 'tail') {
+    const intervalMs = Math.max(1, Number(flags.interval || 2)) * 1000;
+    const seen = new Set();
+    while (true) {
+      const page = await api(shipUrl, '/webhooks/deliveries');
+      for (const delivery of [...page.data].reverse()) {
+        if (seen.has(delivery.id)) continue;
+        seen.add(delivery.id);
+        console.log([
+          delivery.created_at,
+          delivery.event_type,
+          delivery.status,
+          `attempt=${delivery.attempt_number}`,
+          `status=${delivery.response_status ?? 'n/a'}`,
+          delivery.idempotency_key,
+        ].join(' '));
+      }
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
   }
 
   usage();

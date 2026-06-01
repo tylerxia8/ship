@@ -15,6 +15,7 @@ export type {
   ShipClientOptions,
   ShipDocument,
   ShipMe,
+  ShipWebhookDelivery,
   ShipUser,
   ShipWebhookSubscription,
   ShipWorkspace,

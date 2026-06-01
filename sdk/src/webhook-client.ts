@@ -2,6 +2,7 @@ import type {
   CreateWebhookSubscriptionInput,
   CreateWebhookSubscriptionResponse,
   Page,
+  ShipWebhookDelivery,
   ShipWebhookSubscription,
 } from './types.js';
 
@@ -21,6 +22,10 @@ export class WebhooksClient {
       method: 'POST',
       body: JSON.stringify(input),
     });
+  }
+
+  listDeliveries(): Promise<Page<ShipWebhookDelivery>> {
+    return this.transport.request<Page<ShipWebhookDelivery>>('/webhooks/deliveries');
   }
 
   replayDelivery(deliveryId: string): Promise<{ replayed: true }> {
