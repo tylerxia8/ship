@@ -373,6 +373,14 @@ without returning `client_secret` or `client_secret_hash`, link to
 `/api/v1/openapi.json`, and display CLI commands for login, document creation,
 subscription creation, and webhook tailing.
 
+## Audit Evidence
+
+Every `/api/v1/*` response records a `public_api_audit_log` row with
+`request_id`, OAuth app identity, user/workspace identity, method, route,
+scope used, status, and latency. The Plugforge fitness suite asserts a
+`GET /api/v1/documents` call records `client_id`, `documents:read`, route, and
+status.
+
 ## Agent As Citizen
 
 Before:

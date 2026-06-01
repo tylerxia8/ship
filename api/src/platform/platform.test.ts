@@ -45,6 +45,23 @@ describe('Plugforge public API foundation', () => {
     return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
   }
 
+  async function waitForAuditRow(whereSql: string, params: unknown[]): Promise<Record<string, unknown>> {
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      const result = await pool.query(
+        `SELECT client_id, method, route, scope_used, status
+           FROM public_api_audit_log
+          WHERE ${whereSql}
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        params,
+      );
+      if (result.rows[0]) return result.rows[0];
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error('Timed out waiting for public API audit row');
+  }
+
   beforeAll(async () => {
     const migration041Sql = readFileSync(join(__dirname, '../db/migrations/041_plugforge_platform.sql'), 'utf8');
     const migration042Sql = readFileSync(join(__dirname, '../db/migrations/042_device_code_consumed_at.sql'), 'utf8');
@@ -555,5 +572,12 @@ describe('Plugforge public API foundation', () => {
     expect(listResponse.status).toBe(200);
     expect(Array.isArray(listResponse.body.data)).toBe(true);
     expect(listResponse.body.next_cursor).toBeDefined();
+
+    const auditRow = await waitForAuditRow(
+      'workspace_id = $1 AND client_id = $2 AND method = $3 AND scope_used = $4 AND status = $5',
+      [workspaceId, clientId, 'GET', 'documents:read', 200],
+    );
+
+    expect(auditRow.route).toBe('/api/v1/documents/');
   });
 });
