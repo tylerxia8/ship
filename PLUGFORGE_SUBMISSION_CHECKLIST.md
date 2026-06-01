@@ -46,8 +46,9 @@ The Plugforge fitness command covers:
 - Device Authorization Grant pending, slow-down, approve, consume, and replay paths.
 - Refresh token rotation and replay-triggered token family revocation.
 - Public scope registry.
+- Public webhook event registry.
 - Scope enforcement and missing-scope error details.
 - Signed `document.created` webhooks.
 - Webhook retry, delivery listing, replay, signing-secret rotation, and deactivation.
 - Public API audit evidence for `/api/v1/documents`.
-- SDK/OpenAPI parity for documents, scopes, and webhooks.
+- SDK/OpenAPI parity for documents, scopes, webhook event discovery, and webhook lifecycle routes.
