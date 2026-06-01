@@ -38,6 +38,7 @@ import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { setupSwagger } from './swagger.js';
 import { initializeCAIA } from './services/caia.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
+import { createPublicApiV1Router } from './platform/api-v1.js';
 
 // Validate SESSION_SECRET in production
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -182,6 +183,10 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   // Public feedback routes - no auth or CSRF required (must be before protected routes)
   app.use('/api/feedback', publicFeedbackRouter);
+
+  // Versioned public platform API. Session-authenticated app registration uses
+  // CSRF; OAuth bearer-token routes skip it in conditionalCsrf.
+  app.use('/api/v1', conditionalCsrf, createPublicApiV1Router());
 
   // Apply stricter rate limiting to login endpoint (brute force protection)
   app.use('/api/auth/login', loginLimiter);
