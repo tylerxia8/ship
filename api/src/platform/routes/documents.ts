@@ -46,6 +46,10 @@ router.get('/', publicBearerAuth, requireScope('documents:read'), async (req, re
 
     const auth = req.publicAuth!;
     const cursor = decodeCursor(parsed.data.cursor);
+    if (parsed.data.cursor && !cursor) {
+      throw new ApiError(400, 'validation_failed', 'Invalid documents cursor');
+    }
+
     const params: unknown[] = [auth.workspaceId, parsed.data.limit + 1];
     let where = `
       workspace_id = $1
@@ -61,7 +65,7 @@ router.get('/', publicBearerAuth, requireScope('documents:read'), async (req, re
 
     if (cursor) {
       params.push(cursor.timestamp, cursor.id);
-      where += ` AND (updated_at, id) < ($${params.length - 1}::timestamp, $${params.length}::uuid)`;
+      where += ` AND (updated_at, id) < ($${params.length - 1}::timestamptz, $${params.length}::uuid)`;
     }
 
     const result = await pool.query(

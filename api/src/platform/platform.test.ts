@@ -777,6 +777,48 @@ describe('Plugforge public API foundation', () => {
     expect(auditRow.route).toBe('/api/v1/documents/');
   });
 
+  it('paginates public documents with stable cursors and rejects invalid cursors', async () => {
+    const rows = [
+      ['Public Pagination Old', '2026-01-01T12:00:00.000Z'],
+      ['Public Pagination Middle', '2026-01-02T12:00:00.000Z'],
+      ['Public Pagination New', '2026-01-03T12:00:00.000Z'],
+    ];
+
+    for (const [title, timestamp] of rows) {
+      await pool.query(
+        `INSERT INTO documents
+          (workspace_id, document_type, title, created_by, visibility, created_at, updated_at)
+         VALUES ($1, 'weekly_retro', $2, $3, 'workspace', $4, $4)`,
+        [workspaceId, title, adminUserId, timestamp],
+      );
+    }
+
+    const invalidCursorResponse = await request(app)
+      .get('/api/v1/documents?cursor=not-a-cursor')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(invalidCursorResponse.status).toBe(400);
+    expect(invalidCursorResponse.body.code).toBe('validation_failed');
+
+    const firstPage = await request(app)
+      .get('/api/v1/documents?type=weekly_retro&limit=2')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(firstPage.status).toBe(200);
+    expect(firstPage.body.data.map((document: Record<string, unknown>) => document.title)).toEqual([
+      'Public Pagination New',
+      'Public Pagination Middle',
+    ]);
+    expect(firstPage.body.next_cursor).toEqual(expect.any(String));
+
+    const secondPage = await request(app)
+      .get(`/api/v1/documents?type=weekly_retro&limit=2&cursor=${encodeURIComponent(firstPage.body.next_cursor)}`)
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(secondPage.status).toBe(200);
+    expect(secondPage.body.data.map((document: Record<string, unknown>) => document.title)).toEqual([
+      'Public Pagination Old',
+    ]);
+    expect(secondPage.body.next_cursor).toBeNull();
+  });
+
   it('deactivates OAuth apps and immediately rejects their bearer tokens', async () => {
     const deactivatedToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
     await pool.query(
