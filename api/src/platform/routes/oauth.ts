@@ -391,7 +391,19 @@ router.post('/token', async (req, res, next) => {
       }
 
       if (tokenRow.used_at || tokenRow.invalidated_at) {
-        await pool.query('UPDATE oauth_token_families SET invalidated_at = COALESCE(invalidated_at, NOW()) WHERE id = $1', [tokenRow.token_family_id]);
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('UPDATE oauth_token_families SET invalidated_at = COALESCE(invalidated_at, NOW()) WHERE id = $1', [tokenRow.token_family_id]);
+          await client.query('UPDATE oauth_access_tokens SET revoked_at = COALESCE(revoked_at, NOW()) WHERE token_family_id = $1', [tokenRow.token_family_id]);
+          await client.query('UPDATE oauth_refresh_tokens SET revoked_at = COALESCE(revoked_at, NOW()) WHERE token_family_id = $1 AND revoked_at IS NULL', [tokenRow.token_family_id]);
+          await client.query('COMMIT');
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
         throw new ApiError(400, 'invalid_grant', 'Refresh token was already used');
       }
 

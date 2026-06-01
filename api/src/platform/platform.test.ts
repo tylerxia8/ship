@@ -329,6 +329,12 @@ describe('Plugforge public API foundation', () => {
     expect(replayResponse.status).toBe(400);
     expect(replayResponse.body.code).toBe('invalid_grant');
     expect(replayResponse.body.message).toBe('Refresh token was already used');
+
+    const revokedAccessResponse = await request(app)
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${rotateResponse.body.access_token}`);
+    expect(revokedAccessResponse.status).toBe(401);
+    expect(revokedAccessResponse.body.code).toBe('unauthorized');
   });
 
   it('completes Device Authorization Grant with pending and slow_down branches', async () => {

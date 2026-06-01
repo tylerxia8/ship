@@ -242,10 +242,11 @@ client -> /oauth/token grant_type=refresh_token
 token service checks token family and spent status
 old refresh token marked spent
 new access token and refresh token issued
-reuse of spent token invalidates the family
+reuse of spent token invalidates the family and revokes active access tokens
 ```
 
-This detects stolen refresh token replay.
+This detects stolen refresh token replay and shuts down the token family instead
+of leaving already-issued access tokens alive.
 
 ## Webhook Pipeline
 
