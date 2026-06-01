@@ -127,8 +127,8 @@ Public routes live only under `/api/v1/*`. Internal Ship routes remain under `/a
 external app
   -> /api/v1/documents
   -> request_id
+  -> rate limit headers
   -> bearer token auth
-  -> rate limit
   -> requireScope("documents:read")
   -> audit start
   -> document service / direct pg utility
@@ -390,6 +390,10 @@ sequenceDiagram
 **OAuth app owner deleted.** Deactivate the app and require admin transfer before reactivation. This is safer than leaving orphaned credentials active.
 
 **Rate limiter misconfigured.** Public API should default closed: conservative per-token limits and explicit headers on every response. Missing limiter config should not mean unlimited traffic.
+
+**Demo rate limit.** MVP uses an in-memory one-minute bucket with `RateLimit-Limit`,
+`RateLimit-Remaining`, and `RateLimit-Reset` headers on `/api/v1/*`. Production should
+swap this for Redis or another shared store so limits hold across instances.
 
 ## Risk Register
 

@@ -6,12 +6,14 @@ import webhooksRouter from './routes/webhooks.js';
 import { publicAuditMiddleware } from './audit.js';
 import { ApiError, publicApiErrorHandler, requestIdMiddleware } from './errors.js';
 import { servePublicOpenApi } from './openapi.js';
+import { publicRateLimit } from './ratelimit.js';
 import { ScopeRegistry } from './scopes.js';
 
 export function createPublicApiV1Router(): Router {
   const router = Router();
 
   router.use(requestIdMiddleware);
+  router.use(publicRateLimit);
   router.use(publicAuditMiddleware);
 
   router.get('/openapi.json', servePublicOpenApi);

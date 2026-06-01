@@ -119,9 +119,11 @@ describe('Plugforge public API foundation', () => {
     const response = await request(app).get('/api/v1/openapi.json');
 
     expect(response.status).toBe(200);
+    expect(response.headers['ratelimit-limit']).toBeDefined();
     expect(response.body.openapi).toBe('3.1.0');
     expect(response.body.paths['/documents'].get['x-required-scope']).toBe('documents:read');
     expect(response.body.paths['/documents'].post['x-required-scope']).toBe('documents:write');
+    expect(response.body.paths['/webhooks/subscriptions'].post['x-required-scope']).toBe('webhooks:manage');
   });
 
   it('registers an OAuth app and shows the raw secret once', async () => {
