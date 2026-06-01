@@ -253,6 +253,14 @@ describe('Plugforge public API foundation', () => {
     expect(deviceCodeResponse.body.user_code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
     expect(deviceCodeResponse.body.interval).toBe(5);
 
+    const verifyPageResponse = await request(app)
+      .get(`/oauth/device/verify?user_code=${encodeURIComponent(deviceCodeResponse.body.user_code)}`)
+      .set('Cookie', sessionCookie);
+
+    expect(verifyPageResponse.status).toBe(200);
+    expect(verifyPageResponse.text).toContain('Verify Ship Device');
+    expect(verifyPageResponse.text).toContain(deviceCodeResponse.body.user_code);
+
     const pendingResponse = await request(app)
       .post('/oauth/token')
       .send({

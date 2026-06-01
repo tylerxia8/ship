@@ -124,6 +124,15 @@ function parseScopeParam(scope: string | undefined): string[] {
   return scope?.split(/\s+/).map((s) => s.trim()).filter(Boolean) ?? [];
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function getActiveApp(clientId: string): Promise<OAuthAppRow> {
   const app = await queryOne<OAuthAppRow>(
     `SELECT id, workspace_id, client_id, client_secret_hash, redirect_uris,
@@ -505,6 +514,31 @@ router.post('/device/code', async (req, res, next) => {
   }
 });
 
+router.get('/device/verify', authMiddleware, async (req, res, next) => {
+  try {
+    const userCode = typeof req.query.user_code === 'string' ? req.query.user_code : '';
+    res.type('html').send(`<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Verify Ship Device</title></head>
+  <body>
+    <main>
+      <h1>Verify Ship Device</h1>
+      <form method="post" action="/oauth/device/verify">
+        <label>
+          Code
+          <input name="user_code" value="${escapeHtml(userCode)}" autocomplete="one-time-code" autofocus>
+        </label>
+        <input type="hidden" name="approve" value="true">
+        <button type="submit">Approve</button>
+      </form>
+    </main>
+  </body>
+</html>`);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/device/verify', authMiddleware, async (req, res, next) => {
   try {
     const parsed = deviceVerifyBodySchema.safeParse(req.body);
@@ -536,7 +570,11 @@ router.post('/device/verify', authMiddleware, async (req, res, next) => {
 
     if (parsed.data.approve !== 'true') {
       await pool.query('UPDATE oauth_device_codes SET denied_at = NOW() WHERE id = $1', [deviceRow.id]);
-      res.json({ approved: false });
+      if (req.is('application/x-www-form-urlencoded')) {
+        res.type('html').send('<!doctype html><html lang="en"><body><main><h1>Device denied</h1></main></body></html>');
+      } else {
+        res.json({ approved: false });
+      }
       return;
     }
 
@@ -544,7 +582,11 @@ router.post('/device/verify', authMiddleware, async (req, res, next) => {
       'UPDATE oauth_device_codes SET approved_user_id = $1, approved_at = NOW() WHERE id = $2',
       [req.userId, deviceRow.id],
     );
-    res.json({ approved: true });
+    if (req.is('application/x-www-form-urlencoded')) {
+      res.type('html').send('<!doctype html><html lang="en"><body><main><h1>Device approved</h1><p>You can return to your terminal.</p></main></body></html>');
+    } else {
+      res.json({ approved: true });
+    }
   } catch (err) {
     next(err);
   }

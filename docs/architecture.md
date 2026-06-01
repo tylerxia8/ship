@@ -346,6 +346,8 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:30
 ```
 
 `SHIP_TOKEN` can override the local token store for repeatable demos. By default, successful device login stores tokens in `~/.ship/plugforge-cli.json`.
+The CLI opens the browser-facing `/oauth/device/verify` approval flow, which is
+session-authenticated and supports prefilled `user_code` query parameters.
 
 ## TTFE Drill
 
