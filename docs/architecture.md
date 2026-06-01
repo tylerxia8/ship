@@ -82,7 +82,7 @@ Database changes live in numbered migrations under `api/src/db/migrations/`. Shi
 
 **Interface Segregation.** The SDK exposes resource clients: `client.documents`, `client.issues`, `client.sprints`, and `client.webhooks`. Consumers do not import one giant client with every method mixed together.
 
-**Dependency Inversion.** Public routes depend on domain/data services and platform interfaces, not on internal Express route handlers. Webhook publishing depends on `IEventBus`, not on a concrete queue. The CLI imports only `@ship/sdk`, not `api/src`.
+**Dependency Inversion.** Public routes depend on domain/data services and platform interfaces, not on internal Express route handlers. Webhook publishing depends on `IEventBus`, not on a concrete queue. The SDK and CLI talk only to `/api/v1` and `/oauth`; neither imports `api/src`.
 
 ## Composition Root
 
