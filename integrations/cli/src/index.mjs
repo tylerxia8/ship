@@ -7,6 +7,15 @@ const DEFAULT_SHIP_URL = process.env.SHIP_URL || 'http://localhost:3000';
 const CONFIG_PATH = process.env.SHIP_CLI_CONFIG || join(homedir(), '.ship', 'plugforge-cli.json');
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
 
+class ApiRequestError extends Error {
+  constructor(message, response, body) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = response.status;
+    this.body = body;
+  }
+}
+
 function usage() {
   console.log(`Ship Plugforge CLI
 
@@ -75,30 +84,74 @@ async function requestJson(shipUrl, path, options = {}) {
   if (!response.ok) {
     const message = body?.message || `Request failed with status ${response.status}`;
     const code = body?.code ? ` (${body.code})` : '';
-    throw new Error(`${message}${code}`);
+    throw new ApiRequestError(`${message}${code}`, response, body);
   }
   return body;
 }
 
-async function tokenFor(shipUrl) {
+async function tokenEntryFor(shipUrl) {
   if (process.env.SHIP_TOKEN) return process.env.SHIP_TOKEN;
   const config = await readConfig();
-  const token = config[shipUrl]?.access_token;
-  if (!token) {
+  const entry = config[shipUrl];
+  if (!entry?.access_token) {
     throw new Error(`Not logged in for ${shipUrl}. Run: ship login --client-id <id> --ship-url ${shipUrl}`);
   }
-  return token;
+  return entry;
+}
+
+async function refreshCliToken(shipUrl, entry) {
+  if (!entry?.client_id || !entry?.refresh_token) {
+    throw new Error(`Token expired for ${shipUrl}. Run: ship login --client-id <id> --ship-url ${shipUrl}`);
+  }
+
+  const refreshed = await requestJson(shipUrl, '/oauth/token', {
+    method: 'POST',
+    body: JSON.stringify({
+      grant_type: 'refresh_token',
+      client_id: entry.client_id,
+      refresh_token: entry.refresh_token,
+    }),
+  });
+
+  const config = await readConfig();
+  config[shipUrl] = { ...refreshed, client_id: entry.client_id };
+  await writeConfig(config);
+  return config[shipUrl];
+}
+
+function isExpiredTokenError(err) {
+  return err instanceof ApiRequestError
+    && err.status === 401
+    && err.body?.code === 'unauthorized'
+    && err.body?.details?.code === 'token_expired';
 }
 
 async function api(shipUrl, path, options = {}) {
-  const token = await tokenFor(shipUrl);
-  return requestJson(shipUrl, `/api/v1${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
+  const tokenEntry = await tokenEntryFor(shipUrl);
+  const token = typeof tokenEntry === 'string' ? tokenEntry : tokenEntry.access_token;
+
+  try {
+    return await requestJson(shipUrl, `/api/v1${path}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    });
+  } catch (err) {
+    if (typeof tokenEntry === 'string' || !isExpiredTokenError(err)) {
+      throw err;
+    }
+
+    const refreshed = await refreshCliToken(shipUrl, tokenEntry);
+    return requestJson(shipUrl, `/api/v1${path}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${refreshed.access_token}`,
+        ...(options.headers || {}),
+      },
+    });
+  }
 }
 
 async function login(args) {
@@ -131,7 +184,7 @@ async function login(args) {
     const body = await response.json();
     if (response.ok) {
       const config = await readConfig();
-      config[shipUrl] = body;
+      config[shipUrl] = { ...body, client_id: clientId };
       await writeConfig(config);
       console.log(`Logged in to ${shipUrl}`);
       return;

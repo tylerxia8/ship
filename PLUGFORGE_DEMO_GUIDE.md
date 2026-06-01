@@ -43,6 +43,8 @@ Use the reference CLI:
 node integrations/cli/src/index.mjs login --client-id ship_app_... --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs docs create "Plugforge demo document" --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks deliveries --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs webhooks rotate-secret <subscription-id> --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs webhooks deactivate <subscription-id> --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:3000
 ```
 
@@ -55,7 +57,8 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:30
    hashes."
 4. "The OpenAPI contract is served live and exported to `docs/openapi.json`."
 5. "The CLI uses Device Authorization Grant, so it does not need a client secret
-   or local callback server."
+   or local callback server. It refreshes expired access tokens with the stored
+   rotating refresh token."
 6. "Creating a document through the public API emits a signed
    `document.created` webhook."
 7. "Webhook delivery attempts are logged with status, response code, latency,
