@@ -17,6 +17,14 @@ import { parseScopes } from '../scopes.js';
 
 const router = Router();
 
+router.use((_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+  next();
+});
+
 const authorizeQuerySchema = z.object({
   response_type: z.literal('code'),
   client_id: z.string().min(1),

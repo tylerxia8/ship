@@ -258,6 +258,8 @@ describe('Plugforge public API foundation', () => {
       .set('Cookie', sessionCookie);
 
     expect(verifyPageResponse.status).toBe(200);
+    expect(verifyPageResponse.headers['x-frame-options']).toBe('DENY');
+    expect(verifyPageResponse.headers['cache-control']).toBe('no-store');
     expect(verifyPageResponse.text).toContain('Verify Ship Device');
     expect(verifyPageResponse.text).toContain(deviceCodeResponse.body.user_code);
 
