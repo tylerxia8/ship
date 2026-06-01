@@ -854,6 +854,12 @@ describe('Plugforge public API foundation', () => {
     const previousLimit = process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE;
     process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE = '2';
     clearPublicRateLimitBuckets();
+    const auditBefore = await pool.query(
+      `SELECT COUNT(*)::int AS count
+         FROM public_api_audit_log
+        WHERE route = '/api/v1/me'
+          AND status = 429`,
+    );
 
     try {
       const firstToken = `ship_at_rate_${crypto.randomBytes(16).toString('base64url')}`;
@@ -874,11 +880,25 @@ describe('Plugforge public API foundation', () => {
       expect(limitedResponse.status).toBe(429);
       expect(limitedResponse.body.code).toBe('rate_limited');
 
+      const auditRow = await waitForAuditRow(
+        'route = $1 AND status = $2 AND created_at >= NOW() - INTERVAL \'10 seconds\'',
+        ['/api/v1/me', 429],
+      );
+      expect(auditRow.status).toBe(429);
+
       const independentTokenResponse = await request(app)
         .get('/api/v1/me')
         .set('Authorization', `Bearer ${secondToken}`);
       expect(independentTokenResponse.status).toBe(401);
       expect(independentTokenResponse.headers['ratelimit-remaining']).toBe('1');
+
+      const auditAfter = await pool.query(
+        `SELECT COUNT(*)::int AS count
+           FROM public_api_audit_log
+          WHERE route = '/api/v1/me'
+            AND status = 429`,
+      );
+      expect(auditAfter.rows[0].count).toBeGreaterThan(auditBefore.rows[0].count);
     } finally {
       if (previousLimit === undefined) {
         delete process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE;

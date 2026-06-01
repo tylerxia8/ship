@@ -13,8 +13,8 @@ export function createPublicApiV1Router(): Router {
   const router = Router();
 
   router.use(requestIdMiddleware);
-  router.use(publicRateLimit);
   router.use(publicAuditMiddleware);
+  router.use(publicRateLimit);
 
   router.get('/openapi.json', servePublicOpenApi);
 

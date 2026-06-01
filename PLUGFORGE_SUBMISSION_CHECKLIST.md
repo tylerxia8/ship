@@ -49,6 +49,7 @@ The Plugforge fitness command covers:
 - Public webhook event registry.
 - Document cursor pagination and invalid-cursor errors.
 - Scope enforcement and missing-scope error details.
+- Rate-limit isolation by bearer token and audit evidence for 429 responses.
 - Signed `document.created` webhooks.
 - Webhook retry, delivery listing, replay, signing-secret rotation, and deactivation.
 - Public API audit evidence for `/api/v1/documents`.
