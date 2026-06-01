@@ -6,5 +6,9 @@
   "type": "module",
   "bin": {
     "ship": "./src/index.mjs"
+  },
+  "scripts": {
+    "build": "node src/index.mjs --help",
+    "smoke": "node src/index.mjs --help"
   }
 }
