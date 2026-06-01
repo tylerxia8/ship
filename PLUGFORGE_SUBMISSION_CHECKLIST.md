@@ -13,6 +13,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - CLI reference integration: `integrations/cli/src/index.mjs`
 - TTFE drill: `scripts/plugforge-ttfe-drill.mjs`
 - Demo walkthrough: `PLUGFORGE_DEMO_GUIDE.md`
+- Copyable API examples: `PLUGFORGE_API_EXAMPLES.md`
 
 ## Verification Commands
 

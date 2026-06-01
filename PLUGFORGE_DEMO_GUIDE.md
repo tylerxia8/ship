@@ -80,6 +80,7 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:30
 - `api/src/platform/fitness.test.ts` contains boundary and SDK parity checks.
 - `scripts/plugforge-ttfe-drill.mjs` proves time to first event.
 - `integrations/cli/src/index.mjs` is the reference integration.
+- `PLUGFORGE_API_EXAMPLES.md` contains copyable public API examples.
 
 ## Known Demo Notes
 
