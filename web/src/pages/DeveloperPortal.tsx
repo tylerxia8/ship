@@ -3,6 +3,7 @@ import { apiGet, apiPost } from '@/lib/api';
 
 interface CreatedApp {
   app: {
+    id: string;
     name: string;
     client_id: string;
     redirect_uris: string[];
@@ -10,6 +11,10 @@ interface CreatedApp {
   };
   client_secret: string;
   secret_display: 'shown_once';
+}
+
+interface SecretResult extends CreatedApp {
+  action: 'created' | 'rotated';
 }
 
 interface OAuthApp {
@@ -28,10 +33,11 @@ export function DeveloperPortalPage() {
   const [name, setName] = useState('Plugforge Demo App');
   const [redirectUri, setRedirectUri] = useState('https://example.com/callback');
   const [targetUrl, setTargetUrl] = useState('https://example.com/ship/webhook');
-  const [createdApp, setCreatedApp] = useState<CreatedApp | null>(null);
+  const [secretResult, setSecretResult] = useState<SecretResult | null>(null);
   const [apps, setApps] = useState<OAuthApp[]>([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [rotatingAppId, setRotatingAppId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadApps();
@@ -48,7 +54,7 @@ export function DeveloperPortalPage() {
     event.preventDefault();
     setSubmitting(true);
     setError('');
-    setCreatedApp(null);
+    setSecretResult(null);
 
     const response = await apiPost('/api/v1/oauth/apps', {
       name,
@@ -59,12 +65,30 @@ export function DeveloperPortalPage() {
     setSubmitting(false);
 
     if (!response.ok) {
-      setError(body.message || 'Could not create the OAuth app.');
+      setError(body.error?.message || body.message || 'Could not create the OAuth app.');
       return;
     }
 
-    setCreatedApp(body);
+    setSecretResult({ ...body, action: 'created' });
     setApps((previous) => [body.app, ...previous]);
+  }
+
+  async function rotateSecret(app: OAuthApp) {
+    setRotatingAppId(app.id);
+    setError('');
+    setSecretResult(null);
+
+    const response = await apiPost(`/api/v1/oauth/apps/${app.id}/rotate-secret`);
+    const body = await response.json();
+    setRotatingAppId(null);
+
+    if (!response.ok) {
+      setError(body.error?.message || body.message || 'Could not rotate the client secret.');
+      return;
+    }
+
+    setSecretResult({ ...body, action: 'rotated' });
+    setApps((previous) => previous.map((existing) => (existing.id === app.id ? body.app : existing)));
   }
 
   return (
@@ -134,7 +158,7 @@ export function DeveloperPortalPage() {
           <h2 className="text-base font-semibold text-foreground">Demo Commands</h2>
           <div className="mt-4 space-y-4">
             <CommandBlock title="1. Device login">
-              node integrations/cli/src/index.mjs login --client-id {createdApp?.app.client_id || 'ship_app_...'} --ship-url http://localhost:3000
+              node integrations/cli/src/index.mjs login --client-id {secretResult?.app.client_id || 'ship_app_...'} --ship-url http://localhost:3000
             </CommandBlock>
             <CommandBlock title="2. Create a document">
               node integrations/cli/src/index.mjs docs create "Plugforge webhook proof" --ship-url http://localhost:3000
@@ -144,20 +168,24 @@ export function DeveloperPortalPage() {
             </CommandBlock>
           </div>
 
-          {createdApp && (
+          {secretResult && (
             <div className="mt-6 border border-border bg-muted/5 p-4">
-              <h3 className="text-sm font-semibold text-foreground">OAuth app created</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                OAuth app {secretResult.action === 'created' ? 'created' : 'secret rotated'}
+              </h3>
               <dl className="mt-3 space-y-3 text-sm">
                 <div>
                   <dt className="text-muted">Client ID</dt>
-                  <dd className="break-all font-mono text-foreground">{createdApp.app.client_id}</dd>
+                  <dd className="break-all font-mono text-foreground">{secretResult.app.client_id}</dd>
                 </div>
                 <div>
                   <dt className="text-muted">Client secret</dt>
-                  <dd className="break-all font-mono text-foreground">{createdApp.client_secret}</dd>
+                  <dd className="break-all font-mono text-foreground">{secretResult.client_secret}</dd>
                 </div>
               </dl>
-              <p className="mt-3 text-xs text-muted">The client secret is shown once. Store it before leaving this page.</p>
+              <p className="mt-3 text-xs text-muted">
+                The client secret is shown once. Old secrets stop working immediately after rotation.
+              </p>
             </div>
           )}
 
@@ -173,9 +201,19 @@ export function DeveloperPortalPage() {
                       <div className="truncate text-sm font-medium text-foreground">{app.name}</div>
                       <div className="break-all font-mono text-xs text-muted">{app.client_id}</div>
                     </div>
-                    <span className="shrink-0 rounded border border-border px-2 py-1 text-xs text-muted">
-                      {app.active ? 'Active' : 'Inactive'}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void rotateSecret(app)}
+                        disabled={!app.active || rotatingAppId === app.id}
+                        className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {rotatingAppId === app.id ? 'Rotating...' : 'Rotate secret'}
+                      </button>
+                      <span className="rounded border border-border px-2 py-1 text-xs text-muted">
+                        {app.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {app.requested_scopes.map((scope) => (
