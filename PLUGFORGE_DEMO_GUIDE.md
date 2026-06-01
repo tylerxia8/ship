@@ -50,7 +50,7 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:30
 
 ## Demo Script
 
-1. "This week’s goal was to make Ship usable as a platform, not just an app."
+1. "This week's goal was to make Ship usable as a platform, not just an app."
 2. "The public boundary is `/api/v1`; internal Ship routes stay separate."
 3. "Here is the Developer Portal. A workspace admin can create an OAuth app, see
    the client secret once, and inspect registered apps without exposing secret
