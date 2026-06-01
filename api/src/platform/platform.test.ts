@@ -526,6 +526,94 @@ describe('Plugforge public API foundation', () => {
     }
   });
 
+  it('rotates and deactivates webhook subscriptions', async () => {
+    const received: Array<{ headers: http.IncomingHttpHeaders; body: string }> = [];
+    const receiver = http.createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        received.push({ headers: req.headers, body: Buffer.concat(chunks).toString('utf8') });
+        res.writeHead(204).end();
+      });
+    });
+
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+    const address = receiver.address();
+    if (!address || typeof address === 'string') throw new Error('Expected receiver port');
+
+    try {
+      const webhookToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+        [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:write', 'webhooks:manage']],
+      );
+
+      const subscriptionResponse = await request(app)
+        .post('/api/v1/webhooks/subscriptions')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({
+          event_type: 'document.created',
+          target_url: `http://127.0.0.1:${address.port}/ship-webhook-lifecycle`,
+        });
+
+      expect(subscriptionResponse.status).toBe(201);
+      const subscriptionId = subscriptionResponse.body.data.id;
+      const oldSecret = subscriptionResponse.body.signing_secret;
+
+      const rotateResponse = await request(app)
+        .post(`/api/v1/webhooks/subscriptions/${subscriptionId}/rotate-secret`)
+        .set('Authorization', `Bearer ${webhookToken}`);
+
+      expect(rotateResponse.status).toBe(200);
+      expect(rotateResponse.body.signing_secret).toMatch(/^ship_whsec_/);
+      expect(rotateResponse.body.signing_secret).not.toBe(oldSecret);
+      expect(rotateResponse.body.data.signing_secret).toBeUndefined();
+      expect(rotateResponse.body.data.signing_secret_hash).toBeUndefined();
+
+      await request(app)
+        .post('/api/v1/documents')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({ title: 'Webhook Rotation Proof' })
+        .expect(201);
+
+      expect(received).toHaveLength(1);
+      const rotatedRequest = received[0]!;
+      expect(verifyWebhookSignature(rotatedRequest.headers, rotatedRequest.body, oldSecret)).toBe(false);
+      expect(verifyWebhookSignature(rotatedRequest.headers, rotatedRequest.body, rotateResponse.body.signing_secret)).toBe(true);
+
+      const deliveriesBeforeDeactivate = await pool.query(
+        'SELECT COUNT(*)::int AS count FROM webhook_deliveries WHERE subscription_id = $1',
+        [subscriptionId],
+      );
+
+      const deactivateResponse = await request(app)
+        .post(`/api/v1/webhooks/subscriptions/${subscriptionId}/deactivate`)
+        .set('Authorization', `Bearer ${webhookToken}`);
+
+      expect(deactivateResponse.status).toBe(200);
+      expect(deactivateResponse.body.data.active).toBe(false);
+
+      await request(app)
+        .post('/api/v1/documents')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({ title: 'Webhook Deactivation Proof' })
+        .expect(201);
+
+      expect(received).toHaveLength(1);
+      const deliveriesAfterDeactivate = await pool.query(
+        'SELECT COUNT(*)::int AS count FROM webhook_deliveries WHERE subscription_id = $1',
+        [subscriptionId],
+      );
+      expect(deliveriesAfterDeactivate.rows[0].count).toBe(deliveriesBeforeDeactivate.rows[0].count);
+    } finally {
+      await new Promise<void>((resolve) => receiver.close(() => resolve()));
+    }
+  });
+
   it('schedules retry_pending webhooks and processes due retries', async () => {
     let fail = true;
     const received: string[] = [];

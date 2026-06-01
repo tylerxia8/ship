@@ -119,3 +119,5 @@ export interface CreateWebhookSubscriptionResponse {
   signing_secret: string;
   secret_display: 'shown_once';
 }
+
+export type RotateWebhookSubscriptionSecretResponse = CreateWebhookSubscriptionResponse;

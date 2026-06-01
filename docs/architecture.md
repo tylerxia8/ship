@@ -426,7 +426,7 @@ sequenceDiagram
 
 **Token store corrupted.** SDK treats unreadable token stores as logged-out state and asks the user to login again. It must not silently reuse partial tokens.
 
-**Subscriber signing secret rotated mid-flight.** New deliveries use the new secret. Old delivery rows record which subscription and attempt were used. MVP does not support dual-secret grace periods, so a subscriber must update its secret before expecting future signatures to verify.
+**Subscriber signing secret rotated mid-flight.** New deliveries use the new secret. Old delivery rows record which subscription and attempt were used. MVP does not support dual-secret grace periods, so a subscriber must update its secret before expecting future signatures to verify. A public app with `webhooks:manage` can also deactivate a subscription as an emergency stop; deactivation stops future fan-out without deleting historical delivery evidence.
 
 **Queue deliverer crashes.** MVP in-memory delivery is process-local and therefore not durable across crash. Every delivery attempt is persisted with status, response, latency, and next retry time, so the retry scanner can resume visible failures after the process is healthy. Subscribers must treat delivery as at-least-once and dedupe by idempotency key.
 

@@ -12,6 +12,7 @@ export type {
   OAuthTokenResponse,
   Page,
   RefreshTokenOptions,
+  RotateWebhookSubscriptionSecretResponse,
   ShipClientOptions,
   ShipDocument,
   ShipMe,

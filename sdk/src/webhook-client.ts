@@ -2,6 +2,7 @@ import type {
   CreateWebhookSubscriptionInput,
   CreateWebhookSubscriptionResponse,
   Page,
+  RotateWebhookSubscriptionSecretResponse,
   ShipWebhookDelivery,
   ShipWebhookSubscription,
 } from './types.js';
@@ -21,6 +22,18 @@ export class WebhooksClient {
     return this.transport.request<CreateWebhookSubscriptionResponse>('/webhooks/subscriptions', {
       method: 'POST',
       body: JSON.stringify(input),
+    });
+  }
+
+  rotateSubscriptionSecret(subscriptionId: string): Promise<RotateWebhookSubscriptionSecretResponse> {
+    return this.transport.request<RotateWebhookSubscriptionSecretResponse>(`/webhooks/subscriptions/${subscriptionId}/rotate-secret`, {
+      method: 'POST',
+    });
+  }
+
+  deactivateSubscription(subscriptionId: string): Promise<{ data: ShipWebhookSubscription }> {
+    return this.transport.request<{ data: ShipWebhookSubscription }>(`/webhooks/subscriptions/${subscriptionId}/deactivate`, {
+      method: 'POST',
     });
   }
 

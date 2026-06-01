@@ -95,6 +95,63 @@ router.post('/subscriptions', publicBearerAuth, requireScope('webhooks:manage'),
   }
 });
 
+router.post('/subscriptions/:id/rotate-secret', publicBearerAuth, requireScope('webhooks:manage'), async (req, res, next) => {
+  try {
+    const signingSecret = generateWebhookSecret();
+    const result = await pool.query(
+      `UPDATE webhook_subscriptions
+          SET signing_secret = $1, signing_secret_hash = $2, updated_at = NOW()
+        WHERE id = $3
+          AND workspace_id = $4
+          AND app_id = $5
+        RETURNING id, event_type, target_url, active, created_at, updated_at`,
+      [
+        signingSecret,
+        hashSecret(signingSecret),
+        req.params.id,
+        req.publicAuth!.workspaceId,
+        req.publicAuth!.appId,
+      ],
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new ApiError(404, 'not_found', 'Webhook subscription not found');
+    }
+
+    res.json({
+      data: publicSubscription(row),
+      signing_secret: signingSecret,
+      secret_display: 'shown_once',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/subscriptions/:id/deactivate', publicBearerAuth, requireScope('webhooks:manage'), async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `UPDATE webhook_subscriptions
+          SET active = FALSE, updated_at = NOW()
+        WHERE id = $1
+          AND workspace_id = $2
+          AND app_id = $3
+        RETURNING id, event_type, target_url, active, created_at, updated_at`,
+      [req.params.id, req.publicAuth!.workspaceId, req.publicAuth!.appId],
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new ApiError(404, 'not_found', 'Webhook subscription not found');
+    }
+
+    res.json({ data: publicSubscription(row) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/deliveries', publicBearerAuth, requireScope('webhooks:manage'), async (req, res, next) => {
   try {
     const result = await pool.query(

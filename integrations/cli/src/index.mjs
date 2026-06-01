@@ -16,6 +16,8 @@ Usage:
   ship docs ls [--ship-url <url>]
   ship docs create <title> [--ship-url <url>]
   ship webhooks subscribe --url <target> [--event document.created] [--ship-url <url>]
+  ship webhooks rotate-secret <subscription-id> [--ship-url <url>]
+  ship webhooks deactivate <subscription-id> [--ship-url <url>]
   ship webhooks deliveries [--ship-url <url>]
   ship webhooks tail [--ship-url <url>] [--interval 2]
 
@@ -185,6 +187,24 @@ async function main() {
         event_type: flags.event || 'document.created',
         target_url: flags.url,
       }),
+    }), null, 2));
+    return;
+  }
+
+  if (command === 'webhooks' && subcommand === 'rotate-secret') {
+    const subscriptionId = positional[0];
+    if (!subscriptionId) throw new Error('Missing subscription id');
+    console.log(JSON.stringify(await api(shipUrl, `/webhooks/subscriptions/${subscriptionId}/rotate-secret`, {
+      method: 'POST',
+    }), null, 2));
+    return;
+  }
+
+  if (command === 'webhooks' && subcommand === 'deactivate') {
+    const subscriptionId = positional[0];
+    if (!subscriptionId) throw new Error('Missing subscription id');
+    console.log(JSON.stringify(await api(shipUrl, `/webhooks/subscriptions/${subscriptionId}/deactivate`, {
+      method: 'POST',
     }), null, 2));
     return;
   }
