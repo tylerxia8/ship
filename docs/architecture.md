@@ -347,6 +347,20 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:30
 
 `SHIP_TOKEN` can override the local token store for repeatable demos. By default, successful device login stores tokens in `~/.ship/plugforge-cli.json`.
 
+## TTFE Drill
+
+The time-to-first-event drill proves the platform from a developer's point of
+view: create a webhook subscription, create a document, receive a signed
+`document.created` event, and confirm the delivery log.
+
+```bash
+SHIP_URL=http://localhost:3000 SHIP_TOKEN=ship_at_... node scripts/plugforge-ttfe-drill.mjs
+```
+
+The token must include `documents:write` and `webhooks:manage`. The script prints
+a JSON result with elapsed time, document id, subscription id, delivery id,
+delivery status, response status, and signature verification.
+
 ## Agent As Citizen
 
 Before:

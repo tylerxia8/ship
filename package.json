@@ -31,6 +31,7 @@
     "db:seed": "pnpm --filter @ship/api db:seed",
     "db:migrate": "pnpm --filter @ship/api db:migrate",
     "db:orphan-check": "pnpm --filter @ship/api db:orphan-check",
+    "plugforge:ttfe": "node scripts/plugforge-ttfe-drill.mjs",
     "prepare": "husky",
     "postinstall": "( git rev-parse --git-dir >/dev/null 2>&1 && git config merge.ours.driver true ) || true ; ( command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n' )"
   },
