@@ -39,6 +39,8 @@ import { setupSwagger } from './swagger.js';
 import { initializeCAIA } from './services/caia.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { createPublicApiV1Router } from './platform/api-v1.js';
+import oauthPlatformRoutes from './platform/routes/oauth.js';
+import { publicApiErrorHandler, requestIdMiddleware } from './platform/errors.js';
 
 // Validate SESSION_SECRET in production
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -183,6 +185,11 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   // Public feedback routes - no auth or CSRF required (must be before protected routes)
   app.use('/api/feedback', publicFeedbackRouter);
+
+  // OAuth endpoints for external applications. Token exchange is not
+  // session/CSRF authenticated; authorization and consent routes enforce the
+  // existing Ship session inside the router.
+  app.use('/oauth', requestIdMiddleware, oauthPlatformRoutes, publicApiErrorHandler);
 
   // Versioned public platform API. Session-authenticated app registration uses
   // CSRF; OAuth bearer-token routes skip it in conditionalCsrf.

@@ -3,6 +3,8 @@ import crypto from 'crypto';
 const SECRET_PREFIX = 'ship_sk_';
 const CLIENT_PREFIX = 'ship_app_';
 const TOKEN_PREFIX = 'ship_at_';
+const CODE_PREFIX = 'ship_code_';
+const REFRESH_PREFIX = 'ship_rt_';
 
 export function generateClientId(): string {
   return `${CLIENT_PREFIX}${crypto.randomBytes(16).toString('hex')}`;
@@ -16,8 +18,20 @@ export function generateAccessToken(): string {
   return `${TOKEN_PREFIX}${crypto.randomBytes(32).toString('base64url')}`;
 }
 
+export function generateAuthorizationCode(): string {
+  return `${CODE_PREFIX}${crypto.randomBytes(32).toString('base64url')}`;
+}
+
+export function generateRefreshToken(): string {
+  return `${REFRESH_PREFIX}${crypto.randomBytes(32).toString('base64url')}`;
+}
+
 export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+export function pkceS256(verifier: string): string {
+  return crypto.createHash('sha256').update(verifier).digest('base64url');
 }
 
 export function hashSecret(secret: string, salt = crypto.randomBytes(16).toString('hex')): string {
