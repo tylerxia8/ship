@@ -13,6 +13,13 @@ function readRepo(path: string): string {
 }
 
 describe('Plugforge platform fitness checks', () => {
+  it('keeps the generated OpenAPI artifact in sync with the public contract', () => {
+    const generated = readRepo('docs/openapi.json');
+    const expected = `${JSON.stringify(publicOpenApiDocument, null, 2)}\n`;
+
+    expect(generated).toBe(expected);
+  });
+
   it('keeps public platform routes from importing internal Express route handlers', () => {
     const platformRouteFiles = [
       'api/src/platform/api-v1.ts',

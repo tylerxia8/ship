@@ -557,7 +557,7 @@ describe('Plugforge public API foundation', () => {
         [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:write', 'webhooks:manage']],
       );
 
-      await request(app)
+      const subscriptionResponse = await request(app)
         .post('/api/v1/webhooks/subscriptions')
         .set('Authorization', `Bearer ${webhookToken}`)
         .send({
@@ -576,9 +576,10 @@ describe('Plugforge public API foundation', () => {
         `SELECT id, status, response_status, attempt_number, next_attempt_at
            FROM webhook_deliveries
           WHERE idempotency_key = $1
+            AND subscription_id = $2
           ORDER BY created_at DESC
           LIMIT 1`,
-        [`document.created:${createResponse.body.data.id}`],
+        [`document.created:${createResponse.body.data.id}`, subscriptionResponse.body.data.id],
       );
       expect(pending.rows[0]).toMatchObject({
         status: 'retry_pending',
@@ -604,7 +605,11 @@ describe('Plugforge public API foundation', () => {
         .set('Authorization', `Bearer ${webhookToken}`);
 
       expect(deliveriesResponse.status).toBe(200);
-      expect(deliveriesResponse.body.data[0]).toMatchObject({
+      const retriedDelivery = deliveriesResponse.body.data.find(
+        (delivery: Record<string, unknown>) => delivery.subscription_id === subscriptionResponse.body.data.id
+          && delivery.attempt_number === 2,
+      );
+      expect(retriedDelivery).toMatchObject({
         status: 'delivered',
         response_status: 204,
         attempt_number: 2,
