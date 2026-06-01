@@ -5,6 +5,7 @@ import { publicBearerAuth } from '../auth.js';
 import { ApiError } from '../errors.js';
 import { requireScope } from '../scopes.js';
 import { decodeCursor, encodeCursor } from '../pagination.js';
+import { publishWebhookEvent } from '../webhooks.js';
 
 const router = Router();
 
@@ -118,22 +119,43 @@ router.post('/', publicBearerAuth, requireScope('documents:write'), async (req, 
       });
     }
 
+    const auth = req.publicAuth!;
     const result = await pool.query(
       `INSERT INTO documents
         (workspace_id, document_type, title, content, properties, visibility, created_by)
        VALUES ($1, $2, $3, $4, $5, 'workspace', $6)
        RETURNING id, workspace_id, document_type, title, content, properties, created_at, updated_at`,
       [
-        req.publicAuth!.workspaceId,
+        auth.workspaceId,
         parsed.data.document_type,
         parsed.data.title,
         parsed.data.content ?? { type: 'doc', content: [] },
         parsed.data.properties,
-        req.publicAuth!.userId,
+        auth.userId,
       ],
     );
 
-    res.status(201).json({ data: publicDocument(result.rows[0]) });
+    const document = publicDocument(result.rows[0]);
+    await publishWebhookEvent({
+      workspaceId: auth.workspaceId,
+      eventType: 'document.created',
+      idempotencyKey: `document.created:${result.rows[0].id}`,
+      data: {
+        id: `document.created:${result.rows[0].id}`,
+        type: 'document.created',
+        created_at: new Date().toISOString(),
+        data: {
+          document,
+          actor: {
+            user_id: auth.userId,
+            app_id: auth.appId,
+            client_id: auth.clientId,
+          },
+        },
+      },
+    });
+
+    res.status(201).json({ data: document });
   } catch (err) {
     next(err);
   }

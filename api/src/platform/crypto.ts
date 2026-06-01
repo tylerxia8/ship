@@ -36,8 +36,20 @@ export function generateUserCode(): string {
   return `${chars.slice(0, 4).join('')}-${chars.slice(4).join('')}`;
 }
 
+export function generateWebhookSecret(): string {
+  return `ship_whsec_${crypto.randomBytes(32).toString('base64url')}`;
+}
+
 export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+export function signWebhookPayload(rawBody: string, secret: string, timestamp = Math.floor(Date.now() / 1000)): string {
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(`${timestamp}.${rawBody}`)
+    .digest('hex');
+  return `t=${timestamp},v1=${signature}`;
 }
 
 export function pkceS256(verifier: string): string {

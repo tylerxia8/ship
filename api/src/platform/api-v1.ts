@@ -2,6 +2,7 @@ import { Router } from 'express';
 import appsRouter from './routes/apps.js';
 import documentsRouter from './routes/documents.js';
 import meRouter from './routes/me.js';
+import webhooksRouter from './routes/webhooks.js';
 import { publicAuditMiddleware } from './audit.js';
 import { ApiError, publicApiErrorHandler, requestIdMiddleware } from './errors.js';
 import { servePublicOpenApi } from './openapi.js';
@@ -22,6 +23,7 @@ export function createPublicApiV1Router(): Router {
   router.use('/oauth/apps', appsRouter);
   router.use('/me', meRouter);
   router.use('/documents', documentsRouter);
+  router.use('/webhooks', webhooksRouter);
 
   router.use((_req, _res, next) => {
     next(new ApiError(404, 'not_found', 'Public API route not found'));

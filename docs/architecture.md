@@ -301,6 +301,11 @@ for await (const doc of client.documents.iterate()) {
   // cursor handled internally
 }
 
+const subscription = await client.webhooks.createSubscription({
+  event_type: "document.created",
+  target_url: "https://example.com/ship/webhook",
+});
+
 verifyWebhook(headers, rawBody, signingSecret);
 ```
 

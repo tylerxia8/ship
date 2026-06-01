@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
+import http from 'http';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -25,11 +26,30 @@ describe('Plugforge public API foundation', () => {
   let clientSecret: string;
   let accessToken: string;
 
+  function verifyWebhookSignature(headers: http.IncomingHttpHeaders, rawBody: string, secret: string): boolean {
+    const signatureHeader = headers['ship-signature'];
+    const value = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+    if (!value) return false;
+    const parts = Object.fromEntries(value.split(',').map((part) => {
+      const [key, val] = part.split('=');
+      return [key, val];
+    }));
+    const timestamp = Number(parts.t);
+    const signature = parts.v1;
+    if (!timestamp || !signature) return false;
+    const expected = crypto.createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
+    const actualBuffer = Buffer.from(signature, 'hex');
+    const expectedBuffer = Buffer.from(expected, 'hex');
+    return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+  }
+
   beforeAll(async () => {
     const migration041Sql = readFileSync(join(__dirname, '../db/migrations/041_plugforge_platform.sql'), 'utf8');
     const migration042Sql = readFileSync(join(__dirname, '../db/migrations/042_device_code_consumed_at.sql'), 'utf8');
+    const migration043Sql = readFileSync(join(__dirname, '../db/migrations/043_webhook_signing_secret.sql'), 'utf8');
     await pool.query(migration041Sql);
     await pool.query(migration042Sql);
+    await pool.query(migration043Sql);
 
     const workspace = await pool.query(
       'INSERT INTO workspaces (name) VALUES ($1) RETURNING id',
@@ -84,6 +104,9 @@ describe('Plugforge public API foundation', () => {
     await pool.query('DELETE FROM oauth_token_families WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM oauth_authorization_codes WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM oauth_device_codes WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM webhook_deliveries WHERE event_id IN (SELECT id FROM webhook_events WHERE workspace_id = $1)', [workspaceId]);
+    await pool.query('DELETE FROM webhook_events WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM webhook_subscriptions WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM oauth_apps WHERE workspace_id = $1', [workspaceId]);
     await pool.query('DELETE FROM sessions WHERE user_id IN ($1, $2)', [adminUserId, memberUserId]);
     await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
@@ -109,7 +132,7 @@ describe('Plugforge public API foundation', () => {
       .send({
         name: 'Plugforge Test App',
         redirect_uris: ['https://example.com/callback'],
-        requested_scopes: ['documents:read', 'documents:write'],
+        requested_scopes: ['documents:read', 'documents:write', 'webhooks:manage'],
       });
 
     expect(response.status).toBe(201);
@@ -297,6 +320,75 @@ describe('Plugforge public API foundation', () => {
     expect(response.status).toBe(403);
     expect(response.body.code).toBe('forbidden');
     expect(response.body.details.missing_scope).toBe('documents:write');
+  });
+
+  it('delivers a signed document.created webhook from the public documents API', async () => {
+    const received: Array<{ headers: http.IncomingHttpHeaders; body: string }> = [];
+    const receiver = http.createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        received.push({ headers: req.headers, body: Buffer.concat(chunks).toString('utf8') });
+        res.writeHead(204).end();
+      });
+    });
+
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+    const address = receiver.address();
+    if (!address || typeof address === 'string') throw new Error('Expected receiver port');
+
+    try {
+      const webhookToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+        [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:write', 'webhooks:manage']],
+      );
+
+      const subscriptionResponse = await request(app)
+        .post('/api/v1/webhooks/subscriptions')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({
+          event_type: 'document.created',
+          target_url: `http://127.0.0.1:${address.port}/ship-webhook`,
+        });
+
+      expect(subscriptionResponse.status).toBe(201);
+      expect(subscriptionResponse.body.signing_secret).toMatch(/^ship_whsec_/);
+      expect(subscriptionResponse.body.data.signing_secret).toBeUndefined();
+
+      const createResponse = await request(app)
+        .post('/api/v1/documents')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({ title: 'Webhook Proof' });
+
+      expect(createResponse.status).toBe(201);
+      expect(received).toHaveLength(1);
+      const webhookRequest = received[0]!;
+      expect(webhookRequest.headers['ship-event-type']).toBe('document.created');
+      expect(verifyWebhookSignature(webhookRequest.headers, webhookRequest.body, subscriptionResponse.body.signing_secret)).toBe(true);
+
+      const payload = JSON.parse(webhookRequest.body);
+      expect(payload.type).toBe('document.created');
+      expect(payload.data.document.title).toBe('Webhook Proof');
+
+      const delivery = await pool.query(
+        `SELECT status, response_status, attempt_number
+           FROM webhook_deliveries
+          WHERE idempotency_key = $1`,
+        [`document.created:${createResponse.body.data.id}`],
+      );
+      expect(delivery.rows[0]).toMatchObject({
+        status: 'delivered',
+        response_status: 204,
+        attempt_number: 1,
+      });
+    } finally {
+      await new Promise<void>((resolve) => receiver.close(() => resolve()));
+    }
   });
 
   it('allows an authorized public token to call me and list documents', async () => {

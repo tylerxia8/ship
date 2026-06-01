@@ -45,6 +45,18 @@ export const publicOpenApiDocument = {
           updated_at: { type: 'string', format: 'date-time' },
         },
       },
+      WebhookSubscription: {
+        type: 'object',
+        required: ['id', 'event_type', 'target_url', 'active', 'created_at', 'updated_at'],
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          event_type: { type: 'string', enum: ['document.created'] },
+          target_url: { type: 'string', format: 'uri' },
+          active: { type: 'boolean' },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' },
+        },
+      },
     },
   },
   security: [{ bearerAuth: [] }],
@@ -92,6 +104,36 @@ export const publicOpenApiDocument = {
         responses: {
           '200': { description: 'Document' },
           '404': { description: 'Not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } } },
+        },
+      },
+    },
+    '/webhooks/subscriptions': {
+      get: {
+        tags: ['Webhooks'],
+        summary: 'List webhook subscriptions for the authenticated app',
+        'x-required-scope': 'webhooks:manage',
+        responses: {
+          '200': { description: 'Webhook subscriptions page' },
+        },
+      },
+      post: {
+        tags: ['Webhooks'],
+        summary: 'Create a webhook subscription',
+        'x-required-scope': 'webhooks:manage',
+        responses: {
+          '201': { description: 'Created subscription with signing secret shown once' },
+        },
+      },
+    },
+    '/webhooks/deliveries/{id}/replay': {
+      post: {
+        tags: ['Webhooks'],
+        summary: 'Replay a webhook delivery',
+        'x-required-scope': 'webhooks:manage',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '202': { description: 'Replay accepted' },
+          '404': { description: 'Delivery not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } } },
         },
       },
     },

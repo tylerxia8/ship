@@ -72,3 +72,25 @@ export interface CreateDocumentInput {
   content?: unknown;
   properties?: Record<string, unknown>;
 }
+
+export type WebhookEventType = 'document.created';
+
+export interface ShipWebhookSubscription {
+  id: string;
+  event_type: WebhookEventType;
+  target_url: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateWebhookSubscriptionInput {
+  event_type: WebhookEventType;
+  target_url: string;
+}
+
+export interface CreateWebhookSubscriptionResponse {
+  data: ShipWebhookSubscription;
+  signing_secret: string;
+  secret_display: 'shown_once';
+}

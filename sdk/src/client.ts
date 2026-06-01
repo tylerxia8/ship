@@ -2,9 +2,11 @@ import { DocumentsClient, type Transport } from './documents.js';
 import { deviceLogin } from './auth.js';
 import { ShipSDKError, kindForStatus, type ShipApiErrorBody } from './errors.js';
 import type { DeviceLoginOptions, OAuthTokenResponse, ShipClientOptions, ShipMe } from './types.js';
+import { WebhooksClient } from './webhook-client.js';
 
 export class ShipClient implements Transport {
   readonly documents: DocumentsClient;
+  readonly webhooks: WebhooksClient;
   private readonly baseUrl: string;
   private readonly token: string;
   private readonly fetchImpl: typeof fetch;
@@ -14,6 +16,7 @@ export class ShipClient implements Transport {
     this.token = options.token;
     this.fetchImpl = options.fetch ?? fetch;
     this.documents = new DocumentsClient(this);
+    this.webhooks = new WebhooksClient(this);
   }
 
   static deviceLogin(options: DeviceLoginOptions): Promise<OAuthTokenResponse> {
