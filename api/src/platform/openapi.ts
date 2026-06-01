@@ -76,6 +76,23 @@ export const publicOpenApiDocument = {
           updated_at: { type: 'string', format: 'date-time' },
         },
       },
+      WebhookEventDefinition: {
+        type: 'object',
+        required: ['type', 'description', 'required_scope'],
+        properties: {
+          type: { type: 'string', enum: ['document.created'] },
+          description: { type: 'string' },
+          required_scope: { type: 'string', enum: ['documents:read'] },
+        },
+      },
+      PageOfWebhookEvents: {
+        type: 'object',
+        required: ['data', 'next_cursor'],
+        properties: {
+          data: { type: 'array', items: { $ref: '#/components/schemas/WebhookEventDefinition' } },
+          next_cursor: { type: ['string', 'null'] },
+        },
+      },
     },
   },
   security: [{ bearerAuth: [] }],
@@ -194,6 +211,17 @@ export const publicOpenApiDocument = {
         'x-required-scope': 'webhooks:manage',
         responses: {
           '201': { description: 'Created subscription with signing secret shown once' },
+        },
+      },
+    },
+    '/webhooks/events': {
+      get: {
+        tags: ['Webhooks'],
+        summary: 'List webhook event types',
+        'x-required-scope': null,
+        security: [],
+        responses: {
+          '200': { description: 'Webhook event registry', content: { 'application/json': { schema: { $ref: '#/components/schemas/PageOfWebhookEvents' } } } },
         },
       },
     },

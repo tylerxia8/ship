@@ -22,5 +22,6 @@ export type {
   ShipUser,
   ShipWebhookSubscription,
   ShipWorkspace,
+  WebhookEventDefinition,
   WebhookEventType,
 } from './types.js';

@@ -3,6 +3,7 @@ import type {
   CreateWebhookSubscriptionResponse,
   Page,
   RotateWebhookSubscriptionSecretResponse,
+  WebhookEventDefinition,
   ShipWebhookDelivery,
   ShipWebhookSubscription,
 } from './types.js';
@@ -13,6 +14,10 @@ export interface WebhookTransport {
 
 export class WebhooksClient {
   constructor(private readonly transport: WebhookTransport) {}
+
+  listEvents(): Promise<Page<WebhookEventDefinition>> {
+    return this.transport.request<Page<WebhookEventDefinition>>('/webhooks/events');
+  }
 
   listSubscriptions(): Promise<Page<ShipWebhookSubscription>> {
     return this.transport.request<Page<ShipWebhookSubscription>>('/webhooks/subscriptions');

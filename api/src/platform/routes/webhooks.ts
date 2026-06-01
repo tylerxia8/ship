@@ -14,6 +14,14 @@ const createSubscriptionSchema = z.object({
   target_url: z.string().url(),
 });
 
+const WebhookEventRegistry = {
+  'document.created': {
+    type: 'document.created',
+    description: 'A document was created through the public API.',
+    required_scope: 'documents:read',
+  },
+} as const;
+
 function publicSubscription(row: Record<string, unknown>): Record<string, unknown> {
   return {
     id: row.id,
@@ -42,6 +50,13 @@ function publicDelivery(row: Record<string, unknown>): Record<string, unknown> {
     created_at: row.created_at,
   };
 }
+
+router.get('/events', (_req, res) => {
+  res.json({
+    data: WEBHOOK_EVENTS.map((eventType) => WebhookEventRegistry[eventType]),
+    next_cursor: null,
+  });
+});
 
 router.get('/subscriptions', publicBearerAuth, requireScope('webhooks:manage'), async (req, res, next) => {
   try {

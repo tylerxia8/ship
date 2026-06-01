@@ -343,6 +343,7 @@ node integrations/cli/src/index.mjs login --client-id ship_app_... --ship-url ht
 node integrations/cli/src/index.mjs scopes --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs docs ls --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs docs create "CLI proof" --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs webhooks events --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks subscribe --url https://example.com/ship/webhook --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks rotate-secret <subscription-id> --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks deactivate <subscription-id> --ship-url http://localhost:3000

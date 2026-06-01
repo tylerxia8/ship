@@ -57,6 +57,9 @@ describe('Plugforge platform fitness checks', () => {
     expect(paths['/webhooks/subscriptions'].get['x-required-scope']).toBe('webhooks:manage');
     expect(webhooksClient).toContain('listSubscriptions(');
 
+    expect(paths['/webhooks/events'].get['x-required-scope']).toBeNull();
+    expect(webhooksClient).toContain('listEvents(');
+
     expect(paths['/webhooks/subscriptions'].post['x-required-scope']).toBe('webhooks:manage');
     expect(webhooksClient).toContain('createSubscription(');
 

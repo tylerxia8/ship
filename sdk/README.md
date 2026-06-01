@@ -20,6 +20,7 @@ const client = new ShipClient({
 
 const me = await client.me();
 const scopes = await client.scopes();
+const events = await client.webhooks.listEvents();
 const documents = await client.documents.list({ limit: 25 });
 ```
 

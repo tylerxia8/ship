@@ -98,6 +98,12 @@ export interface CreateDocumentInput {
 
 export type WebhookEventType = 'document.created';
 
+export interface WebhookEventDefinition {
+  type: WebhookEventType;
+  description: string;
+  required_scope: PublicScope;
+}
+
 export interface ShipWebhookSubscription {
   id: string;
   event_type: WebhookEventType;

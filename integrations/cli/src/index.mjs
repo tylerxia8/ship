@@ -25,6 +25,7 @@ Usage:
   ship me [--ship-url <url>]
   ship docs ls [--ship-url <url>]
   ship docs create <title> [--ship-url <url>]
+  ship webhooks events [--ship-url <url>]
   ship webhooks subscribe --url <target> [--event document.created] [--ship-url <url>]
   ship webhooks rotate-secret <subscription-id> [--ship-url <url>]
   ship webhooks deactivate <subscription-id> [--ship-url <url>]
@@ -247,6 +248,11 @@ async function main() {
         target_url: flags.url,
       }),
     }), null, 2));
+    return;
+  }
+
+  if (command === 'webhooks' && subcommand === 'events') {
+    console.log(JSON.stringify(await requestJson(shipUrl, '/api/v1/webhooks/events'), null, 2));
     return;
   }
 
