@@ -1,0 +1,235 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import crypto from 'crypto';
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { createApp } from '../app.js';
+import { pool } from '../db/client.js';
+import { hashToken } from './crypto.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+describe('Plugforge public API foundation', () => {
+  const app = createApp();
+  const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const adminEmail = `plugforge-admin-${testRunId}@ship.local`;
+
+  let workspaceId: string;
+  let adminUserId: string;
+  let memberUserId: string;
+  let sessionCookie: string;
+  let csrfToken: string;
+  let clientId: string;
+  let clientSecret: string;
+  let accessToken: string;
+
+  beforeAll(async () => {
+    const migrationSql = readFileSync(join(__dirname, '../db/migrations/041_plugforge_platform.sql'), 'utf8');
+    await pool.query(migrationSql);
+
+    const workspace = await pool.query(
+      'INSERT INTO workspaces (name) VALUES ($1) RETURNING id',
+      [`Plugforge ${testRunId}`],
+    );
+    workspaceId = workspace.rows[0].id;
+
+    const admin = await pool.query(
+      `INSERT INTO users (email, password_hash, name, last_workspace_id)
+       VALUES ($1, 'test-hash', 'Plugforge Admin', $2)
+       RETURNING id`,
+      [adminEmail, workspaceId],
+    );
+    adminUserId = admin.rows[0].id;
+
+    const member = await pool.query(
+      `INSERT INTO users (email, password_hash, name, last_workspace_id)
+       VALUES ($1, 'test-hash', 'Plugforge Member', $2)
+       RETURNING id`,
+      [`plugforge-member-${testRunId}@ship.local`, workspaceId],
+    );
+    memberUserId = member.rows[0].id;
+
+    await pool.query(
+      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+       VALUES ($1, $2, 'admin'), ($1, $3, 'member')`,
+      [workspaceId, adminUserId, memberUserId],
+    );
+
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    await pool.query(
+      `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
+       VALUES ($1, $2, $3, now() + interval '1 hour')`,
+      [sessionId, adminUserId, workspaceId],
+    );
+    sessionCookie = `session_id=${sessionId}`;
+
+    const csrfResponse = await request(app)
+      .get('/api/csrf-token')
+      .set('Cookie', sessionCookie);
+    csrfToken = csrfResponse.body.token;
+    const connectSidCookie = csrfResponse.headers['set-cookie']?.[0]?.split(';')[0] || '';
+    if (connectSidCookie) {
+      sessionCookie = `${sessionCookie}; ${connectSidCookie}`;
+    }
+  });
+
+  afterAll(async () => {
+    await pool.query('DELETE FROM public_api_audit_log WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM oauth_access_tokens WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM oauth_refresh_tokens WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM oauth_token_families WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM oauth_authorization_codes WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM oauth_device_codes WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM oauth_apps WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM sessions WHERE user_id IN ($1, $2)', [adminUserId, memberUserId]);
+    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM workspace_memberships WHERE workspace_id = $1', [workspaceId]);
+    await pool.query('DELETE FROM users WHERE id IN ($1, $2)', [adminUserId, memberUserId]);
+    await pool.query('DELETE FROM workspaces WHERE id = $1', [workspaceId]);
+  });
+
+  it('serves the public OpenAPI 3.1 contract', async () => {
+    const response = await request(app).get('/api/v1/openapi.json');
+
+    expect(response.status).toBe(200);
+    expect(response.body.openapi).toBe('3.1.0');
+    expect(response.body.paths['/documents'].get['x-required-scope']).toBe('documents:read');
+    expect(response.body.paths['/documents'].post['x-required-scope']).toBe('documents:write');
+  });
+
+  it('registers an OAuth app and shows the raw secret once', async () => {
+    const response = await request(app)
+      .post('/api/v1/oauth/apps')
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        name: 'Plugforge Test App',
+        redirect_uris: ['https://example.com/callback'],
+        requested_scopes: ['documents:read', 'documents:write'],
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.app.client_id).toMatch(/^ship_app_/);
+    expect(response.body.client_secret).toMatch(/^ship_sk_/);
+    expect(response.body.app.client_secret_hash).toBeUndefined();
+    clientId = response.body.app.client_id;
+    clientSecret = response.body.client_secret;
+  });
+
+  it('completes Authorization Code + PKCE and rejects a wrong verifier', async () => {
+    const verifier = `verifier-${crypto.randomBytes(32).toString('base64url')}`;
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+
+    const deniedVerifier = `wrong-${crypto.randomBytes(32).toString('base64url')}`;
+    const authParams = {
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: 'https://example.com/callback',
+      scope: 'documents:read documents:write',
+      state: 'test-state',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+    };
+
+    const consentResponse = await request(app)
+      .post('/oauth/authorize/consent')
+      .set('Cookie', sessionCookie)
+      .type('form')
+      .send({ ...authParams, approve: 'true' });
+
+    expect(consentResponse.status).toBe(302);
+    const location = consentResponse.headers.location;
+    expect(location).toEqual(expect.any(String));
+    const redirect = new URL(String(location));
+    expect(redirect.origin + redirect.pathname).toBe('https://example.com/callback');
+    expect(redirect.searchParams.get('state')).toBe('test-state');
+    const code = redirect.searchParams.get('code');
+    expect(code).toMatch(/^ship_code_/);
+
+    const wrongTokenResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: 'https://example.com/callback',
+        code_verifier: deniedVerifier,
+      });
+
+    expect(wrongTokenResponse.status).toBe(400);
+    expect(wrongTokenResponse.body.code).toBe('invalid_grant');
+    expect(wrongTokenResponse.body.message).toBe('Invalid code_verifier');
+
+    const tokenResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: 'https://example.com/callback',
+        code_verifier: verifier,
+      });
+
+    expect(tokenResponse.status).toBe(200);
+    expect(tokenResponse.body.access_token).toMatch(/^ship_at_/);
+    expect(tokenResponse.body.refresh_token).toMatch(/^ship_rt_/);
+    expect(tokenResponse.body.scope).toBe('documents:read documents:write');
+  });
+
+  it('returns ApiError shape for missing bearer token', async () => {
+    const response = await request(app).get('/api/v1/me');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({
+      code: 'unauthorized',
+      message: 'Missing bearer token',
+    });
+    expect(response.body.request_id).toEqual(expect.any(String));
+  });
+
+  it('enforces scope requirements with the missing scope named', async () => {
+    accessToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+    const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+    const appId = appRow.rows[0].id;
+    await pool.query(
+      `INSERT INTO oauth_access_tokens
+        (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+       VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+      [hashToken(accessToken), appId, adminUserId, workspaceId, ['documents:read']],
+    );
+
+    const response = await request(app)
+      .post('/api/v1/documents')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ title: 'Should fail' });
+
+    expect(response.status).toBe(403);
+    expect(response.body.code).toBe('forbidden');
+    expect(response.body.details.missing_scope).toBe('documents:write');
+  });
+
+  it('allows an authorized public token to call me and list documents', async () => {
+    await pool.query(
+      `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)
+       VALUES ($1, 'wiki', 'Public API Doc', $2, 'workspace')`,
+      [workspaceId, adminUserId],
+    );
+
+    const meResponse = await request(app)
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(meResponse.status).toBe(200);
+    expect(meResponse.body.user.email).toBe(adminEmail);
+
+    const listResponse = await request(app)
+      .get('/api/v1/documents')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(listResponse.status).toBe(200);
+    expect(Array.isArray(listResponse.body.data)).toBe(true);
+    expect(listResponse.body.next_cursor).toBeDefined();
+  });
+});
