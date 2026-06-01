@@ -66,7 +66,7 @@ sdk/
 
 integrations/
   cli/
-    src/               ship login, docs, webhooks tail
+    src/               ship login, docs, webhooks subscribe
     tests/             TTFE drill and CLI integration tests
 ```
 
@@ -327,6 +327,19 @@ Pre-1.0 surfaces:
 - `client.sprints`
 - advanced webhook filters
 - browser localStorage token store
+
+## CLI Reference Integration
+
+The reference CLI lives at `integrations/cli` and is intentionally dependency-light. It proves the developer path without requiring the Ship web UI:
+
+```bash
+node integrations/cli/src/index.mjs login --client-id ship_app_... --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs docs ls --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs docs create "CLI proof" --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs webhooks subscribe --url https://example.com/ship/webhook --ship-url http://localhost:3000
+```
+
+`SHIP_TOKEN` can override the local token store for repeatable demos. By default, successful device login stores tokens in `~/.ship/plugforge-cli.json`.
 
 ## Agent As Citizen
 
