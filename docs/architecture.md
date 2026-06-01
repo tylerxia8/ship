@@ -463,12 +463,14 @@ Plugforge has a focused API fitness suite:
 
 ```bash
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
+corepack.cmd pnpm --filter @ship/api plugforge:openapi
 ```
 
 It verifies the public platform boundary does not import internal `api/src/routes`
 handlers, and it checks OpenAPI paths for documents/webhooks against SDK client
 methods. This is intentionally small and fast so it can run before every demo
-without replacing the broader build/test suite.
+without replacing the broader build/test suite. The OpenAPI export command writes
+the static public contract to `docs/openapi.json`.
 
 ## Architectural Decisions To Defend
 
