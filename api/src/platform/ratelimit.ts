@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ApiError } from './errors.js';
+import { hashToken } from './crypto.js';
 
 interface Bucket {
   count: number;
@@ -16,7 +17,19 @@ function limitForRequest(): number {
 }
 
 function keyForRequest(req: Request): string {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice('Bearer '.length).trim();
+    if (token) {
+      return `bearer:${hashToken(token)}`;
+    }
+  }
+
   return req.ip || req.socket.remoteAddress || 'unknown';
+}
+
+export function clearPublicRateLimitBuckets(): void {
+  buckets.clear();
 }
 
 export function publicRateLimit(req: Request, res: Response, next: NextFunction): void {

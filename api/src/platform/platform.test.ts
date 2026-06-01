@@ -9,6 +9,7 @@ import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { hashToken } from './crypto.js';
 import { processDueWebhookDeliveries } from './webhooks.js';
+import { clearPublicRateLimitBuckets } from './ratelimit.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -764,5 +765,44 @@ describe('Plugforge public API foundation', () => {
       .set('Authorization', `Bearer ${deactivatedToken}`);
     expect(afterResponse.status).toBe(401);
     expect(afterResponse.body.code).toBe('unauthorized');
+  });
+
+  it('rate limits bearer tokens independently before auth validation', async () => {
+    const previousLimit = process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE;
+    process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE = '2';
+    clearPublicRateLimitBuckets();
+
+    try {
+      const firstToken = `ship_at_rate_${crypto.randomBytes(16).toString('base64url')}`;
+      const secondToken = `ship_at_rate_${crypto.randomBytes(16).toString('base64url')}`;
+
+      await request(app)
+        .get('/api/v1/me')
+        .set('Authorization', `Bearer ${firstToken}`)
+        .expect(401);
+      await request(app)
+        .get('/api/v1/me')
+        .set('Authorization', `Bearer ${firstToken}`)
+        .expect(401);
+
+      const limitedResponse = await request(app)
+        .get('/api/v1/me')
+        .set('Authorization', `Bearer ${firstToken}`);
+      expect(limitedResponse.status).toBe(429);
+      expect(limitedResponse.body.code).toBe('rate_limited');
+
+      const independentTokenResponse = await request(app)
+        .get('/api/v1/me')
+        .set('Authorization', `Bearer ${secondToken}`);
+      expect(independentTokenResponse.status).toBe(401);
+      expect(independentTokenResponse.headers['ratelimit-remaining']).toBe('1');
+    } finally {
+      if (previousLimit === undefined) {
+        delete process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE;
+      } else {
+        process.env.PUBLIC_API_RATE_LIMIT_PER_MINUTE = previousLimit;
+      }
+      clearPublicRateLimitBuckets();
+    }
   });
 });

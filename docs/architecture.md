@@ -441,8 +441,11 @@ Postgres delivery state means this can move to a separate queue worker later.
 **Rate limiter misconfigured.** Public API should default closed: conservative per-token limits and explicit headers on every response. Missing limiter config should not mean unlimited traffic.
 
 **Demo rate limit.** MVP uses an in-memory one-minute bucket with `RateLimit-Limit`,
-`RateLimit-Remaining`, and `RateLimit-Reset` headers on `/api/v1/*`. Production should
-swap this for Redis or another shared store so limits hold across instances.
+`RateLimit-Remaining`, and `RateLimit-Reset` headers on `/api/v1/*`. Bearer-token
+requests are keyed by a hash of the presented token before auth validation, so two
+apps behind the same NAT do not exhaust one shared IP bucket. Requests without a
+bearer token fall back to IP. Production should swap this for Redis or another
+shared store so limits hold across instances.
 
 ## Risk Register
 
