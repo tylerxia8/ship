@@ -372,6 +372,8 @@ can create OAuth apps, show the raw `client_secret` once, list registered apps
 without returning `client_secret` or `client_secret_hash`, link to
 `/api/v1/openapi.json`, and display CLI commands for login, document creation,
 subscription creation, and webhook tailing.
+Workspace admins can rotate an app secret; the old secret stops working
+immediately and the new raw secret is returned once.
 
 ## Audit Evidence
 

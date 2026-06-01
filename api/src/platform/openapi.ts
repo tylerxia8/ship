@@ -90,6 +90,18 @@ export const publicOpenApiDocument = {
         },
       },
     },
+    '/oauth/apps/{id}/rotate-secret': {
+      post: {
+        tags: ['OAuth Apps'],
+        summary: 'Rotate an OAuth app client secret',
+        'x-required-scope': null,
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Rotated OAuth app with client secret shown once' },
+          '404': { description: 'OAuth app not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } } },
+        },
+      },
+    },
     '/documents': {
       get: {
         tags: ['Documents'],

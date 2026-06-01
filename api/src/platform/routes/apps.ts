@@ -121,4 +121,39 @@ router.post('/', authMiddleware, async (req, res, next) => {
   }
 });
 
+router.post('/:id/rotate-secret', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const workspaceId = req.workspaceId;
+    if (!userId || !workspaceId) {
+      throw new ApiError(401, 'unauthorized', 'Login required');
+    }
+
+    await requireWorkspaceAdmin(userId, workspaceId);
+
+    const clientSecret = generateClientSecret();
+    const result = await pool.query(
+      `UPDATE oauth_apps
+          SET client_secret_hash = $1, updated_at = NOW()
+        WHERE id = $2 AND workspace_id = $3
+        RETURNING id, workspace_id, owner_user_id, name, client_id, redirect_uris,
+                  requested_scopes, active, created_at, updated_at`,
+      [hashSecret(clientSecret), req.params.id, workspaceId],
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new ApiError(404, 'not_found', 'OAuth app not found');
+    }
+
+    res.json({
+      app: publicOAuthApp(row),
+      client_secret: clientSecret,
+      secret_display: 'shown_once',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

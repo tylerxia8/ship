@@ -25,6 +25,7 @@ describe('Plugforge public API foundation', () => {
   let csrfToken: string;
   let clientId: string;
   let clientSecret: string;
+  let oauthAppId: string;
   let accessToken: string;
   let refreshToken: string;
 
@@ -158,6 +159,7 @@ describe('Plugforge public API foundation', () => {
       });
 
     expect(response.status).toBe(201);
+    oauthAppId = response.body.app.id;
     expect(response.body.app.client_id).toMatch(/^ship_app_/);
     expect(response.body.client_secret).toMatch(/^ship_sk_/);
     expect(response.body.app.client_secret_hash).toBeUndefined();
@@ -175,6 +177,65 @@ describe('Plugforge public API foundation', () => {
     });
     expect(listResponse.body.data[0].client_secret_hash).toBeUndefined();
     expect(listResponse.body.data[0].client_secret).toBeUndefined();
+  });
+
+  it('rotates OAuth app secrets and invalidates the old secret', async () => {
+    const verifier = `rotate-${crypto.randomBytes(32).toString('base64url')}`;
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+    const authParams = {
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: 'https://example.com/callback',
+      scope: 'documents:read',
+      state: 'rotate-state',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+    };
+
+    const consentResponse = await request(app)
+      .post('/oauth/authorize/consent')
+      .set('Cookie', sessionCookie)
+      .type('form')
+      .send({ ...authParams, approve: 'true' });
+
+    const code = new URL(String(consentResponse.headers.location)).searchParams.get('code');
+
+    const rotateResponse = await request(app)
+      .post(`/api/v1/oauth/apps/${oauthAppId}/rotate-secret`)
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken);
+
+    expect(rotateResponse.status).toBe(200);
+    expect(rotateResponse.body.client_secret).toMatch(/^ship_sk_/);
+    expect(rotateResponse.body.app.client_secret_hash).toBeUndefined();
+
+    const oldSecretResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: 'https://example.com/callback',
+        code_verifier: verifier,
+      });
+
+    expect(oldSecretResponse.status).toBe(401);
+    expect(oldSecretResponse.body.code).toBe('unauthorized');
+
+    const newSecretResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: rotateResponse.body.client_secret,
+        code,
+        redirect_uri: 'https://example.com/callback',
+        code_verifier: verifier,
+      });
+
+    expect(newSecretResponse.status).toBe(200);
+    clientSecret = rotateResponse.body.client_secret;
   });
 
   it('completes Authorization Code + PKCE and rejects a wrong verifier', async () => {
