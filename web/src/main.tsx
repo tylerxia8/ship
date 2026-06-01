@@ -27,6 +27,7 @@ import { ProjectsPage } from '@/pages/Projects';
 import { DashboardPage } from '@/pages/Dashboard';
 import { MyWeekPage } from '@/pages/MyWeekPage';
 import { WorkspaceSettingsPage } from '@/pages/WorkspaceSettings';
+import { DeveloperPortalPage } from '@/pages/DeveloperPortal';
 import { StatusOverviewPage } from '@/pages/StatusOverviewPage';
 import { ReviewsPage } from '@/pages/ReviewsPage';
 import { ReviewQueueProvider } from '@/contexts/ReviewQueueContext';
@@ -258,6 +259,7 @@ function AppRoutes() {
         <Route path="team/:id" element={<PersonEditorPage />} />
         <Route path="feedback/:id" element={<FeedbackEditorPage />} />
         <Route path="settings" element={<WorkspaceSettingsPage />} />
+        <Route path="settings/developers" element={<DeveloperPortalPage />} />
         <Route path="settings/conversions" element={<ConvertedDocumentsPage />} />
       </Route>
     </Routes>

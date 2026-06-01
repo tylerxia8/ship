@@ -178,6 +178,15 @@ export function WorkspaceSettingsPage() {
             Audit Logs
           </TabButton>
           <Link
+            to="/settings/developers"
+            className={cn(
+              'px-4 py-3 text-sm font-medium border-b-2 border-transparent',
+              'text-muted hover:text-foreground hover:border-border/50 transition-colors'
+            )}
+          >
+            Developers
+          </Link>
+          <Link
             to="/settings/conversions"
             className={cn(
               'px-4 py-3 text-sm font-medium border-b-2 border-transparent',
