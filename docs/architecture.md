@@ -429,6 +429,19 @@ swap this for Redis or another shared store so limits hold across instances.
 10. TTFE drill and developer portal.
 11. FleetGraph agent-as-citizen rewire.
 
+## Fitness Checks
+
+Plugforge has a focused API fitness suite:
+
+```bash
+corepack.cmd pnpm --filter @ship/api plugforge:fitness
+```
+
+It verifies the public platform boundary does not import internal `api/src/routes`
+handlers, and it checks OpenAPI paths for documents/webhooks against SDK client
+methods. This is intentionally small and fast so it can run before every demo
+without replacing the broader build/test suite.
+
 ## Architectural Decisions To Defend
 
 **Small API first.** Documents are the first public resource because every Ship content type uses the unified document model. This gets the contract right before expanding to issues and sprints.
