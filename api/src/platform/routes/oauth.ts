@@ -46,9 +46,17 @@ const deviceCodeTokenSchema = z.object({
   device_code: z.string().min(1),
 });
 
+const refreshTokenSchema = z.object({
+  grant_type: z.literal('refresh_token'),
+  client_id: z.string().min(1),
+  client_secret: z.string().optional(),
+  refresh_token: z.string().min(1),
+});
+
 const tokenBodySchema = z.discriminatedUnion('grant_type', [
   authorizationCodeTokenSchema,
   deviceCodeTokenSchema,
+  refreshTokenSchema,
 ]);
 
 const deviceCodeBodySchema = z.object({
@@ -97,6 +105,19 @@ interface DeviceCodeRow {
   denied_at: string | null;
   last_polled_at: string | null;
   consumed_at: string | null;
+}
+
+interface RefreshTokenRow {
+  id: string;
+  token_family_id: string;
+  app_id: string;
+  user_id: string;
+  workspace_id: string;
+  scopes: string[];
+  expires_at: string;
+  used_at: string | null;
+  revoked_at: string | null;
+  invalidated_at: string | null;
 }
 
 function parseScopeParam(scope: string | undefined): string[] {
@@ -329,6 +350,70 @@ router.post('/token', async (req, res, next) => {
         expires_in: 15 * 60,
         refresh_token: issued.refreshToken,
         scope: deviceRow.scopes.join(' '),
+      });
+      return;
+    }
+
+    if (parsed.data.grant_type === 'refresh_token') {
+      const app = await getActiveApp(parsed.data.client_id);
+      if (parsed.data.client_secret && !verifySecret(parsed.data.client_secret, app.client_secret_hash)) {
+        throw new ApiError(401, 'unauthorized', 'Invalid client_secret');
+      }
+
+      const tokenRow = await queryOne<RefreshTokenRow>(
+        `SELECT rt.id, rt.token_family_id, rt.app_id, rt.user_id, rt.workspace_id, rt.scopes,
+                rt.expires_at, rt.used_at, rt.revoked_at, tf.invalidated_at
+           FROM oauth_refresh_tokens rt
+           JOIN oauth_token_families tf ON tf.id = rt.token_family_id
+          WHERE rt.token_hash = $1`,
+        [hashToken(parsed.data.refresh_token)],
+      );
+
+      if (!tokenRow || tokenRow.app_id !== app.id) {
+        throw new ApiError(400, 'invalid_grant', 'Invalid refresh_token');
+      }
+
+      if (tokenRow.used_at || tokenRow.invalidated_at) {
+        await pool.query('UPDATE oauth_token_families SET invalidated_at = COALESCE(invalidated_at, NOW()) WHERE id = $1', [tokenRow.token_family_id]);
+        throw new ApiError(400, 'invalid_grant', 'Refresh token was already used');
+      }
+
+      if (tokenRow.revoked_at || new Date(tokenRow.expires_at) <= new Date()) {
+        throw new ApiError(400, 'invalid_grant', 'Refresh token is expired or revoked');
+      }
+
+      const accessToken = generateAccessToken();
+      const refreshToken = generateRefreshToken();
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('UPDATE oauth_refresh_tokens SET used_at = NOW() WHERE id = $1', [tokenRow.id]);
+        await client.query(
+          `INSERT INTO oauth_access_tokens
+            (token_hash, app_id, token_family_id, user_id, workspace_id, scopes, expires_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW() + INTERVAL '15 minutes')`,
+          [hashToken(accessToken), app.id, tokenRow.token_family_id, tokenRow.user_id, tokenRow.workspace_id, tokenRow.scopes],
+        );
+        await client.query(
+          `INSERT INTO oauth_refresh_tokens
+            (token_hash, token_family_id, app_id, user_id, workspace_id, scopes, expires_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW() + INTERVAL '30 days')`,
+          [hashToken(refreshToken), tokenRow.token_family_id, app.id, tokenRow.user_id, tokenRow.workspace_id, tokenRow.scopes],
+        );
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+
+      res.json({
+        token_type: 'Bearer',
+        access_token: accessToken,
+        expires_in: 15 * 60,
+        refresh_token: refreshToken,
+        scope: tokenRow.scopes.join(' '),
       });
       return;
     }

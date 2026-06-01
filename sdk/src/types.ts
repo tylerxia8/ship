@@ -30,6 +30,15 @@ export interface DeviceLoginOptions {
   onCode?: (code: DeviceCodeResponse) => void | Promise<void>;
 }
 
+export interface RefreshTokenOptions {
+  clientId: string;
+  refreshToken: string;
+  clientSecret?: string;
+  shipUrl?: string;
+  fetch?: typeof fetch;
+  signal?: AbortSignal;
+}
+
 export interface ShipUser {
   id: string;
   email: string;

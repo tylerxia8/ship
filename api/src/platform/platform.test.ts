@@ -25,6 +25,7 @@ describe('Plugforge public API foundation', () => {
   let clientId: string;
   let clientSecret: string;
   let accessToken: string;
+  let refreshToken: string;
 
   function verifyWebhookSignature(headers: http.IncomingHttpHeaders, rawBody: string, secret: string): boolean {
     const signatureHeader = headers['ship-signature'];
@@ -205,6 +206,36 @@ describe('Plugforge public API foundation', () => {
     expect(tokenResponse.body.access_token).toMatch(/^ship_at_/);
     expect(tokenResponse.body.refresh_token).toMatch(/^ship_rt_/);
     expect(tokenResponse.body.scope).toBe('documents:read documents:write');
+    refreshToken = tokenResponse.body.refresh_token;
+  });
+
+  it('rotates refresh tokens and rejects replay of the spent token', async () => {
+    const rotateResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+      });
+
+    expect(rotateResponse.status).toBe(200);
+    expect(rotateResponse.body.access_token).toMatch(/^ship_at_/);
+    expect(rotateResponse.body.refresh_token).toMatch(/^ship_rt_/);
+    expect(rotateResponse.body.refresh_token).not.toBe(refreshToken);
+
+    const replayResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+      });
+
+    expect(replayResponse.status).toBe(400);
+    expect(replayResponse.body.code).toBe('invalid_grant');
+    expect(replayResponse.body.message).toBe('Refresh token was already used');
   });
 
   it('completes Device Authorization Grant with pending and slow_down branches', async () => {

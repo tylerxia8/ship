@@ -319,6 +319,11 @@ await ShipClient.deviceLogin({
     console.log(`Open ${verification_uri} and enter ${user_code}`);
   },
 });
+
+await ShipClient.refreshAccessToken({
+  clientId: "ship_app_...",
+  refreshToken,
+});
 ```
 
 Pre-1.0 surfaces:

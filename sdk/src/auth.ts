@@ -1,5 +1,5 @@
 import { ShipSDKError, kindForStatus, type ShipApiErrorBody } from './errors.js';
-import type { DeviceCodeResponse, DeviceLoginOptions, OAuthTokenResponse } from './types.js';
+import type { DeviceCodeResponse, DeviceLoginOptions, OAuthTokenResponse, RefreshTokenOptions } from './types.js';
 
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
 
@@ -127,4 +127,16 @@ export async function deviceLogin(options: DeviceLoginOptions): Promise<OAuthTok
     codeResponse.device_code,
     options.pollIntervalMs ?? codeResponse.interval * 1000,
   );
+}
+
+export async function refreshAccessToken(options: RefreshTokenOptions): Promise<OAuthTokenResponse> {
+  const fetchImpl = options.fetch ?? fetch;
+  const shipUrl = (options.shipUrl ?? 'http://localhost:3000').replace(/\/$/, '');
+
+  return requestJson(fetchImpl, `${shipUrl}/oauth/token`, {
+    grant_type: 'refresh_token',
+    client_id: options.clientId,
+    client_secret: options.clientSecret,
+    refresh_token: options.refreshToken,
+  }, options.signal) as Promise<OAuthTokenResponse>;
 }
