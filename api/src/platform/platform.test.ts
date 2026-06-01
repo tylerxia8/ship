@@ -146,6 +146,18 @@ describe('Plugforge public API foundation', () => {
     expect(response.body.app.client_secret_hash).toBeUndefined();
     clientId = response.body.app.client_id;
     clientSecret = response.body.client_secret;
+
+    const listResponse = await request(app)
+      .get('/api/v1/oauth/apps')
+      .set('Cookie', sessionCookie);
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.data[0]).toMatchObject({
+      client_id: clientId,
+      name: 'Plugforge Test App',
+    });
+    expect(listResponse.body.data[0].client_secret_hash).toBeUndefined();
+    expect(listResponse.body.data[0].client_secret).toBeUndefined();
   });
 
   it('completes Authorization Code + PKCE and rejects a wrong verifier', async () => {

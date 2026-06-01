@@ -72,6 +72,24 @@ export const publicOpenApiDocument = {
         },
       },
     },
+    '/oauth/apps': {
+      get: {
+        tags: ['OAuth Apps'],
+        summary: 'List OAuth apps for the current workspace admin',
+        'x-required-scope': null,
+        responses: {
+          '200': { description: 'OAuth apps page' },
+        },
+      },
+      post: {
+        tags: ['OAuth Apps'],
+        summary: 'Register an OAuth app',
+        'x-required-scope': null,
+        responses: {
+          '201': { description: 'Created OAuth app with client secret shown once' },
+        },
+      },
+    },
     '/documents': {
       get: {
         tags: ['Documents'],

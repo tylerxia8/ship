@@ -365,6 +365,14 @@ The token must include `documents:write` and `webhooks:manage`. The script print
 a JSON result with elapsed time, document id, subscription id, delivery id,
 delivery status, response status, and signature verification.
 
+## Developer Portal
+
+The Developer Portal lives at `/settings/developers` for workspace admins. It
+can create OAuth apps, show the raw `client_secret` once, list registered apps
+without returning `client_secret` or `client_secret_hash`, link to
+`/api/v1/openapi.json`, and display CLI commands for login, document creation,
+subscription creation, and webhook tailing.
+
 ## Agent As Citizen
 
 Before:

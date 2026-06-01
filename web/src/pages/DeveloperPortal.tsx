@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { apiPost } from '@/lib/api';
+import { useEffect, useState } from 'react';
+import { apiGet, apiPost } from '@/lib/api';
 
 interface CreatedApp {
   app: {
@@ -12,6 +12,16 @@ interface CreatedApp {
   secret_display: 'shown_once';
 }
 
+interface OAuthApp {
+  id: string;
+  name: string;
+  client_id: string;
+  redirect_uris: string[];
+  requested_scopes: string[];
+  active: boolean;
+  created_at: string;
+}
+
 const DEFAULT_SCOPES = ['documents:read', 'documents:write', 'webhooks:manage'];
 
 export function DeveloperPortalPage() {
@@ -19,8 +29,20 @@ export function DeveloperPortalPage() {
   const [redirectUri, setRedirectUri] = useState('https://example.com/callback');
   const [targetUrl, setTargetUrl] = useState('https://example.com/ship/webhook');
   const [createdApp, setCreatedApp] = useState<CreatedApp | null>(null);
+  const [apps, setApps] = useState<OAuthApp[]>([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    void loadApps();
+  }, []);
+
+  async function loadApps() {
+    const response = await apiGet('/api/v1/oauth/apps');
+    if (!response.ok) return;
+    const body = await response.json();
+    setApps(body.data ?? []);
+  }
 
   async function createApp(event: React.FormEvent) {
     event.preventDefault();
@@ -42,6 +64,7 @@ export function DeveloperPortalPage() {
     }
 
     setCreatedApp(body);
+    setApps((previous) => [body.app, ...previous]);
   }
 
   return (
@@ -137,6 +160,34 @@ export function DeveloperPortalPage() {
               <p className="mt-3 text-xs text-muted">The client secret is shown once. Store it before leaving this page.</p>
             </div>
           )}
+
+          <div className="mt-6">
+            <h3 className="text-sm font-semibold text-foreground">Registered Apps</h3>
+            <div className="mt-3 divide-y divide-border border border-border">
+              {apps.length === 0 ? (
+                <div className="p-3 text-sm text-muted">No OAuth apps registered yet.</div>
+              ) : apps.map((app) => (
+                <div key={app.id} className="p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-foreground">{app.name}</div>
+                      <div className="break-all font-mono text-xs text-muted">{app.client_id}</div>
+                    </div>
+                    <span className="shrink-0 rounded border border-border px-2 py-1 text-xs text-muted">
+                      {app.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {app.requested_scopes.map((scope) => (
+                      <span key={scope} className="rounded border border-border px-2 py-0.5 text-xs text-muted">
+                        {scope}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
       </main>
     </div>

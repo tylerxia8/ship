@@ -14,6 +14,21 @@ const createOAuthAppSchema = z.object({
   requested_scopes: z.array(z.string()).default([]),
 });
 
+function publicOAuthApp(row: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: row.id,
+    workspace_id: row.workspace_id,
+    owner_user_id: row.owner_user_id,
+    name: row.name,
+    client_id: row.client_id,
+    redirect_uris: row.redirect_uris,
+    requested_scopes: row.requested_scopes,
+    active: row.active,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
 interface MembershipRow {
   role: string;
 }
@@ -28,6 +43,32 @@ async function requireWorkspaceAdmin(userId: string, workspaceId: string): Promi
     throw new ApiError(403, 'forbidden', 'Only workspace admins can manage OAuth apps');
   }
 }
+
+router.get('/', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const workspaceId = req.workspaceId;
+    if (!userId || !workspaceId) {
+      throw new ApiError(401, 'unauthorized', 'Login required');
+    }
+
+    await requireWorkspaceAdmin(userId, workspaceId);
+
+    const result = await pool.query(
+      `SELECT id, workspace_id, owner_user_id, name, client_id, redirect_uris,
+              requested_scopes, active, created_at, updated_at
+         FROM oauth_apps
+        WHERE workspace_id = $1
+        ORDER BY created_at DESC
+        LIMIT 100`,
+      [workspaceId],
+    );
+
+    res.json({ data: result.rows.map(publicOAuthApp), next_cursor: null });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.post('/', authMiddleware, async (req, res, next) => {
   try {
@@ -71,7 +112,7 @@ router.post('/', authMiddleware, async (req, res, next) => {
     );
 
     res.status(201).json({
-      app: result.rows[0],
+      app: publicOAuthApp(result.rows[0]),
       client_secret: clientSecret,
       secret_display: 'shown_once',
     });
