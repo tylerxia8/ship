@@ -2,6 +2,21 @@
 
 Typed TypeScript client for Ship's public `/api/v1` platform API.
 
+## Package Status
+
+For this assignment, `@ship/sdk` is implemented as a workspace package in this
+repository. The production packaging step is publishing this package to npm under
+the same name. Until then, a clean-machine reviewer can build and use it from the
+monorepo:
+
+```bash
+git clone https://github.com/tylerxia8/ship.git
+cd ship
+git checkout plugforge/main
+corepack.cmd pnpm install
+corepack.cmd pnpm --filter @ship/sdk build
+```
+
 ## Quickstart
 
 Build the SDK from the repository root:

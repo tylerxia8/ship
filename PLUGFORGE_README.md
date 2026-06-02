@@ -25,6 +25,20 @@ Start here when reviewing the Week 6 final submission.
 - Runnable SDK examples: `examples/plugforge/`
 - CLI reference integration: `integrations/cli/src/index.mjs`
 
+## SDK Packaging Note
+
+`@ship/sdk` is implemented as a workspace package for this assignment. The
+production follow-up is publishing the same package to npm. A clean-machine
+reviewer can use the SDK today with:
+
+```powershell
+git clone https://github.com/tylerxia8/ship.git
+cd ship
+git checkout plugforge/main
+corepack.cmd pnpm install
+corepack.cmd pnpm --filter @ship/sdk build
+```
+
 ## Verification
 
 ```powershell

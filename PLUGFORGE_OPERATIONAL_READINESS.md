@@ -41,4 +41,6 @@ documented enough for a reviewer to understand the operating model.
 - No dual-secret webhook rotation grace period yet.
 - No public developer documentation site yet; the OpenAPI contract, SDK README,
   CLI, and examples are the current developer entry points.
+- `@ship/sdk` is implemented as a workspace package. The production packaging
+  step is publishing the same package to npm.
 - Rate-limit and retry workers are intentionally simple for the assignment scale.

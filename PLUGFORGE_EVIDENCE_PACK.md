@@ -1,6 +1,6 @@
 # Plugforge Evidence Pack
 
-Generated: `2026-06-02T19:16:27.403Z`
+Generated: `2026-06-02T19:26:23.049Z`
 
 ## Deployment
 
@@ -15,17 +15,20 @@ Generated: `2026-06-02T19:16:27.403Z`
 - Branch: `plugforge/main`
 
 ```text
-No relevant uncommitted changes.
+M PLUGFORGE_FINAL_SUBMISSION.md
+ M PLUGFORGE_OPERATIONAL_READINESS.md
+ M PLUGFORGE_README.md
+ M sdk/README.md
 ```
 
 ## Live Endpoint Checks
 
 | Check | Status | HTTP | Latency |
 | --- | --- | --- | --- |
-| `/health` | Yes | 200 | 359ms |
-| `/api/v1/openapi.json` | Yes | 200 | 258ms |
-| `/api/v1/scopes` | Yes | 200 | 255ms |
-| `/api/v1/webhooks/events` | Yes | 200 | 253ms |
+| `/health` | Yes | 200 | 414ms |
+| `/api/v1/openapi.json` | Yes | 200 | 285ms |
+| `/api/v1/scopes` | Yes | 200 | 272ms |
+| `/api/v1/webhooks/events` | Yes | 200 | 276ms |
 
 ## OpenAPI Contract Coverage
 
@@ -45,46 +48,46 @@ No relevant uncommitted changes.
 
 - Command: `corepack.cmd pnpm plugforge:live-smoke`
 - Passed: Yes
-- Elapsed: 1124ms
+- Elapsed: 4530ms
 
 ```text
   "authenticated_checks": false,
-  "checked_at": "2026-06-02T19:16:27.198Z",
+  "checked_at": "2026-06-02T19:26:20.371Z",
   "results": [
     {
       "name": "GET /health",
       "path": "/health",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 207
+      "elapsed_ms": 183
     },
     {
       "name": "GET /api/v1/openapi.json",
       "path": "/api/v1/openapi.json",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 111
+      "elapsed_ms": 157
     },
     {
       "name": "GET /api/v1/scopes",
       "path": "/api/v1/scopes",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 77
+      "elapsed_ms": 58
     },
     {
       "name": "GET /api/v1/webhooks/events",
       "path": "/api/v1/webhooks/events",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 58
+      "elapsed_ms": 61
     },
     {
       "name": "POST /oauth/device/code",
       "path": "/oauth/device/code",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 104
+      "elapsed_ms": 347
     }
   ]
 }

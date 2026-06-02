@@ -40,7 +40,7 @@ new app.
 | OAuth app lifecycle | `/settings/developers`, `api/src/platform/routes/apps.ts` |
 | Auth flows | `api/src/platform/routes/oauth.ts`, `api/src/platform/platform.test.ts` |
 | Scoped public API | `api/src/platform/api-v1.ts`, `api/src/platform/routes/documents.ts` |
-| SDK | `sdk/src/` |
+| SDK | `sdk/src/`, `sdk/README.md` |
 | Runnable developer examples | `examples/plugforge/` |
 | CLI reference integration | `integrations/cli/src/index.mjs` |
 | Signed webhooks | `api/src/platform/webhooks.ts`, `sdk/src/webhook-client.ts` |
@@ -61,6 +61,20 @@ new app.
 - Webhook subscription: `2ed4b869-718c-49e1-9dcb-a4eb8e2ee210`.
 - Webhook delivery: `1dfdb680-d30b-4e02-92d5-6c2e2c5bee04`.
 - Delivery result: `document.created`, attempt `1`, status `delivered`, response `200`, latency `43ms`.
+
+## SDK Packaging Note
+
+`@ship/sdk` is implemented as a workspace package for the assignment. The
+production packaging step is publishing this same package to npm. Until then, the
+clean-machine equivalent is:
+
+```powershell
+git clone https://github.com/tylerxia8/ship.git
+cd ship
+git checkout plugforge/main
+corepack.cmd pnpm install
+corepack.cmd pnpm --filter @ship/sdk build
+```
 
 ## Repeatable Verification
 
