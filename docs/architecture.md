@@ -80,7 +80,7 @@ Database changes live in numbered migrations under `api/src/db/migrations/`. Shi
 
 **Liskov Substitution.** `IEventBus` and `IWebhookDeliverer` define contracts that can be backed by in-memory implementations for MVP and queue-backed implementations later. Tests use the same interface as production code.
 
-**Interface Segregation.** The SDK exposes resource clients: `client.documents`, `client.issues`, `client.sprints`, and `client.webhooks`. Consumers do not import one giant client with every method mixed together.
+**Interface Segregation.** The SDK exposes focused resource clients for the MVP contract: `client.documents` and `client.webhooks`, plus small top-level helpers for app context and discovery. Consumers do not import one giant client with every method mixed together, and future issue/sprint clients can be added without changing the documents or webhooks surface.
 
 **Dependency Inversion.** Public routes depend on domain/data services and platform interfaces, not on internal Express route handlers. Webhook publishing depends on `IEventBus`, not on a concrete queue. The SDK and CLI talk only to `/api/v1` and `/oauth`; neither imports `api/src`.
 
