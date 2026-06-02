@@ -202,8 +202,10 @@ async function login(args) {
 }
 
 async function main() {
-  const [command, subcommand, ...rest] = process.argv.slice(2);
-  const { flags, rest: positional } = parseFlags(rest);
+  const argv = process.argv.slice(2);
+  const [command, subcommand] = argv;
+  const commandArgs = ['docs', 'webhooks'].includes(command) ? argv.slice(2) : argv.slice(1);
+  const { flags, rest: positional } = parseFlags(commandArgs);
   const shipUrl = flags['ship-url'] || DEFAULT_SHIP_URL;
 
   if (!command || command === 'help' || command === '--help') {
@@ -211,8 +213,13 @@ async function main() {
     return;
   }
 
+  if (flags.help === 'true' || flags.h === 'true') {
+    usage();
+    return;
+  }
+
   if (command === 'login') {
-    await login([subcommand, ...rest].filter(Boolean));
+    await login(commandArgs);
     return;
   }
 

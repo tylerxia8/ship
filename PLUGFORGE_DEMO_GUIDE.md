@@ -18,6 +18,8 @@ three viewpoints:
 - Public webhook events: `https://d2rr1fze9v095b.cloudfront.net/api/v1/webhooks/events`
 - Static OpenAPI file: `docs/openapi.json`
 - GitHub branch: `plugforge/main`
+- Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`
+- Social post draft: `PLUGFORGE_SOCIAL_POST.md`
 
 ## Live Evidence To Mention
 
@@ -39,6 +41,12 @@ Run the live smoke check:
 
 ```bash
 corepack.cmd pnpm plugforge:live-smoke
+```
+
+Run the final submission check:
+
+```bash
+corepack.cmd pnpm plugforge:final-check
 ```
 
 Regenerate the static OpenAPI contract:
@@ -88,6 +96,8 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url https://d2rr1fze9v0
    API process runs a 15-second retry worker."
 9. "The fitness suite proves OAuth, scopes, error shape, OpenAPI/SDK parity, the
    public/internal boundary, webhooks, retry behavior, and replay behavior."
+10. "The final check command runs live production discovery plus the fitness
+    suite so the demo evidence is repeatable."
 
 ## Evidence Checklist
 
@@ -100,6 +110,8 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url https://d2rr1fze9v0
 - `scripts/plugforge-ttfe-drill.mjs` proves time to first event.
 - `integrations/cli/src/index.mjs` is the reference integration.
 - `PLUGFORGE_API_EXAMPLES.md` contains copyable public API examples.
+- `PLUGFORGE_FINAL_SUBMISSION.md` is the final reviewer entry point.
+- `PLUGFORGE_SOCIAL_POST.md` contains a screenshot-backed post draft.
 
 ## Known Demo Notes
 

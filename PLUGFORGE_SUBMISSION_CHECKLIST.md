@@ -15,7 +15,10 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Demo walkthrough: `PLUGFORGE_DEMO_GUIDE.md`
 - Copyable API examples: `PLUGFORGE_API_EXAMPLES.md`
 - Early submission entry point: `PLUGFORGE_EARLY_SUBMISSION.md`
+- Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`
+- Social post draft and screenshot plan: `PLUGFORGE_SOCIAL_POST.md`
 - Live deployment smoke script: `scripts/plugforge-live-smoke.mjs`
+- Final submission verification script: `scripts/plugforge-final-check.mjs`
 
 ## Live MVP Deployment
 
@@ -43,6 +46,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 ```bash
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
 corepack.cmd pnpm plugforge:live-smoke
+corepack.cmd pnpm plugforge:final-check
 corepack.cmd pnpm --recursive run type-check
 corepack.cmd pnpm --recursive run build
 node integrations/cli/src/index.mjs --help
