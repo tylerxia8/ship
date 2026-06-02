@@ -15,6 +15,27 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Demo walkthrough: `PLUGFORGE_DEMO_GUIDE.md`
 - Copyable API examples: `PLUGFORGE_API_EXAMPLES.md`
 
+## Live MVP Deployment
+
+- Public app: `https://d2rr1fze9v095b.cloudfront.net`
+- Public OpenAPI: `https://d2rr1fze9v095b.cloudfront.net/api/v1/openapi.json`
+- Public scopes registry: `https://d2rr1fze9v095b.cloudfront.net/api/v1/scopes`
+- Public webhook event registry: `https://d2rr1fze9v095b.cloudfront.net/api/v1/webhooks/events`
+- API health through CloudFront: `https://d2rr1fze9v095b.cloudfront.net/health`
+- Elastic Beanstalk version verified: `v20260602113723`
+- Production OAuth app created: `Plugforge MVP Grader App`
+- Production OAuth `client_id`: `ship_app_d8200057ae8afcd914151e0738af09f3`
+- Production scopes: `documents:read`, `documents:write`, `webhooks:manage`
+
+## Live MVP Proof
+
+- Device Authorization Grant approved with user code `AZK5-FXJZ`.
+- Public API document create proof: `4689f19c-24bf-4b75-8999-133d4debc762`
+- Webhook trigger document: `501394e7-90e6-45dc-bfef-5b4b4b4e4d62`
+- Webhook subscription: `2ed4b869-718c-49e1-9dcb-a4eb8e2ee210`
+- Webhook delivery: `1dfdb680-d30b-4e02-92d5-6c2e2c5bee04`
+- Delivery result: `document.created`, attempt `1`, status `delivered`, response `200`, latency `43ms`
+
 ## Verification Commands
 
 ```bash

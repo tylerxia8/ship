@@ -159,6 +159,21 @@ resource "aws_cloudfront_distribution" "frontend" {
     }
   }
 
+  dynamic "ordered_cache_behavior" {
+    for_each = var.eb_environment_cname != "" ? [1] : []
+    content {
+      path_pattern           = "/oauth/*"
+      target_origin_id       = "EB-API"
+      viewer_protocol_policy = "redirect-to-https"
+      allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods         = ["GET", "HEAD"]
+      compress               = false
+      cache_policy_id        = aws_cloudfront_cache_policy.api_no_cache.id
+
+      origin_request_policy_id = aws_cloudfront_origin_request_policy.api.id
+    }
+  }
+
   # Health check endpoint (only when EB is configured)
   dynamic "ordered_cache_behavior" {
     for_each = var.eb_environment_cname != "" ? [1] : []

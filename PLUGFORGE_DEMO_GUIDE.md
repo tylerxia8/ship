@@ -12,10 +12,20 @@ three viewpoints:
 
 ## Websites To Open
 
-- Ship app: `/settings/developers`
-- Public OpenAPI: `/api/v1/openapi.json`
+- Ship app: `https://d2rr1fze9v095b.cloudfront.net/settings/developers`
+- Public OpenAPI: `https://d2rr1fze9v095b.cloudfront.net/api/v1/openapi.json`
+- Public scopes: `https://d2rr1fze9v095b.cloudfront.net/api/v1/scopes`
+- Public webhook events: `https://d2rr1fze9v095b.cloudfront.net/api/v1/webhooks/events`
 - Static OpenAPI file: `docs/openapi.json`
 - GitHub branch: `plugforge/main`
+
+## Live Evidence To Mention
+
+- Production OAuth app: `Plugforge MVP Grader App`
+- Production `client_id`: `ship_app_d8200057ae8afcd914151e0738af09f3`
+- Public API document create proof: `4689f19c-24bf-4b75-8999-133d4debc762`
+- Signed webhook delivery proof: `1dfdb680-d30b-4e02-92d5-6c2e2c5bee04`
+- Delivery result: `document.created`, delivered on attempt `1`, HTTP `200`, `43ms`
 
 ## Terminal Commands
 
@@ -34,22 +44,22 @@ corepack.cmd pnpm --filter @ship/api plugforge:openapi
 Run the time-to-first-event drill:
 
 ```bash
-SHIP_URL=http://localhost:3000 SHIP_TOKEN=ship_at_... node scripts/plugforge-ttfe-drill.mjs
+SHIP_URL=https://d2rr1fze9v095b.cloudfront.net SHIP_TOKEN=ship_at_... node scripts/plugforge-ttfe-drill.mjs
 ```
 
 Use the reference CLI:
 
 ```bash
-node integrations/cli/src/index.mjs login --client-id ship_app_... --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs scopes --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs docs ls --limit 10 --type wiki --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs docs get <document-id> --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs docs create "Plugforge demo document" --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs webhooks events --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs webhooks deliveries --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs webhooks rotate-secret <subscription-id> --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs webhooks deactivate <subscription-id> --ship-url http://localhost:3000
-node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs login --client-id ship_app_d8200057ae8afcd914151e0738af09f3 --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs scopes --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs docs ls --limit 10 --type wiki --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs docs get <document-id> --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs docs create "Plugforge demo document" --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs webhooks events --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs webhooks deliveries --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs webhooks rotate-secret <subscription-id> --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs webhooks deactivate <subscription-id> --ship-url https://d2rr1fze9v095b.cloudfront.net
+node integrations/cli/src/index.mjs webhooks tail --ship-url https://d2rr1fze9v095b.cloudfront.net
 ```
 
 ## Demo Script
