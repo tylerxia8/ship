@@ -31,6 +31,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 // concurrent connections than a dev Postgres on a developer laptop.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
   max: isProduction ? 30 : 20,
   idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
   connectionTimeoutMillis: 2000, // Fail fast if can't connect in 2 seconds

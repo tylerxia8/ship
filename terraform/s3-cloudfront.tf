@@ -251,9 +251,6 @@ resource "aws_cloudfront_distribution" "frontend" {
     default_ttl            = 3600
     max_ttl                = 86400
 
-    # Real-time logging for security monitoring
-    realtime_log_config_arn = aws_cloudfront_realtime_log_config.main.arn
-
     forwarded_values {
       query_string = false
       cookies {
@@ -429,6 +426,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
   rule {
     id     = "abort-incomplete-multipart"
     status = "Enabled"
+    prefix = ""
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 1

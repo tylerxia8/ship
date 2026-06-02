@@ -97,7 +97,7 @@ resource "aws_iam_role_policy_attachment" "eb_service_managed" {
 resource "aws_elastic_beanstalk_environment" "api" {
   name                = "${var.project_name}-api-prod"
   application         = aws_elastic_beanstalk_application.api.name
-  solution_stack_name = "64bit Amazon Linux 2023 v4.9.0 running Docker"
+  solution_stack_name = "64bit Amazon Linux 2023 v4.13.1 running Docker"
 
   # VPC Configuration
   setting {
@@ -234,7 +234,7 @@ resource "aws_elastic_beanstalk_environment" "api" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "PORT"
-    value     = "80"
+    value     = "8080"
   }
 
   setting {

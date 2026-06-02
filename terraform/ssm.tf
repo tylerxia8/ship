@@ -5,11 +5,11 @@ resource "aws_ssm_parameter" "database_url" {
   type        = "SecureString"
   value = format(
     "postgresql://%s:%s@%s:%s/%s",
-    aws_rds_cluster.aurora.master_username,
+    aws_db_instance.postgres.username,
     random_password.db_password.result,
-    aws_rds_cluster.aurora.endpoint,
-    aws_rds_cluster.aurora.port,
-    aws_rds_cluster.aurora.database_name
+    aws_db_instance.postgres.address,
+    aws_db_instance.postgres.port,
+    aws_db_instance.postgres.db_name
   )
 
   tags = {
@@ -22,7 +22,7 @@ resource "aws_ssm_parameter" "db_host" {
   name        = "/${var.project_name}/${var.environment}/DB_HOST"
   description = "Aurora cluster endpoint"
   type        = "String"
-  value       = aws_rds_cluster.aurora.endpoint
+  value       = aws_db_instance.postgres.address
 
   tags = {
     Name = "${var.project_name}-db-host"
@@ -34,7 +34,7 @@ resource "aws_ssm_parameter" "db_name" {
   name        = "/${var.project_name}/${var.environment}/DB_NAME"
   description = "Database name"
   type        = "String"
-  value       = aws_rds_cluster.aurora.database_name
+  value       = aws_db_instance.postgres.db_name
 
   tags = {
     Name = "${var.project_name}-db-name"
@@ -46,7 +46,7 @@ resource "aws_ssm_parameter" "db_username" {
   name        = "/${var.project_name}/${var.environment}/DB_USERNAME"
   description = "Database username"
   type        = "String"
-  value       = aws_rds_cluster.aurora.master_username
+  value       = aws_db_instance.postgres.username
 
   tags = {
     Name = "${var.project_name}-db-username"

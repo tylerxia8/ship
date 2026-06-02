@@ -15,17 +15,17 @@ output "public_subnet_ids" {
 
 output "aurora_cluster_endpoint" {
   description = "Aurora cluster endpoint"
-  value       = aws_rds_cluster.aurora.endpoint
+  value       = aws_db_instance.postgres.address
 }
 
 output "aurora_cluster_reader_endpoint" {
   description = "Aurora cluster reader endpoint"
-  value       = aws_rds_cluster.aurora.reader_endpoint
+  value       = aws_db_instance.postgres.address
 }
 
 output "database_name" {
   description = "Database name"
-  value       = aws_rds_cluster.aurora.database_name
+  value       = aws_db_instance.postgres.db_name
 }
 
 output "database_url_ssm_parameter" {
