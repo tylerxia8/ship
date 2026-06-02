@@ -21,6 +21,8 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Security controls summary: `PLUGFORGE_SECURITY.md`
 - Live deployment smoke script: `scripts/plugforge-live-smoke.mjs`
 - Final submission verification script: `scripts/plugforge-final-check.mjs`
+- Reviewer evidence bundle: `PLUGFORGE_EVIDENCE_PACK.md`
+- Evidence bundle generator: `scripts/plugforge-evidence-pack.mjs`
 
 ## Live MVP Deployment
 
@@ -48,6 +50,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 ```bash
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
 corepack.cmd pnpm plugforge:live-smoke
+corepack.cmd pnpm plugforge:evidence-pack
 corepack.cmd pnpm plugforge:final-check
 corepack.cmd pnpm --recursive run type-check
 corepack.cmd pnpm --recursive run build

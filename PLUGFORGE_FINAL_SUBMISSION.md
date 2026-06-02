@@ -46,6 +46,7 @@ new app.
 | Signed webhooks | `api/src/platform/webhooks.ts`, `sdk/src/webhook-client.ts` |
 | Delivery observability and replay | `/api/v1/webhooks/deliveries`, Developer Portal, fitness tests |
 | Live smoke and final verification | `scripts/plugforge-live-smoke.mjs`, `scripts/plugforge-final-check.mjs` |
+| Reviewer evidence bundle | `PLUGFORGE_EVIDENCE_PACK.md`, `scripts/plugforge-evidence-pack.mjs` |
 | Security controls | `PLUGFORGE_SECURITY.md` |
 
 ## Live Proof Captured
@@ -63,6 +64,12 @@ Run the final check from the repository root:
 
 ```powershell
 corepack.cmd pnpm plugforge:final-check
+```
+
+Generate a reviewer-friendly evidence bundle:
+
+```powershell
+corepack.cmd pnpm plugforge:evidence-pack
 ```
 
 That command runs:
