@@ -609,6 +609,102 @@ describe('Plugforge public API foundation', () => {
     }
   });
 
+  it('lets admins inspect API audit, webhook deliveries, and send a test event from the portal', async () => {
+    const received: Array<{ headers: http.IncomingHttpHeaders; body: string }> = [];
+    const receiver = http.createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        received.push({ headers: req.headers, body: Buffer.concat(chunks).toString('utf8') });
+        res.writeHead(204).end();
+      });
+    });
+
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+    const address = receiver.address();
+    if (!address || typeof address === 'string') throw new Error('Expected receiver port');
+
+    try {
+      const webhookToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+        [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:read', 'webhooks:manage']],
+      );
+
+      const subscriptionResponse = await request(app)
+        .post('/api/v1/webhooks/subscriptions')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({
+          event_type: 'document.created',
+          target_url: `http://127.0.0.1:${address.port}/ship-webhook-test-event`,
+        })
+        .expect(201);
+
+      await request(app)
+        .get('/api/v1/webhooks/events')
+        .expect(200);
+
+      const subscriptionsResponse = await request(app)
+        .get(`/api/v1/oauth/apps/${appId}/webhook-subscriptions`)
+        .set('Cookie', sessionCookie);
+      expect(subscriptionsResponse.status).toBe(200);
+      expect(subscriptionsResponse.body.data).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id: subscriptionResponse.body.data.id,
+          event_type: 'document.created',
+          active: true,
+        }),
+      ]));
+      expect(subscriptionsResponse.body.data[0].signing_secret).toBeUndefined();
+
+      const testResponse = await request(app)
+        .post(`/api/v1/oauth/apps/${appId}/webhook-subscriptions/${subscriptionResponse.body.data.id}/test`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken);
+      expect(testResponse.status).toBe(202);
+      expect(testResponse.body.delivery).toMatchObject({
+        status: 'delivered',
+        response_status: 204,
+      });
+      expect(testResponse.body.delivery.signing_secret).toBeUndefined();
+      expect(received).toHaveLength(1);
+      expect(JSON.parse(received[0]!.body).test).toBe(true);
+
+      const deliveriesResponse = await request(app)
+        .get(`/api/v1/oauth/apps/${appId}/webhook-deliveries`)
+        .set('Cookie', sessionCookie);
+      expect(deliveriesResponse.status).toBe(200);
+      expect(deliveriesResponse.body.data[0]).toMatchObject({
+        id: testResponse.body.delivery.id,
+        status: 'delivered',
+        response_status: 204,
+      });
+
+      const auditResponse = await request(app)
+        .get(`/api/v1/oauth/apps/${appId}/audit`)
+        .set('Cookie', sessionCookie);
+      expect(auditResponse.status).toBe(200);
+      expect(auditResponse.body.data).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          client_id: clientId,
+          route: '/api/v1/webhooks/subscriptions',
+          status: 201,
+        }),
+      ]));
+
+      const memberAuditResponse = await request(app)
+        .get(`/api/v1/oauth/apps/${appId}/audit`)
+        .set('Cookie', memberSessionCookie);
+      expect(memberAuditResponse.status).toBe(403);
+    } finally {
+      await new Promise<void>((resolve) => receiver.close(() => resolve()));
+    }
+  });
+
   it('rotates and deactivates webhook subscriptions', async () => {
     const received: Array<{ headers: http.IncomingHttpHeaders; body: string }> = [];
     const receiver = http.createServer((req, res) => {

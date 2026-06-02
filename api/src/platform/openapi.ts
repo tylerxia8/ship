@@ -161,6 +161,57 @@ export const publicOpenApiDocument = {
         },
       },
     },
+    '/oauth/apps/{id}/audit': {
+      get: {
+        tags: ['OAuth Apps'],
+        summary: 'List public API audit rows for an OAuth app',
+        'x-required-scope': null,
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Public API audit rows for the app' },
+          '404': { description: 'OAuth app not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } } },
+        },
+      },
+    },
+    '/oauth/apps/{id}/webhook-subscriptions': {
+      get: {
+        tags: ['OAuth Apps'],
+        summary: 'List webhook subscriptions for an OAuth app in the Developer Portal',
+        'x-required-scope': null,
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Webhook subscriptions for the app' },
+          '404': { description: 'OAuth app not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } } },
+        },
+      },
+    },
+    '/oauth/apps/{id}/webhook-deliveries': {
+      get: {
+        tags: ['OAuth Apps'],
+        summary: 'List webhook delivery attempts for an OAuth app in the Developer Portal',
+        'x-required-scope': null,
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Webhook delivery attempts for the app' },
+          '404': { description: 'OAuth app not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } } },
+        },
+      },
+    },
+    '/oauth/apps/{id}/webhook-subscriptions/{subscriptionId}/test': {
+      post: {
+        tags: ['OAuth Apps'],
+        summary: 'Send a test webhook event for a subscription from the Developer Portal',
+        'x-required-scope': null,
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'subscriptionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '202': { description: 'Test delivery attempted' },
+          '404': { description: 'OAuth app or subscription not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } } },
+        },
+      },
+    },
     '/documents': {
       get: {
         tags: ['Documents'],

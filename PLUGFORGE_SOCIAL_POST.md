@@ -12,6 +12,8 @@ platform developers can trust?"
 Demo highlights:
 
 - Workspace admin creates an OAuth app in the Ship Developer Portal.
+- Developer Portal shows app activity, permissions, subscriptions, and delivery
+  health in one place.
 - CLI logs in through Device Authorization Grant.
 - Public API creates a Ship document.
 - Ship emits a signed `document.created` webhook.
@@ -22,16 +24,19 @@ Live proof is running against the deployed Ship app, not mocks.
 ## Suggested Screenshots
 
 1. Developer Portal at `/settings/developers`
-   - Show app registration, scopes, and one-time secret behavior.
+   - Show app registration, scopes, one-time secret behavior, and copy controls.
 2. Live OpenAPI at `/api/v1/openapi.json`
    - Show that the platform has a concrete public contract.
-3. Terminal running `corepack.cmd pnpm plugforge:final-check`
+3. Expanded app details in the Developer Portal
+   - Show API activity, webhook subscriptions, deliveries, and the test-event
+     button.
+4. Terminal running `corepack.cmd pnpm plugforge:final-check`
    - Show live smoke, CLI discovery, and fitness checks passing.
-4. CLI command output
+5. CLI command output
    - Show `ship scopes` or `ship webhooks events` against the live URL.
-5. Webhook delivery log
+6. Webhook delivery log
    - Show `document.created`, delivered status, response `200`, and latency.
-6. Architecture diagram or `docs/architecture.md`
+7. Architecture diagram or `docs/architecture.md`
    - Show the public/internal boundary and webhook pipeline.
 
 ## Demo Sections To Clip

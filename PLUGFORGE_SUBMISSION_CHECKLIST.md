@@ -10,6 +10,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Developer Portal: `/settings/developers`
 - Public API implementation: `api/src/platform/`
 - SDK: `sdk/`
+- Developer examples: `examples/plugforge/`
 - CLI reference integration: `integrations/cli/src/index.mjs` (`login`, `scopes`, `docs ls/get/create`, `webhooks`)
 - TTFE drill: `scripts/plugforge-ttfe-drill.mjs`
 - Demo walkthrough: `PLUGFORGE_DEMO_GUIDE.md`
@@ -17,6 +18,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Early submission entry point: `PLUGFORGE_EARLY_SUBMISSION.md`
 - Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`
 - Social post draft and screenshot plan: `PLUGFORGE_SOCIAL_POST.md`
+- Security controls summary: `PLUGFORGE_SECURITY.md`
 - Live deployment smoke script: `scripts/plugforge-live-smoke.mjs`
 - Final submission verification script: `scripts/plugforge-final-check.mjs`
 
@@ -82,5 +84,6 @@ The Plugforge fitness command covers:
 - Rate-limit isolation by bearer token and audit evidence for 429 responses.
 - Signed `document.created` webhooks.
 - Webhook retry, `Retry-After` handling, permanent-failure dead lettering, delivery listing, replay, signing-secret rotation, and deactivation.
+- Developer Portal audit viewing, webhook delivery viewing, and test-event sending.
 - Public API audit evidence for `/api/v1/documents`.
 - SDK/OpenAPI parity for documents, scopes, webhook event discovery, and webhook lifecycle routes.

@@ -41,10 +41,12 @@ new app.
 | Auth flows | `api/src/platform/routes/oauth.ts`, `api/src/platform/platform.test.ts` |
 | Scoped public API | `api/src/platform/api-v1.ts`, `api/src/platform/routes/documents.ts` |
 | SDK | `sdk/src/` |
+| Runnable developer examples | `examples/plugforge/` |
 | CLI reference integration | `integrations/cli/src/index.mjs` |
 | Signed webhooks | `api/src/platform/webhooks.ts`, `sdk/src/webhook-client.ts` |
 | Delivery observability and replay | `/api/v1/webhooks/deliveries`, Developer Portal, fitness tests |
 | Live smoke and final verification | `scripts/plugforge-live-smoke.mjs`, `scripts/plugforge-final-check.mjs` |
+| Security controls | `PLUGFORGE_SECURITY.md` |
 
 ## Live Proof Captured
 
@@ -91,12 +93,14 @@ corepack.cmd pnpm plugforge:ttfe
 ## Demo Video Path
 
 1. Open the Developer Portal and show the production OAuth app.
-2. Show the live OpenAPI, scope registry, and webhook event registry.
-3. Run `corepack.cmd pnpm plugforge:final-check`.
-4. Run or describe the CLI Device Authorization Grant.
-5. Create a document through the public API or CLI.
-6. Show the signed webhook delivery log and the delivery proof ID.
-7. Close with the architecture defense: public/internal boundary, scoped OAuth,
+2. Expand the app row and show app permissions, API activity, webhook
+   subscriptions, delivery logs, and test-event controls.
+3. Show the live OpenAPI, scope registry, and webhook event registry.
+4. Run `corepack.cmd pnpm plugforge:final-check`.
+5. Run or describe the CLI Device Authorization Grant.
+6. Create a document through the public API or CLI.
+7. Show the signed webhook delivery log and the delivery proof ID.
+8. Close with the architecture defense: public/internal boundary, scoped OAuth,
    generated OpenAPI, hand-written parity-tested SDK, and webhook observability.
 
 ## Final Notes

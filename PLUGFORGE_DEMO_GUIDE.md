@@ -20,6 +20,8 @@ three viewpoints:
 - GitHub branch: `plugforge/main`
 - Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`
 - Social post draft: `PLUGFORGE_SOCIAL_POST.md`
+- Security notes: `PLUGFORGE_SECURITY.md`
+- SDK examples: `examples/plugforge/`
 
 ## Live Evidence To Mention
 
@@ -81,8 +83,8 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url https://d2rr1fze9v0
 1. "This week's goal was to make Ship usable as a platform, not just an app."
 2. "The public boundary is `/api/v1`; internal Ship routes stay separate."
 3. "Here is the Developer Portal. A workspace admin can create an OAuth app, see
-   the client secret once, and inspect registered apps without exposing secret
-   hashes."
+   the client secret once, inspect registered apps without exposing secret
+   hashes, review API activity, and validate webhook delivery with a test event."
 4. "The OpenAPI contract is served live and exported to `docs/openapi.json`."
 5. "The CLI uses Device Authorization Grant, so it does not need a client secret
    or local callback server. It refreshes expired access tokens with the stored
@@ -112,6 +114,8 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url https://d2rr1fze9v0
 - `PLUGFORGE_API_EXAMPLES.md` contains copyable public API examples.
 - `PLUGFORGE_FINAL_SUBMISSION.md` is the final reviewer entry point.
 - `PLUGFORGE_SOCIAL_POST.md` contains a screenshot-backed post draft.
+- `PLUGFORGE_SECURITY.md` summarizes OAuth, token, scope, webhook, and audit controls.
+- `examples/plugforge/` contains small SDK examples for external developers.
 
 ## Known Demo Notes
 
