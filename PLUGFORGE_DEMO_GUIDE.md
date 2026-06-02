@@ -67,8 +67,9 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url http://localhost:30
    `document.created` webhook."
 7. "Webhook delivery attempts are logged with status, response code, latency,
    next retry time, and idempotency key."
-8. "Transient failures become `retry_pending`, permanent failures become
-   `dead_letter`, and the API process runs a 15-second retry worker."
+8. "Transient failures become `retry_pending`, subscriber `Retry-After` is
+   honored for rate limits, permanent failures become `dead_letter`, and the
+   API process runs a 15-second retry worker."
 9. "The fitness suite proves OAuth, scopes, error shape, OpenAPI/SDK parity, the
    public/internal boundary, webhooks, retry behavior, and replay behavior."
 
