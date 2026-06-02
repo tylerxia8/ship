@@ -23,7 +23,7 @@ Usage:
   ship login --client-id <id> [--ship-url <url>] [--scope <scopes>]
   ship scopes [--ship-url <url>]
   ship me [--ship-url <url>]
-  ship docs ls [--ship-url <url>]
+  ship docs ls [--ship-url <url>] [--limit 25] [--cursor <cursor>] [--type <type>]
   ship docs get <document-id> [--ship-url <url>]
   ship docs create <title> [--ship-url <url>]
   ship webhooks events [--ship-url <url>]
@@ -227,7 +227,12 @@ async function main() {
   }
 
   if (command === 'docs' && subcommand === 'ls') {
-    console.log(JSON.stringify(await api(shipUrl, '/documents'), null, 2));
+    const search = new URLSearchParams();
+    if (flags.limit) search.set('limit', flags.limit);
+    if (flags.cursor) search.set('cursor', flags.cursor);
+    if (flags.type) search.set('type', flags.type);
+    const query = search.toString();
+    console.log(JSON.stringify(await api(shipUrl, `/documents${query ? `?${query}` : ''}`), null, 2));
     return;
   }
 

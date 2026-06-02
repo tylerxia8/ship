@@ -81,6 +81,7 @@ curl -X POST "$env:SHIP_URL/api/v1/webhooks/deliveries/<delivery-id>/replay" `
 ```powershell
 node integrations/cli/src/index.mjs scopes --ship-url $env:SHIP_URL
 node integrations/cli/src/index.mjs webhooks events --ship-url $env:SHIP_URL
+node integrations/cli/src/index.mjs docs ls --limit 10 --type wiki --ship-url $env:SHIP_URL
 node integrations/cli/src/index.mjs docs get <document-id> --ship-url $env:SHIP_URL
 node integrations/cli/src/index.mjs docs create "Plugforge API example" --ship-url $env:SHIP_URL
 node integrations/cli/src/index.mjs webhooks deliveries --ship-url $env:SHIP_URL
