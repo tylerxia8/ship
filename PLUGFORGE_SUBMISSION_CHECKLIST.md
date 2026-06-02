@@ -49,7 +49,7 @@ The Plugforge fitness command covers:
 - Refresh token rotation and replay-triggered token family revocation.
 - Public scope registry.
 - Public webhook event registry.
-- Document cursor pagination and invalid-cursor errors.
+- Document list, read-by-id, private-document non-disclosure, cursor pagination, and invalid-cursor errors.
 - Scope enforcement and missing-scope error details.
 - Rate-limit isolation by bearer token and audit evidence for 429 responses.
 - Signed `document.created` webhooks.

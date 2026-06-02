@@ -885,6 +885,46 @@ describe('Plugforge public API foundation', () => {
     expect(auditRow.route).toBe('/api/v1/documents/');
   });
 
+  it('reads public documents by id without leaking missing or private documents', async () => {
+    const publicDoc = await pool.query<{ id: string }>(
+      `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)
+       VALUES ($1, 'wiki', 'Public API Read Proof', $2, 'workspace')
+       RETURNING id`,
+      [workspaceId, adminUserId],
+    );
+    const privateDoc = await pool.query<{ id: string }>(
+      `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)
+       VALUES ($1, 'wiki', 'Private API Read Proof', $2, 'private')
+       RETURNING id`,
+      [workspaceId, adminUserId],
+    );
+    const publicDocId = publicDoc.rows[0]?.id;
+    const privateDocId = privateDoc.rows[0]?.id;
+    if (!publicDocId || !privateDocId) throw new Error('Expected inserted document ids');
+
+    const foundResponse = await request(app)
+      .get(`/api/v1/documents/${publicDocId}`)
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(foundResponse.status).toBe(200);
+    expect(foundResponse.body.data).toMatchObject({
+      id: publicDocId,
+      title: 'Public API Read Proof',
+      document_type: 'wiki',
+    });
+
+    const privateResponse = await request(app)
+      .get(`/api/v1/documents/${privateDocId}`)
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(privateResponse.status).toBe(404);
+    expect(privateResponse.body.code).toBe('not_found');
+
+    const missingResponse = await request(app)
+      .get(`/api/v1/documents/${crypto.randomUUID()}`)
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(missingResponse.status).toBe(404);
+    expect(missingResponse.body.code).toBe('not_found');
+  });
+
   it('paginates public documents with stable cursors and rejects invalid cursors', async () => {
     const rows = [
       ['Public Pagination Old', '2026-01-01T12:00:00.000Z'],
