@@ -6,6 +6,7 @@ export type WebhookEventType = typeof WEBHOOK_EVENTS[number];
 
 const RETRY_DELAYS_SECONDS = [1, 4, 16, 60, 300, 1800] as const;
 const MAX_ATTEMPTS = RETRY_DELAYS_SECONDS.length;
+const MAX_RETRY_DELAY_SECONDS = 1800;
 
 interface WebhookSubscriptionRow {
   id: string;
@@ -52,6 +53,24 @@ function nextAttemptDelaySeconds(attemptNumber: number): number | null {
   return RETRY_DELAYS_SECONDS[attemptNumber] ?? null;
 }
 
+function retryAfterDelaySeconds(value: string | null, nowMs = Date.now()): number | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  const numericSeconds = Number(trimmed);
+  if (Number.isFinite(numericSeconds) && numericSeconds >= 0) {
+    return Math.min(Math.ceil(numericSeconds), MAX_RETRY_DELAY_SECONDS);
+  }
+
+  const dateMs = Date.parse(trimmed);
+  if (!Number.isNaN(dateMs)) {
+    const deltaSeconds = Math.max(0, Math.ceil((dateMs - nowMs) / 1000));
+    return Math.min(deltaSeconds, MAX_RETRY_DELAY_SECONDS);
+  }
+
+  return null;
+}
+
 export async function deliverWebhook(subscriptionId: string, eventId: string): Promise<void> {
   const result = await pool.query<WebhookDeliveryRow>(
     `SELECT s.id, s.target_url, s.signing_secret,
@@ -78,6 +97,7 @@ export async function deliverWebhook(subscriptionId: string, eventId: string): P
   const startedAt = Date.now();
   let responseStatus: number | null = null;
   let responseText = '';
+  let retryAfterHeader: string | null = null;
   let status = 'failed';
   let ok = false;
 
@@ -94,6 +114,7 @@ export async function deliverWebhook(subscriptionId: string, eventId: string): P
       body: rawBody,
     });
     responseStatus = response.status;
+    retryAfterHeader = response.headers.get('retry-after');
     responseText = await response.text();
     ok = response.ok;
     status = deliveryStatus(responseStatus, ok, attemptNumber);
@@ -102,7 +123,9 @@ export async function deliverWebhook(subscriptionId: string, eventId: string): P
     status = deliveryStatus(null, false, attemptNumber);
   }
 
-  const nextDelaySeconds = status === 'retry_pending' ? nextAttemptDelaySeconds(attemptNumber) : null;
+  const nextDelaySeconds = status === 'retry_pending'
+    ? retryAfterDelaySeconds(retryAfterHeader) ?? nextAttemptDelaySeconds(attemptNumber)
+    : null;
   await pool.query(
     `INSERT INTO webhook_deliveries
       (subscription_id, event_id, attempt_number, response_status, response_excerpt,

@@ -857,6 +857,65 @@ describe('Plugforge public API foundation', () => {
     }
   });
 
+  it('honors Retry-After on transient webhook subscriber rate limits', async () => {
+    const receiver = http.createServer((_req, res) => {
+      res.writeHead(429, { 'Retry-After': '7' }).end('rate limited');
+    });
+
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+    const address = receiver.address();
+    if (!address || typeof address === 'string') throw new Error('Expected receiver port');
+
+    try {
+      const webhookToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+        [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:write', 'webhooks:manage']],
+      );
+
+      const subscriptionResponse = await request(app)
+        .post('/api/v1/webhooks/subscriptions')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({
+          event_type: 'document.created',
+          target_url: `http://127.0.0.1:${address.port}/ship-webhook-rate-limit`,
+        })
+        .expect(201);
+
+      const createResponse = await request(app)
+        .post('/api/v1/documents')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({ title: 'Webhook Retry After Proof' })
+        .expect(201);
+
+      const delivery = await pool.query(
+        `SELECT status, response_status, attempt_number,
+                next_attempt_at >= NOW() + INTERVAL '6 seconds' AS retry_after_lower_bound,
+                next_attempt_at <= NOW() + INTERVAL '8 seconds' AS retry_after_upper_bound
+           FROM webhook_deliveries
+          WHERE idempotency_key = $1
+            AND subscription_id = $2
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [`document.created:${createResponse.body.data.id}`, subscriptionResponse.body.data.id],
+      );
+
+      expect(delivery.rows[0]).toMatchObject({
+        status: 'retry_pending',
+        response_status: 429,
+        attempt_number: 1,
+        retry_after_lower_bound: true,
+        retry_after_upper_bound: true,
+      });
+    } finally {
+      await new Promise<void>((resolve) => receiver.close(() => resolve()));
+    }
+  });
+
   it('allows an authorized public token to call me and list documents', async () => {
     await pool.query(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)

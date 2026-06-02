@@ -442,7 +442,7 @@ sequenceDiagram
 
 **Queue deliverer crashes.** MVP in-memory delivery is process-local and therefore not durable across crash. Every delivery attempt is persisted with status, response, latency, and next retry time, so the retry scanner can resume visible failures after the process is healthy. Subscribers must treat delivery as at-least-once and dedupe by idempotency key.
 
-**Webhook retries.** Transient failures (`5xx`, `429`, or network errors) become `retry_pending` with the schedule `1s, 4s, 16s, 1m, 5m, 30m`. Permanent `4xx` failures go straight to `dead_letter`. After six attempts, transient failures also move to `dead_letter`. Replay preserves the original event idempotency key.
+**Webhook retries.** Transient failures (`5xx`, `429`, or network errors) become `retry_pending` with the schedule `1s, 4s, 16s, 1m, 5m, 30m`. A subscriber `429` can override the next retry with `Retry-After`, capped at the maximum backoff. Permanent `4xx` failures go straight to `dead_letter`. After six attempts, transient failures also move to `dead_letter`. Replay preserves the original event idempotency key.
 The API process starts an in-process retry worker every 15 seconds for MVP; the
 Postgres delivery state means this can move to a separate queue worker later.
 
