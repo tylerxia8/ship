@@ -42,6 +42,8 @@ Use the reference CLI:
 ```bash
 node integrations/cli/src/index.mjs login --client-id ship_app_... --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs scopes --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs docs ls --ship-url http://localhost:3000
+node integrations/cli/src/index.mjs docs get <document-id> --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs docs create "Plugforge demo document" --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks events --ship-url http://localhost:3000
 node integrations/cli/src/index.mjs webhooks deliveries --ship-url http://localhost:3000

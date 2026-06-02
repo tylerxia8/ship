@@ -29,6 +29,11 @@ curl -H "Authorization: Bearer $env:SHIP_TOKEN" `
 ```
 
 ```powershell
+curl -H "Authorization: Bearer $env:SHIP_TOKEN" `
+  "$env:SHIP_URL/api/v1/documents/<document-id>"
+```
+
+```powershell
 curl -X POST "$env:SHIP_URL/api/v1/documents" `
   -H "Authorization: Bearer $env:SHIP_TOKEN" `
   -H "Content-Type: application/json" `
@@ -76,6 +81,7 @@ curl -X POST "$env:SHIP_URL/api/v1/webhooks/deliveries/<delivery-id>/replay" `
 ```powershell
 node integrations/cli/src/index.mjs scopes --ship-url $env:SHIP_URL
 node integrations/cli/src/index.mjs webhooks events --ship-url $env:SHIP_URL
+node integrations/cli/src/index.mjs docs get <document-id> --ship-url $env:SHIP_URL
 node integrations/cli/src/index.mjs docs create "Plugforge API example" --ship-url $env:SHIP_URL
 node integrations/cli/src/index.mjs webhooks deliveries --ship-url $env:SHIP_URL
 ```

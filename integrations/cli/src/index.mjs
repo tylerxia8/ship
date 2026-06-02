@@ -24,6 +24,7 @@ Usage:
   ship scopes [--ship-url <url>]
   ship me [--ship-url <url>]
   ship docs ls [--ship-url <url>]
+  ship docs get <document-id> [--ship-url <url>]
   ship docs create <title> [--ship-url <url>]
   ship webhooks events [--ship-url <url>]
   ship webhooks subscribe --url <target> [--event document.created] [--ship-url <url>]
@@ -227,6 +228,13 @@ async function main() {
 
   if (command === 'docs' && subcommand === 'ls') {
     console.log(JSON.stringify(await api(shipUrl, '/documents'), null, 2));
+    return;
+  }
+
+  if (command === 'docs' && subcommand === 'get') {
+    const documentId = positional[0];
+    if (!documentId) throw new Error('Missing document id');
+    console.log(JSON.stringify(await api(shipUrl, `/documents/${encodeURIComponent(documentId)}`), null, 2));
     return;
   }
 

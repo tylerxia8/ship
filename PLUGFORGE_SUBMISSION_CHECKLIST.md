@@ -10,7 +10,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Developer Portal: `/settings/developers`
 - Public API implementation: `api/src/platform/`
 - SDK: `sdk/`
-- CLI reference integration: `integrations/cli/src/index.mjs`
+- CLI reference integration: `integrations/cli/src/index.mjs` (`login`, `scopes`, `docs ls/get/create`, `webhooks`)
 - TTFE drill: `scripts/plugforge-ttfe-drill.mjs`
 - Demo walkthrough: `PLUGFORGE_DEMO_GUIDE.md`
 - Copyable API examples: `PLUGFORGE_API_EXAMPLES.md`
