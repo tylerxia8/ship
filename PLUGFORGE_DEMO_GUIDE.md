@@ -19,8 +19,11 @@ three viewpoints:
 - Static OpenAPI file: `docs/openapi.json`
 - GitHub branch: `plugforge/main`
 - Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`
+- Reviewer hub: `PLUGFORGE_README.md`
+- Live proof IDs: `PLUGFORGE_LIVE_PROOF.md`
 - Social post draft: `PLUGFORGE_SOCIAL_POST.md`
 - Security notes: `PLUGFORGE_SECURITY.md`
+- Operational readiness: `PLUGFORGE_OPERATIONAL_READINESS.md`
 - SDK examples: `examples/plugforge/`
 - Screenshot folder: `docs/screenshots/plugforge/`
 

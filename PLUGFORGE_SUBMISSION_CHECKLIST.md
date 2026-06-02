@@ -19,6 +19,9 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`
 - Social post draft and screenshot plan: `PLUGFORGE_SOCIAL_POST.md`
 - Security controls summary: `PLUGFORGE_SECURITY.md`
+- Operational readiness: `PLUGFORGE_OPERATIONAL_READINESS.md`
+- Live proof IDs and screenshots: `PLUGFORGE_LIVE_PROOF.md`
+- Reviewer hub: `PLUGFORGE_README.md`
 - Live deployment smoke script: `scripts/plugforge-live-smoke.mjs`
 - Final submission verification script: `scripts/plugforge-final-check.mjs`
 - Reviewer evidence bundle: `PLUGFORGE_EVIDENCE_PACK.md`
@@ -91,5 +94,6 @@ The Plugforge fitness command covers:
 - Signed `document.created` webhooks.
 - Webhook retry, `Retry-After` handling, permanent-failure dead lettering, delivery listing, replay, signing-secret rotation, and deactivation.
 - Developer Portal audit viewing, webhook delivery viewing, and test-event sending.
+- Developer Portal onboarding checklist, copyable curl examples, accessible app controls, and delivery detail drawer.
 - Public API audit evidence for `/api/v1/documents`.
 - SDK/OpenAPI parity for documents, scopes, webhook event discovery, and webhook lifecycle routes.

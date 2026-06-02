@@ -1,6 +1,6 @@
 # Plugforge Evidence Pack
 
-Generated: `2026-06-02T18:53:13.793Z`
+Generated: `2026-06-02T19:16:27.403Z`
 
 ## Deployment
 
@@ -22,10 +22,10 @@ No relevant uncommitted changes.
 
 | Check | Status | HTTP | Latency |
 | --- | --- | --- | --- |
-| `/health` | Yes | 200 | 216ms |
-| `/api/v1/openapi.json` | Yes | 200 | 170ms |
-| `/api/v1/scopes` | Yes | 200 | 167ms |
-| `/api/v1/webhooks/events` | Yes | 200 | 190ms |
+| `/health` | Yes | 200 | 359ms |
+| `/api/v1/openapi.json` | Yes | 200 | 258ms |
+| `/api/v1/scopes` | Yes | 200 | 255ms |
+| `/api/v1/webhooks/events` | Yes | 200 | 253ms |
 
 ## OpenAPI Contract Coverage
 
@@ -45,46 +45,46 @@ No relevant uncommitted changes.
 
 - Command: `corepack.cmd pnpm plugforge:live-smoke`
 - Passed: Yes
-- Elapsed: 1126ms
+- Elapsed: 1124ms
 
 ```text
   "authenticated_checks": false,
-  "checked_at": "2026-06-02T18:53:13.638Z",
+  "checked_at": "2026-06-02T19:16:27.198Z",
   "results": [
     {
       "name": "GET /health",
       "path": "/health",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 197
+      "elapsed_ms": 207
     },
     {
       "name": "GET /api/v1/openapi.json",
       "path": "/api/v1/openapi.json",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 156
+      "elapsed_ms": 111
     },
     {
       "name": "GET /api/v1/scopes",
       "path": "/api/v1/scopes",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 60
+      "elapsed_ms": 77
     },
     {
       "name": "GET /api/v1/webhooks/events",
       "path": "/api/v1/webhooks/events",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 71
+      "elapsed_ms": 58
     },
     {
       "name": "POST /oauth/device/code",
       "path": "/oauth/device/code",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 63
+      "elapsed_ms": 104
     }
   ]
 }

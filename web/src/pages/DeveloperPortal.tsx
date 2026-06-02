@@ -79,6 +79,7 @@ export function DeveloperPortalPage() {
   const [rotatingAppId, setRotatingAppId] = useState<string | null>(null);
   const [deactivatingAppId, setDeactivatingAppId] = useState<string | null>(null);
   const [testingSubscriptionId, setTestingSubscriptionId] = useState<string | null>(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<WebhookDelivery | null>(null);
   const shipUrl = window.location.origin;
 
   useEffect(() => {
@@ -211,8 +212,15 @@ export function DeveloperPortalPage() {
     }
 
     await loadPortalDetails(app.id);
-    const status = body.delivery?.status ? ` Delivery status: ${body.delivery.status}.` : '';
-    setNotice(`Test event sent.${status}`);
+    const status = body.delivery?.status;
+    const readableStatus = status === 'delivered'
+      ? 'Test event delivered. The delivery row below has the response code and latency.'
+      : status === 'retry_pending'
+        ? 'Test event accepted. Delivery is pending retry; check the delivery row below.'
+        : status === 'dead_letter'
+          ? 'Test event failed permanently. Review the delivery row below before relying on this subscriber.'
+          : 'Test event sent. Refresh activity if the delivery row has not appeared yet.';
+    setNotice(readableStatus);
   }
 
   async function copyText(label: string, text: string) {
@@ -233,6 +241,25 @@ export function DeveloperPortalPage() {
     {
       title: 'Subscribe to document.created',
       text: `node integrations/cli/src/index.mjs webhooks subscribe --url ${targetUrl || 'https://example.com/ship/webhook'} --ship-url ${shipUrl}`,
+    },
+  ];
+
+  const curlExamples = [
+    {
+      title: 'Get scopes',
+      text: `curl "${shipUrl}/api/v1/scopes"`,
+    },
+    {
+      title: 'List documents',
+      text: `curl -H "Authorization: Bearer $SHIP_TOKEN" "${shipUrl}/api/v1/documents?limit=10"`,
+    },
+    {
+      title: 'Create document',
+      text: `curl -X POST "${shipUrl}/api/v1/documents" -H "Authorization: Bearer $SHIP_TOKEN" -H "Content-Type: application/json" -d '{ "title": "Plugforge curl proof", "document_type": "wiki" }'`,
+    },
+    {
+      title: 'List webhook deliveries',
+      text: `curl -H "Authorization: Bearer $SHIP_TOKEN" "${shipUrl}/api/v1/webhooks/deliveries"`,
     },
   ];
 
@@ -264,6 +291,8 @@ export function DeveloperPortalPage() {
 
       <main className="grid flex-1 gap-6 overflow-auto p-6 xl:grid-cols-[minmax(340px,420px),1fr]">
         <section>
+          <OnboardingChecklist hasApps={apps.length > 0} hasExpandedApp={Boolean(selectedApp)} />
+
           <h2 className="text-base font-semibold text-foreground">Register A Connected App</h2>
           <form onSubmit={createApp} className="mt-4 space-y-4">
             <Field label="App name" value={name} onChange={setName} />
@@ -284,6 +313,7 @@ export function DeveloperPortalPage() {
             <button
               type="submit"
               disabled={submitting}
+              aria-label="Create connected app"
               className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
             >
               {submitting ? 'Creating...' : 'Create app'}
@@ -329,6 +359,21 @@ export function DeveloperPortalPage() {
               ))}
             </div>
           </div>
+
+          <div className="mt-6">
+            <h2 className="text-base font-semibold text-foreground">Copy Curl Examples</h2>
+            <div className="mt-4 space-y-4">
+              {curlExamples.map((example) => (
+                <CommandBlock
+                  key={example.title}
+                  title={example.title}
+                  command={example.text}
+                  copied={copied}
+                  onCopy={copyText}
+                />
+              ))}
+            </div>
+          </div>
         </section>
 
         <section>
@@ -357,6 +402,8 @@ export function DeveloperPortalPage() {
                         <button
                           type="button"
                           onClick={() => void toggleExpanded(app)}
+                          aria-expanded={isExpanded}
+                          aria-controls={`app-details-${app.id}`}
                           className="text-left text-sm font-semibold text-foreground hover:underline"
                         >
                           {app.name}
@@ -366,34 +413,39 @@ export function DeveloperPortalPage() {
                       <div className="mt-1 break-all font-mono text-xs text-muted">{app.client_id}</div>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void copyText(`client-${app.id}`, app.client_id)}
-                        className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
-                      >
+                        <button
+                          type="button"
+                          onClick={() => void copyText(`client-${app.id}`, app.client_id)}
+                          aria-label={`Copy client ID for ${app.name}`}
+                          className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
+                        >
                         {copied === `client-${app.id}` ? 'Copied' : 'Copy ID'}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void rotateSecret(app)}
-                        disabled={!app.active || rotatingAppId === app.id}
-                        className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
+                        <button
+                          type="button"
+                          onClick={() => void rotateSecret(app)}
+                          disabled={!app.active || rotatingAppId === app.id}
+                          aria-label={`Rotate client secret for ${app.name}`}
+                          className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
                         {rotatingAppId === app.id ? 'Rotating...' : 'Rotate secret'}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void deactivateApp(app)}
-                        disabled={!app.active || deactivatingAppId === app.id}
-                        className="rounded border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
+                        <button
+                          type="button"
+                          onClick={() => void deactivateApp(app)}
+                          disabled={!app.active || deactivatingAppId === app.id}
+                          aria-label={`Disable ${app.name}`}
+                          className="rounded border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
                         {deactivatingAppId === app.id ? 'Disabling...' : 'Disable'}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void toggleExpanded(app)}
-                        className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
-                      >
+                        <button
+                          type="button"
+                          onClick={() => void toggleExpanded(app)}
+                          aria-expanded={isExpanded}
+                          aria-controls={`app-details-${app.id}`}
+                          className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
+                        >
                         {isExpanded ? 'Hide details' : 'View details'}
                       </button>
                     </div>
@@ -416,6 +468,7 @@ export function DeveloperPortalPage() {
                       onCopy={copyText}
                       onRefresh={() => void loadPortalDetails(app.id)}
                       onSendTest={sendTestEvent}
+                      onSelectDelivery={setSelectedDelivery}
                     />
                   )}
                 </div>
@@ -424,7 +477,46 @@ export function DeveloperPortalPage() {
           </div>
         </section>
       </main>
+
+      {selectedDelivery && (
+        <DeliveryDetailDrawer
+          delivery={selectedDelivery}
+          onClose={() => setSelectedDelivery(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function OnboardingChecklist({ hasApps, hasExpandedApp }: { hasApps: boolean; hasExpandedApp: boolean }) {
+  const items = [
+    { label: 'Create app', done: hasApps },
+    { label: 'Copy client ID', done: hasApps },
+    { label: 'Run device login', done: false },
+    { label: 'Create first document', done: false },
+    { label: 'Subscribe to webhook', done: hasExpandedApp },
+    { label: 'Verify delivery', done: hasExpandedApp },
+  ];
+
+  return (
+    <section aria-labelledby="getting-started-title" className="mb-6 border border-border p-4">
+      <h2 id="getting-started-title" className="text-base font-semibold text-foreground">Get Started</h2>
+      <ol className="mt-3 space-y-2">
+        {items.map((item) => (
+          <li key={item.label} className="flex items-center gap-2 text-sm">
+            <span
+              aria-hidden="true"
+              className={`inline-flex h-5 min-w-12 items-center justify-center rounded-full border px-2 text-xs ${
+                item.done ? 'border-green-300 text-green-700' : 'border-border text-muted'
+              }`}
+            >
+              {item.done ? 'Done' : ''}
+            </span>
+            <span className={item.done ? 'text-foreground' : 'text-muted'}>{item.label}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -470,6 +562,7 @@ function SecretRow({
         <button
           type="button"
           onClick={() => void onCopy(copyKey, value)}
+          aria-label={`Copy ${label}`}
           className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
         >
           {copied === copyKey ? 'Copied' : 'Copy'}
@@ -498,6 +591,7 @@ function CommandBlock({
         <button
           type="button"
           onClick={() => void onCopy(copyKey, command)}
+          aria-label={`Copy ${title}`}
           className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
         >
           {copied === copyKey ? 'Copied' : 'Copy'}
@@ -518,6 +612,7 @@ function AppDetails({
   onCopy,
   onRefresh,
   onSendTest,
+  onSelectDelivery,
 }: {
   app: OAuthApp;
   details?: { subscriptions: WebhookSubscription[]; deliveries: WebhookDelivery[]; auditRows: AuditRow[] };
@@ -526,13 +621,14 @@ function AppDetails({
   onCopy: (label: string, text: string) => Promise<void>;
   onRefresh: () => void;
   onSendTest: (app: OAuthApp, subscription: WebhookSubscription) => Promise<void>;
+  onSelectDelivery: (delivery: WebhookDelivery) => void;
 }) {
   if (!details) {
     return <div className="mt-4 text-sm text-muted">Loading app activity...</div>;
   }
 
   return (
-    <div className="mt-4 space-y-5 border-t border-border pt-4">
+    <div id={`app-details-${app.id}`} className="mt-4 space-y-5 border-t border-border pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm text-muted">
           Created {formatDate(app.created_at)}
@@ -540,6 +636,7 @@ function AppDetails({
         <button
           type="button"
           onClick={onRefresh}
+          aria-label={`Refresh activity for ${app.name}`}
           className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
         >
           Refresh activity
@@ -553,6 +650,7 @@ function AppDetails({
             <div className="p-3 text-sm text-muted">No webhook subscriptions for this app yet.</div>
           ) : (
             <table className="min-w-full text-left text-xs">
+              <caption className="sr-only">Webhook subscriptions for {app.name}</caption>
               <thead className="bg-muted/10 text-muted">
                 <tr>
                   <th className="px-3 py-2 font-medium">Event</th>
@@ -572,6 +670,7 @@ function AppDetails({
                         <button
                           type="button"
                           onClick={() => void onCopy(`sub-${subscription.id}`, subscription.id)}
+                          aria-label={`Copy webhook subscription ID for ${subscription.event_type}`}
                           className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
                         >
                           {copied === `sub-${subscription.id}` ? 'Copied' : 'Copy ID'}
@@ -580,6 +679,7 @@ function AppDetails({
                           type="button"
                           onClick={() => void onSendTest(app, subscription)}
                           disabled={!subscription.active || testingSubscriptionId === subscription.id}
+                          aria-label={`Send test ${subscription.event_type} webhook`}
                           className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {testingSubscriptionId === subscription.id ? 'Sending...' : 'Send test'}
@@ -596,7 +696,7 @@ function AppDetails({
 
       <div>
         <h3 className="text-sm font-semibold text-foreground">Webhook Deliveries</h3>
-        <DeliveryTable deliveries={details.deliveries} />
+        <DeliveryTable deliveries={details.deliveries} onSelectDelivery={onSelectDelivery} />
       </div>
 
       <div>
@@ -607,7 +707,13 @@ function AppDetails({
   );
 }
 
-function DeliveryTable({ deliveries }: { deliveries: WebhookDelivery[] }) {
+function DeliveryTable({
+  deliveries,
+  onSelectDelivery,
+}: {
+  deliveries: WebhookDelivery[];
+  onSelectDelivery: (delivery: WebhookDelivery) => void;
+}) {
   if (deliveries.length === 0) {
     return <div className="mt-2 border border-border p-3 text-sm text-muted">No webhook deliveries recorded yet.</div>;
   }
@@ -615,6 +721,7 @@ function DeliveryTable({ deliveries }: { deliveries: WebhookDelivery[] }) {
   return (
     <div className="mt-2 overflow-auto border border-border">
       <table className="min-w-full text-left text-xs">
+        <caption className="sr-only">Webhook delivery attempts</caption>
         <thead className="bg-muted/10 text-muted">
           <tr>
             <th className="px-3 py-2 font-medium">Status</th>
@@ -622,6 +729,7 @@ function DeliveryTable({ deliveries }: { deliveries: WebhookDelivery[] }) {
             <th className="px-3 py-2 font-medium">Response</th>
             <th className="px-3 py-2 font-medium">Latency</th>
             <th className="px-3 py-2 font-medium">When</th>
+            <th className="px-3 py-2 font-medium">Details</th>
           </tr>
         </thead>
         <tbody>
@@ -632,6 +740,16 @@ function DeliveryTable({ deliveries }: { deliveries: WebhookDelivery[] }) {
               <td className="px-3 py-2">{delivery.response_status ?? 'n/a'}</td>
               <td className="px-3 py-2">{delivery.latency_ms === null ? 'n/a' : `${delivery.latency_ms}ms`}</td>
               <td className="px-3 py-2 text-muted">{formatDate(delivery.created_at)}</td>
+              <td className="px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => onSelectDelivery(delivery)}
+                  aria-label={`View delivery details for ${delivery.event_type}`}
+                  className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-muted/10"
+                >
+                  View
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -648,6 +766,7 @@ function AuditTable({ rows }: { rows: AuditRow[] }) {
   return (
     <div className="mt-2 overflow-auto border border-border">
       <table className="min-w-full text-left text-xs">
+        <caption className="sr-only">Public API activity for this connected app</caption>
         <thead className="bg-muted/10 text-muted">
           <tr>
             <th className="px-3 py-2 font-medium">Route</th>
@@ -667,6 +786,71 @@ function AuditTable({ rows }: { rows: AuditRow[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function DeliveryDetailDrawer({
+  delivery,
+  onClose,
+}: {
+  delivery: WebhookDelivery;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" role="dialog" aria-modal="true" aria-labelledby="delivery-detail-title">
+      <aside className="h-full w-full max-w-[460px] overflow-auto border-l border-border bg-background p-6 shadow-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="delivery-detail-title" className="text-lg font-semibold text-foreground">Webhook Delivery</h2>
+            <p className="mt-1 text-sm text-muted">{delivery.event_type}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close webhook delivery details"
+            className="rounded border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted/10"
+          >
+            Close
+          </button>
+        </div>
+
+        <dl className="mt-6 space-y-4 text-sm">
+          <DetailRow label="Delivery ID" value={delivery.id} />
+          <DetailRow label="Event ID" value={delivery.event_id} />
+          <DetailRow label="Subscription ID" value={delivery.subscription_id} />
+          <DetailRow label="Status" value={delivery.status} />
+          <DetailRow label="Attempt" value={String(delivery.attempt_number)} />
+          <DetailRow label="Response" value={delivery.response_status === null ? 'No response recorded' : String(delivery.response_status)} />
+          <DetailRow label="Latency" value={delivery.latency_ms === null ? 'No latency recorded' : `${delivery.latency_ms}ms`} />
+          <DetailRow label="Idempotency key" value={delivery.idempotency_key} />
+          <DetailRow label="Next retry" value={delivery.next_attempt_at ? formatDate(delivery.next_attempt_at) : 'No retry scheduled'} />
+          <DetailRow label="Delivered at" value={delivery.delivered_at ? formatDate(delivery.delivered_at) : 'Not delivered yet'} />
+          <DetailRow label="Created" value={formatDate(delivery.created_at)} />
+        </dl>
+
+        <div className="mt-6">
+          <h3 className="text-sm font-semibold text-foreground">Response Excerpt</h3>
+          <pre className="mt-2 max-h-40 overflow-auto rounded border border-border bg-muted/5 p-3 text-xs text-foreground">
+            <code>{delivery.response_excerpt || 'No response body captured.'}</code>
+          </pre>
+        </div>
+
+        <div className="mt-6 border border-border p-4 text-sm text-muted">
+          Verify incoming events with the SDK helper using the raw request body,
+          the `Ship-Signature` header, and the subscription signing secret. Replay
+          is safe because consumers dedupe with the idempotency key above.
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs uppercase text-muted">{label}</dt>
+      <dd className="mt-1 break-all font-mono text-sm text-foreground">{value}</dd>
     </div>
   );
 }

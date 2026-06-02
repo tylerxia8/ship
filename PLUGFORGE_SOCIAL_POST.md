@@ -119,3 +119,7 @@ help output, and the Plugforge fitness suite.
 
 The result is a small but defensible developer platform: scoped OAuth access,
 typed API surface, working CLI, signed events, and operational evidence.
+
+The supporting artifacts include a reviewer hub, live proof IDs, generated
+screenshots, SDK quickstart, common API failure examples, and operational
+readiness notes so the demo is repeatable instead of just narrated.

@@ -49,6 +49,9 @@ new app.
 | Reviewer evidence bundle | `PLUGFORGE_EVIDENCE_PACK.md`, `scripts/plugforge-evidence-pack.mjs` |
 | Demo/social screenshots | `docs/screenshots/plugforge/`, `scripts/plugforge-screenshots.mjs` |
 | Security controls | `PLUGFORGE_SECURITY.md` |
+| Operational readiness | `PLUGFORGE_OPERATIONAL_READINESS.md` |
+| Live proof IDs and screenshots | `PLUGFORGE_LIVE_PROOF.md` |
+| Reviewer hub | `PLUGFORGE_README.md` |
 
 ## Live Proof Captured
 
@@ -125,3 +128,5 @@ corepack.cmd pnpm plugforge:ttfe
 - Access tokens are scoped and short-lived; refresh tokens rotate.
 - Webhook signatures are HMAC-SHA256 and verified by the SDK helper.
 - Delivery is at-least-once. Subscribers dedupe with idempotency keys.
+- Operational tradeoffs and next steps are documented in
+  `PLUGFORGE_OPERATIONAL_READINESS.md`.

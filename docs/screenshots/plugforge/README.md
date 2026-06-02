@@ -1,6 +1,6 @@
 # Plugforge Screenshots
 
-Generated: `2026-06-02T18:51:17.492Z`
+Generated: `2026-06-02T19:15:26.673Z`
 
 Base URL: `https://d2rr1fze9v095b.cloudfront.net`
 
