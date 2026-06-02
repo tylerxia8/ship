@@ -53,6 +53,6 @@ The Plugforge fitness command covers:
 - Scope enforcement and missing-scope error details.
 - Rate-limit isolation by bearer token and audit evidence for 429 responses.
 - Signed `document.created` webhooks.
-- Webhook retry, delivery listing, replay, signing-secret rotation, and deactivation.
+- Webhook retry, permanent-failure dead lettering, delivery listing, replay, signing-secret rotation, and deactivation.
 - Public API audit evidence for `/api/v1/documents`.
 - SDK/OpenAPI parity for documents, scopes, webhook event discovery, and webhook lifecycle routes.

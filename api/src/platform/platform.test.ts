@@ -790,6 +790,73 @@ describe('Plugforge public API foundation', () => {
     }
   });
 
+  it('dead-letters permanent webhook subscriber failures', async () => {
+    const received: string[] = [];
+    const receiver = http.createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        received.push(Buffer.concat(chunks).toString('utf8'));
+        res.writeHead(410).end('subscriber endpoint removed');
+      });
+    });
+
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+    const address = receiver.address();
+    if (!address || typeof address === 'string') throw new Error('Expected receiver port');
+
+    try {
+      const webhookToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+        [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:write', 'webhooks:manage']],
+      );
+
+      const subscriptionResponse = await request(app)
+        .post('/api/v1/webhooks/subscriptions')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({
+          event_type: 'document.created',
+          target_url: `http://127.0.0.1:${address.port}/ship-webhook-dead-letter`,
+        })
+        .expect(201);
+
+      const createResponse = await request(app)
+        .post('/api/v1/documents')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({ title: 'Webhook Dead Letter Proof' })
+        .expect(201);
+
+      expect(received).toHaveLength(1);
+      const delivery = await pool.query(
+        `SELECT status, response_status, attempt_number, next_attempt_at
+           FROM webhook_deliveries
+          WHERE idempotency_key = $1
+            AND subscription_id = $2
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [`document.created:${createResponse.body.data.id}`, subscriptionResponse.body.data.id],
+      );
+
+      expect(delivery.rows[0]).toMatchObject({
+        status: 'dead_letter',
+        response_status: 410,
+        attempt_number: 1,
+      });
+      expect(delivery.rows[0].next_attempt_at).toBeNull();
+
+      const processed = await processDueWebhookDeliveries();
+      expect(processed).toBe(0);
+      expect(received).toHaveLength(1);
+    } finally {
+      await new Promise<void>((resolve) => receiver.close(() => resolve()));
+    }
+  });
+
   it('allows an authorized public token to call me and list documents', async () => {
     await pool.query(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)
