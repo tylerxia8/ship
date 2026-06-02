@@ -12,7 +12,7 @@
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "plugforge:fitness": "vitest run src/platform/fitness.test.ts src/platform/platform.test.ts",
+    "plugforge:fitness": "vitest run src/platform/fitness.test.ts && vitest run src/platform/platform.test.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "db:seed": "tsx src/db/seed.ts",
