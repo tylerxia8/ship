@@ -23,6 +23,8 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Final submission verification script: `scripts/plugforge-final-check.mjs`
 - Reviewer evidence bundle: `PLUGFORGE_EVIDENCE_PACK.md`
 - Evidence bundle generator: `scripts/plugforge-evidence-pack.mjs`
+- Demo/social screenshots: `docs/screenshots/plugforge/`
+- Screenshot generator: `scripts/plugforge-screenshots.mjs`
 
 ## Live MVP Deployment
 
@@ -51,6 +53,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
 corepack.cmd pnpm plugforge:live-smoke
 corepack.cmd pnpm plugforge:evidence-pack
+corepack.cmd pnpm plugforge:screenshots
 corepack.cmd pnpm plugforge:final-check
 corepack.cmd pnpm --recursive run type-check
 corepack.cmd pnpm --recursive run build

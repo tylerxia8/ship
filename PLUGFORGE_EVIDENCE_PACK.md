@@ -1,6 +1,6 @@
 # Plugforge Evidence Pack
 
-Generated: `2026-06-02T18:43:28.772Z`
+Generated: `2026-06-02T18:53:13.793Z`
 
 ## Deployment
 
@@ -15,18 +15,17 @@ Generated: `2026-06-02T18:43:28.772Z`
 - Branch: `plugforge/main`
 
 ```text
-## plugforge/main...origin/plugforge/main [ahead 1]
- M scripts/plugforge-evidence-pack.mjs
+No relevant uncommitted changes.
 ```
 
 ## Live Endpoint Checks
 
 | Check | Status | HTTP | Latency |
 | --- | --- | --- | --- |
-| `/health` | Yes | 200 | 315ms |
-| `/api/v1/openapi.json` | Yes | 200 | 259ms |
-| `/api/v1/scopes` | Yes | 200 | 251ms |
-| `/api/v1/webhooks/events` | Yes | 200 | 256ms |
+| `/health` | Yes | 200 | 216ms |
+| `/api/v1/openapi.json` | Yes | 200 | 170ms |
+| `/api/v1/scopes` | Yes | 200 | 167ms |
+| `/api/v1/webhooks/events` | Yes | 200 | 190ms |
 
 ## OpenAPI Contract Coverage
 
@@ -46,46 +45,46 @@ Generated: `2026-06-02T18:43:28.772Z`
 
 - Command: `corepack.cmd pnpm plugforge:live-smoke`
 - Passed: Yes
-- Elapsed: 1206ms
+- Elapsed: 1126ms
 
 ```text
   "authenticated_checks": false,
-  "checked_at": "2026-06-02T18:43:28.619Z",
+  "checked_at": "2026-06-02T18:53:13.638Z",
   "results": [
     {
       "name": "GET /health",
       "path": "/health",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 178
+      "elapsed_ms": 197
     },
     {
       "name": "GET /api/v1/openapi.json",
       "path": "/api/v1/openapi.json",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 165
+      "elapsed_ms": 156
     },
     {
       "name": "GET /api/v1/scopes",
       "path": "/api/v1/scopes",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 57
+      "elapsed_ms": 60
     },
     {
       "name": "GET /api/v1/webhooks/events",
       "path": "/api/v1/webhooks/events",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 62
+      "elapsed_ms": 71
     },
     {
       "name": "POST /oauth/device/code",
       "path": "/oauth/device/code",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 73
+      "elapsed_ms": 63
     }
   ]
 }

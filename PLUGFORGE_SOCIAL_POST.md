@@ -23,6 +23,29 @@ Live proof is running against the deployed Ship app, not mocks.
 
 ## Suggested Screenshots
 
+Captured screenshots are available in `docs/screenshots/plugforge/`:
+
+1. `developer-portal.png`
+   - Shows the live Developer Portal, connected app registration, scopes, and
+     demo commands.
+2. `developer-portal-expanded-app.png`
+   - Shows app permissions, webhook subscriptions, delivery status, test-event
+     button, and API activity in one frame.
+3. `openapi-json.png`
+   - Shows the live public OpenAPI contract.
+4. `scopes-registry.png`
+   - Shows the live scope registry.
+5. `webhook-events-registry.png`
+   - Shows the live webhook event registry.
+
+Regenerate them with:
+
+```powershell
+corepack.cmd pnpm plugforge:screenshots
+```
+
+Manual screenshots still worth capturing during the demo:
+
 1. Developer Portal at `/settings/developers`
    - Show app registration, scopes, one-time secret behavior, and copy controls.
 2. Live OpenAPI at `/api/v1/openapi.json`

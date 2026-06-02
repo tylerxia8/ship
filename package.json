@@ -34,6 +34,7 @@
     "plugforge:ttfe": "node scripts/plugforge-ttfe-drill.mjs",
     "plugforge:live-smoke": "node scripts/plugforge-live-smoke.mjs",
     "plugforge:evidence-pack": "node scripts/plugforge-evidence-pack.mjs",
+    "plugforge:screenshots": "node scripts/plugforge-screenshots.mjs",
     "plugforge:final-check": "node scripts/plugforge-final-check.mjs",
     "prepare": "husky",
     "postinstall": "( git rev-parse --git-dir >/dev/null 2>&1 && git config merge.ours.driver true ) || true ; ( command -v comply >/dev/null 2>&1 || echo '\\nWARNING: comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n' )"

@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-06-02T18:51:17.492Z",
+  "ship_url": "https://d2rr1fze9v095b.cloudfront.net",
+  "output_dir": "docs/screenshots/plugforge",
+  "captured": [
+    {
+      "name": "openapi-json.png",
+      "url": "https://d2rr1fze9v095b.cloudfront.net/api/v1/openapi.json",
+      "ok": true
+    },
+    {
+      "name": "scopes-registry.png",
+      "url": "https://d2rr1fze9v095b.cloudfront.net/api/v1/scopes",
+      "ok": true
+    },
+    {
+      "name": "webhook-events-registry.png",
+      "url": "https://d2rr1fze9v095b.cloudfront.net/api/v1/webhooks/events",
+      "ok": true
+    },
+    {
+      "name": "developer-portal.png",
+      "url": "https://d2rr1fze9v095b.cloudfront.net/settings/developers",
+      "ok": true
+    },
+    {
+      "name": "developer-portal-expanded-app.png",
+      "url": "https://d2rr1fze9v095b.cloudfront.net/settings/developers",
+      "ok": true
+    }
+  ],
+  "skipped": []
+}

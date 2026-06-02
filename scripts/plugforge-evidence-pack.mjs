@@ -45,15 +45,15 @@ function runGit(args) {
 
 function visibleStatus(rawStatus) {
   const ignored = new Set(['.agents/', '.codex/', 'AGENTS.md', outputPath.replace(/\\/g, '/')]);
-  return rawStatus
+  const visible = rawStatus
     .split('\n')
-    .filter((line, index) => {
-      if (index === 0) return true;
+    .filter((line) => {
       const path = line.slice(3).replace(/\\/g, '/');
       return !ignored.has(path);
     })
     .join('\n')
     .trim();
+  return visible || 'No relevant uncommitted changes.';
 }
 
 function runCommand(command, args) {
@@ -188,7 +188,7 @@ const smoke = runCommand(corepack, ['pnpm', 'plugforge:live-smoke']);
 const finalCheck = includeFinalCheck ? runCommand(corepack, ['pnpm', 'plugforge:final-check']) : null;
 
 const branch = runGit(['branch', '--show-current']);
-const status = visibleStatus(runGit(['status', '--short', '--branch']));
+const status = visibleStatus(runGit(['status', '--short']));
 const generatedAt = new Date().toISOString();
 
 const endpointTable = table(

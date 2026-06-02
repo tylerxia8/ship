@@ -47,6 +47,7 @@ new app.
 | Delivery observability and replay | `/api/v1/webhooks/deliveries`, Developer Portal, fitness tests |
 | Live smoke and final verification | `scripts/plugforge-live-smoke.mjs`, `scripts/plugforge-final-check.mjs` |
 | Reviewer evidence bundle | `PLUGFORGE_EVIDENCE_PACK.md`, `scripts/plugforge-evidence-pack.mjs` |
+| Demo/social screenshots | `docs/screenshots/plugforge/`, `scripts/plugforge-screenshots.mjs` |
 | Security controls | `PLUGFORGE_SECURITY.md` |
 
 ## Live Proof Captured
@@ -66,19 +67,25 @@ Run the final check from the repository root:
 corepack.cmd pnpm plugforge:final-check
 ```
 
-Generate a reviewer-friendly evidence bundle:
-
-```powershell
-corepack.cmd pnpm plugforge:evidence-pack
-```
-
-That command runs:
+The final check runs:
 
 - Live deployment smoke check.
 - Live CLI scope discovery.
 - Live CLI webhook event discovery.
 - CLI help output.
 - Plugforge API fitness suite.
+
+Generate a reviewer-friendly evidence bundle:
+
+```powershell
+corepack.cmd pnpm plugforge:evidence-pack
+```
+
+Capture demo and social screenshots:
+
+```powershell
+corepack.cmd pnpm plugforge:screenshots
+```
 
 Optional deeper checks:
 

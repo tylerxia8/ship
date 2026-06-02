@@ -22,6 +22,7 @@ three viewpoints:
 - Social post draft: `PLUGFORGE_SOCIAL_POST.md`
 - Security notes: `PLUGFORGE_SECURITY.md`
 - SDK examples: `examples/plugforge/`
+- Screenshot folder: `docs/screenshots/plugforge/`
 
 ## Live Evidence To Mention
 
@@ -49,6 +50,12 @@ Run the final submission check:
 
 ```bash
 corepack.cmd pnpm plugforge:final-check
+```
+
+Capture demo/social screenshots:
+
+```bash
+corepack.cmd pnpm plugforge:screenshots
 ```
 
 Regenerate the static OpenAPI contract:
@@ -115,6 +122,8 @@ node integrations/cli/src/index.mjs webhooks tail --ship-url https://d2rr1fze9v0
 - `PLUGFORGE_FINAL_SUBMISSION.md` is the final reviewer entry point.
 - `PLUGFORGE_SOCIAL_POST.md` contains a screenshot-backed post draft.
 - `PLUGFORGE_SECURITY.md` summarizes OAuth, token, scope, webhook, and audit controls.
+- `docs/screenshots/plugforge/` contains generated live screenshots for the
+  social post and video thumbnail/chapters.
 - `examples/plugforge/` contains small SDK examples for external developers.
 
 ## Known Demo Notes
