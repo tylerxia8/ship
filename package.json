@@ -32,6 +32,7 @@
     "db:migrate": "corepack pnpm --filter @ship/api db:migrate",
     "db:orphan-check": "corepack pnpm --filter @ship/api db:orphan-check",
     "plugforge:ttfe": "node scripts/plugforge-ttfe-drill.mjs",
+    "plugforge:live-smoke": "node scripts/plugforge-live-smoke.mjs",
     "prepare": "husky",
     "postinstall": "( git rev-parse --git-dir >/dev/null 2>&1 && git config merge.ours.driver true ) || true ; ( command -v comply >/dev/null 2>&1 || echo '\\nWARNING: comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n' )"
   },

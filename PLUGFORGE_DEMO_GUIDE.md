@@ -35,6 +35,12 @@ Run the fitness suite:
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
 ```
 
+Run the live smoke check:
+
+```bash
+corepack.cmd pnpm plugforge:live-smoke
+```
+
 Regenerate the static OpenAPI contract:
 
 ```bash

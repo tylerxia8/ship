@@ -3,9 +3,11 @@
 Set a base URL and bearer token:
 
 ```powershell
-$env:SHIP_URL = "http://localhost:3000"
+$env:SHIP_URL = "https://d2rr1fze9v095b.cloudfront.net"
 $env:SHIP_TOKEN = "ship_at_..."
 ```
+
+For local development, use `http://localhost:3000` instead.
 
 ## Discover Scopes And Events
 

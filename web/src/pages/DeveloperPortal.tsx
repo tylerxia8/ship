@@ -39,6 +39,7 @@ export function DeveloperPortalPage() {
   const [submitting, setSubmitting] = useState(false);
   const [rotatingAppId, setRotatingAppId] = useState<string | null>(null);
   const [deactivatingAppId, setDeactivatingAppId] = useState<string | null>(null);
+  const shipUrl = window.location.origin;
 
   useEffect(() => {
     void loadApps();
@@ -179,13 +180,13 @@ export function DeveloperPortalPage() {
           <h2 className="text-base font-semibold text-foreground">Demo Commands</h2>
           <div className="mt-4 space-y-4">
             <CommandBlock title="1. Device login">
-              node integrations/cli/src/index.mjs login --client-id {secretResult?.app.client_id || 'ship_app_...'} --ship-url http://localhost:3000
+              node integrations/cli/src/index.mjs login --client-id {secretResult?.app.client_id || 'ship_app_...'} --ship-url {shipUrl}
             </CommandBlock>
             <CommandBlock title="2. Create a document">
-              node integrations/cli/src/index.mjs docs create "Plugforge webhook proof" --ship-url http://localhost:3000
+              node integrations/cli/src/index.mjs docs create "Plugforge webhook proof" --ship-url {shipUrl}
             </CommandBlock>
             <CommandBlock title="3. Subscribe to document.created">
-              node integrations/cli/src/index.mjs webhooks subscribe --url {targetUrl || 'https://example.com/ship/webhook'} --ship-url http://localhost:3000
+              node integrations/cli/src/index.mjs webhooks subscribe --url {targetUrl || 'https://example.com/ship/webhook'} --ship-url {shipUrl}
             </CommandBlock>
           </div>
 
