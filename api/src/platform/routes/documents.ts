@@ -6,8 +6,14 @@ import { ApiError } from '../errors.js';
 import { requireScope } from '../scopes.js';
 import { decodeCursor, encodeCursor } from '../pagination.js';
 import { createPublicDocument, publicDocument } from '../domain/documents.js';
+import type { PublicScope } from '../scopes.js';
 
-const router = Router();
+type PublicDocumentResourceOptions = {
+  fixedDocumentType?: string;
+  listScope: PublicScope;
+  writeScope: PublicScope;
+  defaultDocumentType: 'wiki' | 'issue' | 'program' | 'project' | 'sprint' | 'person' | 'weekly_plan' | 'weekly_retro';
+};
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(25),
@@ -22,7 +28,10 @@ const createDocumentSchema = z.object({
   properties: z.record(z.unknown()).default({}),
 });
 
-router.get('/', publicBearerAuth, requireScope('documents:read'), async (req, res, next) => {
+export function createPublicDocumentResourceRouter(options: PublicDocumentResourceOptions): Router {
+  const router = Router();
+
+  router.get('/', publicBearerAuth, requireScope(options.listScope), async (req, res, next) => {
   try {
     const parsed = listQuerySchema.safeParse(req.query);
     if (!parsed.success) {
@@ -45,8 +54,9 @@ router.get('/', publicBearerAuth, requireScope('documents:read'), async (req, re
       AND visibility = 'workspace'
     `;
 
-    if (parsed.data.type) {
-      params.push(parsed.data.type);
+    const documentType = options.fixedDocumentType ?? parsed.data.type;
+    if (documentType) {
+      params.push(documentType);
       where += ` AND document_type = $${params.length}`;
     }
 
@@ -75,19 +85,24 @@ router.get('/', publicBearerAuth, requireScope('documents:read'), async (req, re
   } catch (err) {
     next(err);
   }
-});
+  });
 
-router.get('/:id', publicBearerAuth, requireScope('documents:read'), async (req, res, next) => {
+  router.get('/:id', publicBearerAuth, requireScope(options.listScope), async (req, res, next) => {
   try {
+    const params: unknown[] = [req.params.id, req.publicAuth!.workspaceId];
+    const typeFilter = options.fixedDocumentType ? 'AND document_type = $3' : '';
+    if (options.fixedDocumentType) params.push(options.fixedDocumentType);
+
     const result = await pool.query(
       `SELECT id, workspace_id, document_type, title, content, properties, created_at, updated_at
          FROM documents
         WHERE id = $1
           AND workspace_id = $2
+          ${typeFilter}
           AND archived_at IS NULL
           AND deleted_at IS NULL
           AND visibility = 'workspace'`,
-      [req.params.id, req.publicAuth!.workspaceId],
+      params,
     );
 
     const row = result.rows[0];
@@ -99,9 +114,9 @@ router.get('/:id', publicBearerAuth, requireScope('documents:read'), async (req,
   } catch (err) {
     next(err);
   }
-});
+  });
 
-router.post('/', publicBearerAuth, requireScope('documents:write'), async (req, res, next) => {
+  router.post('/', publicBearerAuth, requireScope(options.writeScope), async (req, res, next) => {
   try {
     const parsed = createDocumentSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -116,7 +131,7 @@ router.post('/', publicBearerAuth, requireScope('documents:write'), async (req, 
       userId: auth.userId,
       appId: auth.appId,
       clientId: auth.clientId,
-      documentType: parsed.data.document_type,
+      documentType: options.fixedDocumentType ?? parsed.data.document_type ?? options.defaultDocumentType,
       title: parsed.data.title,
       content: parsed.data.content ?? { type: 'doc', content: [] },
       properties: parsed.data.properties,
@@ -126,6 +141,15 @@ router.post('/', publicBearerAuth, requireScope('documents:write'), async (req, 
   } catch (err) {
     next(err);
   }
+  });
+
+  return router;
+}
+
+const router = createPublicDocumentResourceRouter({
+  listScope: 'documents:read',
+  writeScope: 'documents:write',
+  defaultDocumentType: 'wiki',
 });
 
 export default router;

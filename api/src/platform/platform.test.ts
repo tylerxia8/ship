@@ -1301,6 +1301,64 @@ describe('Plugforge public API foundation', () => {
     expect(auditRow.route).toBe('/api/v1/documents/');
   });
 
+  it('exposes first-class issue and sprint public resources with their own scopes', async () => {
+    const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+    const appId = appRow.rows[0].id;
+    const resourceToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+    await pool.query(
+      `INSERT INTO oauth_access_tokens
+        (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+       VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+      [hashToken(resourceToken), appId, adminUserId, workspaceId, ['issues:read', 'issues:write', 'sprints:read', 'sprints:write']],
+    );
+
+    const issueResponse = await request(app)
+      .post('/api/v1/issues')
+      .set('Authorization', `Bearer ${resourceToken}`)
+      .send({ title: 'Public Issue Resource', properties: { status: 'todo' } });
+    expect(issueResponse.status).toBe(201);
+    expect(issueResponse.body.data).toMatchObject({
+      title: 'Public Issue Resource',
+      document_type: 'issue',
+    });
+
+    const issueListResponse = await request(app)
+      .get('/api/v1/issues')
+      .set('Authorization', `Bearer ${resourceToken}`);
+    expect(issueListResponse.status).toBe(200);
+    expect(issueListResponse.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: issueResponse.body.data.id, document_type: 'issue' }),
+    ]));
+
+    const issueReadResponse = await request(app)
+      .get(`/api/v1/issues/${issueResponse.body.data.id}`)
+      .set('Authorization', `Bearer ${resourceToken}`);
+    expect(issueReadResponse.status).toBe(200);
+    expect(issueReadResponse.body.data.id).toBe(issueResponse.body.data.id);
+
+    const sprintResponse = await request(app)
+      .post('/api/v1/sprints')
+      .set('Authorization', `Bearer ${resourceToken}`)
+      .send({ title: 'Public Sprint Resource', properties: { state: 'planned' } });
+    expect(sprintResponse.status).toBe(201);
+    expect(sprintResponse.body.data).toMatchObject({
+      title: 'Public Sprint Resource',
+      document_type: 'sprint',
+    });
+
+    const sprintReadResponse = await request(app)
+      .get(`/api/v1/sprints/${sprintResponse.body.data.id}`)
+      .set('Authorization', `Bearer ${resourceToken}`);
+    expect(sprintReadResponse.status).toBe(200);
+    expect(sprintReadResponse.body.data.id).toBe(sprintResponse.body.data.id);
+
+    const wrongTypeResponse = await request(app)
+      .get(`/api/v1/issues/${sprintResponse.body.data.id}`)
+      .set('Authorization', `Bearer ${resourceToken}`);
+    expect(wrongTypeResponse.status).toBe(404);
+    expect(wrongTypeResponse.body.code).toBe('not_found');
+  });
+
   it('reads public documents by id without leaking missing or private documents', async () => {
     const publicDoc = await pool.query<{ id: string }>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)

@@ -17,6 +17,13 @@ corepack.cmd pnpm install
 corepack.cmd pnpm --filter @ship/sdk build
 ```
 
+Publish preparation:
+
+```bash
+corepack.cmd pnpm --filter @ship/sdk pack --pack-destination .tmp
+corepack.cmd pnpm --filter @ship/sdk publish --access public
+```
+
 ## Time-To-First-Event Drill
 
 The signature drill proves the full platform loop with the SDK:

@@ -6,8 +6,12 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist",
+    "CHANGELOG.md",
     "README.md",
     "package.json"
   ],
@@ -20,7 +24,8 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepack": "corepack pnpm build"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

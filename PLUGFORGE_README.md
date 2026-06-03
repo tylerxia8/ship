@@ -24,6 +24,7 @@ Start here when reviewing the Week 6 final submission.
 - Architecture defense: `docs/architecture.md`
 - Security controls: `PLUGFORGE_SECURITY.md`
 - Operational readiness: `PLUGFORGE_OPERATIONAL_READINESS.md`
+- Post-MVP status: `PLUGFORGE_POST_MVP_STATUS.md`
 
 ## Developer Experience
 

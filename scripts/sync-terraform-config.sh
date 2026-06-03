@@ -17,7 +17,9 @@ set -euo pipefail
 #   /ship/terraform-config/{env}/eb_environment_cname - Optional: EB CNAME
 #
 # To set up a new environment, create the SSM parameters first:
+#   aws ssm put-parameter --name /ship/terraform-config/environment --value prod --type String
 #   aws ssm put-parameter --name /ship/terraform-config/dev/environment --value dev --type String
+#   aws ssm put-parameter --name /ship/terraform-config/shadow/environment --value shadow --type String
 #
 # IMPORTANT: Do not hardcode values in terraform.tfvars files. They are
 # auto-generated from SSM and will be overwritten on next sync.
@@ -61,6 +63,11 @@ EB_ENVIRONMENT_CNAME=$(aws ssm get-parameter --name "$SSM_PREFIX/eb_environment_
 if [ -z "$ENVIRONMENT" ]; then
   echo "ERROR: SSM parameter $SSM_PREFIX/environment not found"
   echo "Run 'aws ssm put-parameter --name $SSM_PREFIX/environment --value $ENV --type String' to create it"
+  echo ""
+  echo "Bootstrap examples:"
+  echo "  prod:   aws ssm put-parameter --name /ship/terraform-config/environment --value prod --type String"
+  echo "  dev:    aws ssm put-parameter --name /ship/terraform-config/dev/environment --value dev --type String"
+  echo "  shadow: aws ssm put-parameter --name /ship/terraform-config/shadow/environment --value shadow --type String"
   exit 1
 fi
 

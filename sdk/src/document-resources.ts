@@ -1,11 +1,15 @@
-import { DocumentsClient } from './documents.js';
+import type { Transport } from './documents.js';
 import type { CreateIssueInput, CreateSprintInput, Page, ShipIssue, ShipSprint } from './types.js';
 
 export class IssuesClient {
-  constructor(private readonly documents: DocumentsClient) {}
+  constructor(private readonly transport: Transport) {}
 
   list(params: { limit?: number; cursor?: string } = {}): Promise<Page<ShipIssue>> {
-    return this.documents.list({ ...params, type: 'issue' }) as Promise<Page<ShipIssue>>;
+    const search = new URLSearchParams();
+    if (params.limit) search.set('limit', String(params.limit));
+    if (params.cursor) search.set('cursor', params.cursor);
+    const query = search.toString();
+    return this.transport.request<Page<ShipIssue>>(`/issues${query ? `?${query}` : ''}`);
   }
 
   async *iterate(params: { limit?: number } = {}): AsyncIterable<ShipIssue> {
@@ -20,22 +24,29 @@ export class IssuesClient {
   }
 
   get(id: string): Promise<{ data: ShipIssue }> {
-    return this.documents.get(id) as Promise<{ data: ShipIssue }>;
+    return this.transport.request<{ data: ShipIssue }>(`/issues/${encodeURIComponent(id)}`);
   }
 
   create(input: CreateIssueInput): Promise<{ data: ShipIssue }> {
-    return this.documents.create({ ...input, document_type: 'issue' }) as Promise<{ data: ShipIssue }>;
+    return this.transport.request<{ data: ShipIssue }>('/issues', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
   }
 }
 
 export class SprintsClient {
-  constructor(private readonly documents: DocumentsClient) {}
+  constructor(private readonly transport: Transport) {}
 
-  list(params: { limit?: number; cursor?: string; type?: 'sprint' | 'weekly_plan' | 'weekly_retro' } = {}): Promise<Page<ShipSprint>> {
-    return this.documents.list({ ...params, type: params.type ?? 'sprint' }) as Promise<Page<ShipSprint>>;
+  list(params: { limit?: number; cursor?: string } = {}): Promise<Page<ShipSprint>> {
+    const search = new URLSearchParams();
+    if (params.limit) search.set('limit', String(params.limit));
+    if (params.cursor) search.set('cursor', params.cursor);
+    const query = search.toString();
+    return this.transport.request<Page<ShipSprint>>(`/sprints${query ? `?${query}` : ''}`);
   }
 
-  async *iterate(params: { limit?: number; type?: 'sprint' | 'weekly_plan' | 'weekly_retro' } = {}): AsyncIterable<ShipSprint> {
+  async *iterate(params: { limit?: number } = {}): AsyncIterable<ShipSprint> {
     let cursor: string | undefined;
     do {
       const page = await this.list({ ...params, cursor });
@@ -47,10 +58,13 @@ export class SprintsClient {
   }
 
   get(id: string): Promise<{ data: ShipSprint }> {
-    return this.documents.get(id) as Promise<{ data: ShipSprint }>;
+    return this.transport.request<{ data: ShipSprint }>(`/sprints/${encodeURIComponent(id)}`);
   }
 
   create(input: CreateSprintInput): Promise<{ data: ShipSprint }> {
-    return this.documents.create({ ...input, document_type: input.document_type ?? 'sprint' }) as Promise<{ data: ShipSprint }>;
+    return this.transport.request<{ data: ShipSprint }>('/sprints', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
   }
 }

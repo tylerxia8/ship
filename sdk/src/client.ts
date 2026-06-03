@@ -23,9 +23,9 @@ export class ShipClient implements Transport {
     this.tokenStore = options.tokenStore;
     this.fetchImpl = options.fetch ?? fetch;
     this.documents = new DocumentsClient(this);
-    this.issues = new IssuesClient(this.documents);
+    this.issues = new IssuesClient(this);
     this.oauthApps = new OAuthAppsClient(this);
-    this.sprints = new SprintsClient(this.documents);
+    this.sprints = new SprintsClient(this);
     this.webhooks = new WebhooksClient(this);
   }
 

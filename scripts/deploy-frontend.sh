@@ -6,11 +6,12 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Parse environment argument
 ENV="${1:-}"
-if [[ ! "$ENV" =~ ^(dev|prod)$ ]]; then
-  echo "Usage: $0 <dev|prod>"
+if [[ ! "$ENV" =~ ^(dev|shadow|prod)$ ]]; then
+  echo "Usage: $0 <dev|shadow|prod>"
   echo ""
   echo "Examples:"
   echo "  $0 dev     # Deploy frontend to dev environment"
+  echo "  $0 shadow  # Deploy frontend to shadow environment (UAT)"
   echo "  $0 prod    # Deploy frontend to prod environment"
   exit 1
 fi

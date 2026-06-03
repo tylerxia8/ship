@@ -102,6 +102,20 @@ export class InProcessEventBus implements IEventBus {
   }
 }
 
+export interface EventQueue {
+  enqueue(event: DomainEvent): Promise<void>;
+}
+
+export class QueueBackedEventBus implements IEventBus {
+  constructor(private readonly queue: EventQueue) {}
+
+  async publish(event: DomainEvent): Promise<void> {
+    const definition = WebhookEventRegistry[event.type];
+    definition.schema.parse(event.payload);
+    await this.queue.enqueue(event);
+  }
+}
+
 export const eventBus: IEventBus = new InProcessEventBus();
 
 export function publicWebhookEventDefinitions(): Array<{

@@ -30,6 +30,12 @@ const sdkExpectations: Record<string, SdkExpectation> = {
   'GET /documents': { file: 'sdk/src/documents.ts', method: 'list(' },
   'POST /documents': { file: 'sdk/src/documents.ts', method: 'create(' },
   'GET /documents/{id}': { file: 'sdk/src/documents.ts', method: 'get(' },
+  'GET /issues': { file: 'sdk/src/document-resources.ts', method: 'list(' },
+  'POST /issues': { file: 'sdk/src/document-resources.ts', method: 'create(' },
+  'GET /issues/{id}': { file: 'sdk/src/document-resources.ts', method: 'get(' },
+  'GET /sprints': { file: 'sdk/src/document-resources.ts', method: 'list(' },
+  'POST /sprints': { file: 'sdk/src/document-resources.ts', method: 'create(' },
+  'GET /sprints/{id}': { file: 'sdk/src/document-resources.ts', method: 'get(' },
   'GET /webhooks/subscriptions': { file: 'sdk/src/webhook-client.ts', method: 'listSubscriptions(' },
   'POST /webhooks/subscriptions': { file: 'sdk/src/webhook-client.ts', method: 'createSubscription(' },
   'GET /webhooks/events': { file: 'sdk/src/webhook-client.ts', method: 'listEvents(' },
@@ -154,8 +160,10 @@ describe('Plugforge platform fitness checks', () => {
       'api/src/platform/api-v1.ts',
       'api/src/platform/routes/apps.ts',
       'api/src/platform/routes/documents.ts',
+      'api/src/platform/routes/issues.ts',
       'api/src/platform/routes/me.ts',
       'api/src/platform/routes/oauth.ts',
+      'api/src/platform/routes/sprints.ts',
       'api/src/platform/routes/webhooks.ts',
     ];
 
@@ -175,6 +183,8 @@ describe('Plugforge platform fitness checks', () => {
     expect(documentDomain).toContain('eventBus.publish');
     expect(eventBus).toContain('interface IEventBus');
     expect(eventBus).toContain('class InProcessEventBus');
+    expect(eventBus).toContain('class QueueBackedEventBus');
+    expect(eventBus).toContain('enqueue(event');
   });
 
   it('keeps public OpenAPI paths paired with SDK client methods', () => {
@@ -191,6 +201,7 @@ describe('Plugforge platform fitness checks', () => {
     const sourceCache = new Map<string, string>([
       ['sdk/src/client.ts', rootClient],
       ['sdk/src/documents.ts', documentsClient],
+      ['sdk/src/document-resources.ts', documentResources],
       ['sdk/src/oauth-apps.ts', oauthAppsClient],
       ['sdk/src/webhook-client.ts', webhooksClient],
     ]);
@@ -211,9 +222,9 @@ describe('Plugforge platform fitness checks', () => {
     expect(rootClient).toContain('static authorizationCodeFlow');
     expect(rootClient).toContain('static deviceLogin');
     expect(documentResources).toContain('class IssuesClient');
-    expect(documentResources).toContain("type: 'issue'");
+    expect(documentResources).toContain("'/issues'");
     expect(documentResources).toContain('class SprintsClient');
-    expect(documentResources).toContain("type: params.type ?? 'sprint'");
+    expect(documentResources).toContain("'/sprints'");
     expect(authClient).toContain('code_challenge_method');
     expect(authClient).toContain('code_verifier');
     expect(tokenStore).toContain('class InMemoryTokenStore');
