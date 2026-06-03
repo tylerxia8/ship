@@ -34,6 +34,22 @@ Tuesday MVP is intentionally narrower than the final platform. The MVP must prov
 
 Post-MVP scope adds webhooks, CLI, TTFE drill, developer portal, rate-limit hardening, and FleetGraph's agent-as-citizen rewire. The defense is that OAuth + public API correctness is the foundation; webhooks and CLI become meaningful only after tokens, scopes, errors, and OpenAPI are stable.
 
+## Build Strategy Priority Order
+
+The platform was built contract-first. Each step either establishes the next
+step's boundary or creates the fitness test that catches drift.
+
+| Priority | Build slice | Why this order | Evidence |
+|---:|---|---|---|
+| 1 | OAuth foundation first: app registration, Authorization Code + PKCE, wrong-verifier rejection, Device Authorization Grant, refresh rotation. | Without working tokens and scope checks, every later API, SDK, webhook, and CLI surface lacks a contract. | `api/src/platform/routes/oauth.ts`, `api/src/platform/platform.test.ts`, `e2e/plugforge-oauth.spec.ts`, `sdk/src/auth.ts`. |
+| 2 | Public/internal API boundary on Day 1 with a fresh `/api/v1` router and boundary lint/fitness before broad route growth. | Boundary enforcement is cheap before cross-imports exist and expensive once public routes depend on internal handlers. | `api/src/platform/api-v1.ts`, `api/src/platform/fitness.test.ts`. |
+| 3 | `ApiError` and public error middleware before resource endpoints. | A consistent failure shape is part of the API contract, not cleanup after resources exist. | `api/src/platform/errors.ts`, route failure assertions in `api/src/platform/fitness.test.ts`. |
+| 4 | OpenAPI generated from route metadata before expanding resources. | One resource plus generated spec proves the metadata loop; spec-route-SDK parity then defends every addition. | `api/src/platform/openapi.ts`, `api/src/platform/export-openapi.ts`, `docs/openapi.json`. |
+| 5 | Webhooks end-to-end: registry, bus, subscriptions, signer, deliverer, delivery log, replay. | The slices are small but only meaningful as a full loop from domain write to signed subscriber delivery and observable replay. | `api/src/platform/events.ts`, `api/src/platform/domain/documents.ts`, `api/src/platform/webhooks.ts`, `api/src/platform/routes/webhooks.ts`. |
+| 6 | SDK skeleton, one resource client, and auth helpers. | The SDK should be exercised by real consumers as it is built; CLI and drills reveal ergonomic bugs faster than isolated unit tests. | `sdk/src/client.ts`, `sdk/src/documents.ts`, `sdk/src/auth.ts`, `sdk/src/webhook-client.ts`. |
+| 7 | CLI reference integration. | The CLI is the proof that a developer can compose the platform without first-party UI privileges. | `integrations/cli/src/index.mjs`, `integrations/cli/tests/ttfe.drill.ts`. |
+| 8 | Developer Portal and Epic 7 agent rewire. | The portal is a short should-ship consumer of the public surface; the agent rewire is the architectural payoff and belongs behind a feature flag so Part 2 behavior can be preserved. | `web/src/pages/DeveloperPortal.tsx`, `docs/architecture.md#agent-as-citizen`, `PLUGFORGE_AI_COST_ANALYSIS.md`. |
+
 ## Technical Stack
 
 The stack follows the pre-search constraint: use whatever helps Ship ship, but

@@ -168,6 +168,33 @@ The timestamp prevents replay. SDK verifier rejects timestamps older than 300 se
 
 ## Phase 3: Post-Stack Refinement
 
+### 3.0 Build Strategy Priority Order
+
+1. OAuth foundation first. Without working tokens and scope checks, nothing
+   else has a contract. Authorization Code + PKCE must be browser-tested early,
+   including wrong-verifier rejection. Device Authorization Grant follows the
+   same day.
+2. Public/internal API boundary on Day 1. `/api/v1` starts as a fresh public
+   router, and the boundary fitness check lands before public routes have a
+   chance to import internal route handlers.
+3. Error shape and `ApiError` before resources. Every `/api/v1` failure must
+   return the same shape, and the route-enumerating fitness test becomes the E2
+   TODO list.
+4. OpenAPI generated from route metadata, never hand-written. Prove the loop
+   with documents before adding broader resources, then let route/spec/SDK parity
+   defend against drift.
+5. Webhooks end-to-end on the webhook day: event registry, event bus,
+   subscriptions, signer, deliverer, delivery log, and replay. The HMAC signer
+   gets positive, negative, replay, and tamper checks.
+6. SDK skeleton, one resource client, and auth helpers next. The CLI consumes
+   the SDK as it grows so real consumer compilation exposes SDK bugs.
+7. CLI reference integration must ship: `ship login`, `ship docs create`, and
+   `ship webhooks tail` are the demo proof.
+8. Developer Portal and Epic 7 agent rewire last. The portal should consume the
+   public API like any other client. The agent rewire replaces direct service
+   calls with SDK/public API calls behind a feature flag so Part 2 tests pass
+   with the flag on or off.
+
 ### 3.1 Security And Failure Modes
 
 **OAuth app owner deleted.** Deactivate apps by default and allow workspace admin transfer. Do not leave active orphaned apps.
