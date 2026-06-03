@@ -26,6 +26,12 @@
 
 ---
 
+> **PlugForge final submission:** start with **[PLUGFORGE_README.md](PLUGFORGE_README.md)**.
+> Final packet: [PLUGFORGE_FINAL_SUBMISSION.md](PLUGFORGE_FINAL_SUBMISSION.md), [PLUGFORGE_EVIDENCE_PACK.md](PLUGFORGE_EVIDENCE_PACK.md), [PLUGFORGE_DEMO_SCRIPT.md](PLUGFORGE_DEMO_SCRIPT.md), and [docs/architecture.md](docs/architecture.md).
+> Live app: `https://d2rr1fze9v095b.cloudfront.net`; OpenAPI: `https://d2rr1fze9v095b.cloudfront.net/api/v1/openapi.json`.
+
+---
+
 ## What is Ship?
 
 Ship is a project management tool that combines documentation, issue tracking, and plan-driven weekly workflows in one place. Instead of switching between a wiki, a task tracker, and a spreadsheet, everything lives together.
