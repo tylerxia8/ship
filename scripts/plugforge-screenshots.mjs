@@ -94,6 +94,7 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const captured = [];
 const skipped = [];
+const retained = [];
 
 try {
   captured.push(await capture(page, 'openapi-json.png', `${shipUrl}/api/v1/openapi.json`));
@@ -104,6 +105,11 @@ try {
     captured.push(...await captureDeveloperPortal(page));
   } else {
     skipped.push('Developer Portal screenshots require SHIP_DEMO_EMAIL and SHIP_DEMO_PASSWORD.');
+    for (const name of ['developer-portal.png', 'developer-portal-expanded-app.png']) {
+      if (existsSync(path.join(outputDir, name))) {
+        retained.push({ name, reason: 'Existing authenticated screenshot retained from a previous credentialed capture.' });
+      }
+    }
   }
 } finally {
   await browser.close();
@@ -114,6 +120,7 @@ const manifest = {
   ship_url: shipUrl,
   output_dir: outputDir,
   captured,
+  retained,
   skipped,
 };
 
@@ -128,6 +135,11 @@ Base URL: \`${shipUrl}\`
 ## Captured
 
 ${captured.map((item) => `- [${item.name}](./${item.name})`).join('\n')}
+
+${retained.length ? `## Retained
+
+${retained.map((item) => `- [${item.name}](./${item.name}) - ${item.reason}`).join('\n')}
+` : ''}
 
 ${skipped.length ? `## Skipped
 

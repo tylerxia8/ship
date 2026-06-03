@@ -75,6 +75,7 @@ Latest authenticated TTFE proof:
 ```bash
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
 corepack.cmd pnpm plugforge:live-smoke
+corepack.cmd pnpm plugforge:doctor
 corepack.cmd pnpm plugforge:evidence-pack -- --include-final-check
 corepack.cmd pnpm plugforge:screenshots
 corepack.cmd pnpm plugforge:final-check
@@ -83,6 +84,23 @@ corepack.cmd pnpm --recursive run type-check
 corepack.cmd pnpm --recursive run build
 node integrations/cli/src/index.mjs --help
 ```
+
+## Final Readiness Sweep
+
+- 2026-06-03 23:37Z: `corepack.cmd pnpm plugforge:final-check` passed
+  against the live deployment and local Plugforge fitness suite.
+- 2026-06-03 23:35Z: `corepack.cmd pnpm plugforge:doctor` passed all
+  required checks: Git, Node, Corepack, pnpm, live health, and live OpenAPI.
+- 2026-06-03 23:36Z: `corepack.cmd pnpm plugforge:screenshots -- --public-only`
+  refreshed the public OpenAPI, scope registry, and webhook event screenshots.
+  Previously captured authenticated Developer Portal screenshots are retained
+  in `docs/screenshots/plugforge/`.
+- Full Docker/Testcontainers E2E remains an environment check for a healthy
+  Docker host; Docker engine calls timed out on this workstation.
+- The installed `comply` binary is a different CLI that exposes `init` and
+  `check`, not the required `comply opensource` subcommand. Pre-commit still
+  runs and warns, but the compatible compliance CLI should be installed before
+  future audited commits.
 
 ## MVP Hard Gate Status
 

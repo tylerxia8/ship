@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-03T20:32:47.328Z",
+  "generated_at": "2026-06-03T23:37:44.444Z",
   "ship_url": "https://d2rr1fze9v095b.cloudfront.net",
   "output_dir": "docs/screenshots/plugforge",
   "captured": [
@@ -17,17 +17,19 @@
       "name": "webhook-events-registry.png",
       "url": "https://d2rr1fze9v095b.cloudfront.net/api/v1/webhooks/events",
       "ok": true
-    },
+    }
+  ],
+  "retained": [
     {
       "name": "developer-portal.png",
-      "url": "https://d2rr1fze9v095b.cloudfront.net/settings/developers",
-      "ok": true
+      "reason": "Existing authenticated screenshot retained from a previous credentialed capture."
     },
     {
       "name": "developer-portal-expanded-app.png",
-      "url": "https://d2rr1fze9v095b.cloudfront.net/settings/developers",
-      "ok": true
+      "reason": "Existing authenticated screenshot retained from a previous credentialed capture."
     }
   ],
-  "skipped": []
+  "skipped": [
+    "Developer Portal screenshots require SHIP_DEMO_EMAIL and SHIP_DEMO_PASSWORD."
+  ]
 }
