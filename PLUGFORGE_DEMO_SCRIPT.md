@@ -130,7 +130,7 @@ If a local server and token are ready, run:
 ```powershell
 $env:SHIP_URL = "http://localhost:3000"
 $env:SHIP_TOKEN = "ship_at_..."
-corepack.cmd pnpm plugforge:ttfe
+corepack.cmd pnpm drill ttfe
 ```
 
 If not running live, say:

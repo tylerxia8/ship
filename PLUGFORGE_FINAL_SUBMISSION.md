@@ -175,7 +175,7 @@ Authenticated TTFE drill:
 ```powershell
 $env:SHIP_URL = "https://d2rr1fze9v095b.cloudfront.net"
 $env:SHIP_TOKEN = "ship_at_..."
-corepack.cmd pnpm plugforge:ttfe
+corepack.cmd pnpm drill ttfe
 ```
 
 For live production, the TTFE receiver must be publicly reachable. The captured

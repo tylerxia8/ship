@@ -1,0 +1,33 @@
+name: PlugForge Drill
+
+on:
+  pull_request:
+  push:
+    branches:
+      - plugforge/main
+
+jobs:
+  ttfe:
+    name: Time to First Event
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Run TTFE drill
+        env:
+          TTFE_TARGET_MS: "60000"
+        run: corepack pnpm drill ttfe

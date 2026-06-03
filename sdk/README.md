@@ -36,14 +36,16 @@ The signature drill proves the full platform loop with the SDK:
 
 ```bash
 corepack.cmd pnpm install
-set SHIP_URL=http://localhost:3000
-set SHIP_TOKEN=ship_at_...
-corepack.cmd pnpm plugforge:ttfe
+corepack.cmd pnpm drill ttfe
 ```
 
-The script fails above `TTFE_TARGET_MS`, which defaults to `60000` for CI.
-Set `TTFE_TARGET_MS=1800000` to run against the 30-minute human challenge
-threshold. For a deployed Ship URL, use a publicly reachable webhook receiver.
+The harness installs the packed SDK into a temporary clean project and starts a
+containerized Ship API/Postgres stack when no `SHIP_URL`/`SHIP_TOKEN` are
+provided. The script reports per-stage timings and fails above `TTFE_TARGET_MS`,
+which defaults to `60000` for CI. Set `TTFE_TARGET_MS=1800000` to run against
+the 30-minute human challenge threshold. For a deployed Ship URL, provide
+`SHIP_URL` and `SHIP_TOKEN`, then run `corepack.cmd pnpm drill ttfe --no-docker`
+with a publicly reachable webhook receiver.
 
 ## Quickstart
 

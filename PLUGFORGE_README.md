@@ -31,7 +31,7 @@ Start here when reviewing the Week 6 final submission.
 
 - API examples: `PLUGFORGE_API_EXAMPLES.md`
 - SDK quickstart: `sdk/README.md`
-- Signature TTFE drill: `corepack.cmd pnpm plugforge:ttfe`
+- Signature TTFE drill: `corepack.cmd pnpm drill ttfe`
 - Runnable SDK examples: `examples/plugforge/`
 - CLI reference integration: `integrations/cli/src/index.mjs`
 
@@ -60,9 +60,10 @@ corepack.cmd pnpm plugforge:screenshots
 The final check covers live discovery, CLI discovery, CLI help, and the Plugforge
 fitness suite.
 
-For the Time-to-First-Event signature challenge, set `SHIP_URL` and a token with
-`documents:write webhooks:manage`, then run `corepack.cmd pnpm plugforge:ttfe`.
-It builds `@ship/sdk`, creates the subscription and document through the SDK,
-receives the signed webhook locally, verifies it through the SDK helper, checks
-the delivery log, and fails if elapsed time exceeds `TTFE_TARGET_MS` defaulting
-to `60000`.
+For the Time-to-First-Event signature challenge, run
+`corepack.cmd pnpm drill ttfe`. It installs the packed SDK in a temporary clean
+project, starts the Docker API/Postgres stack when needed, creates the
+subscription and document through the SDK, receives the signed webhook locally,
+verifies it through the SDK helper, checks the delivery log, records per-stage
+timings, and fails if elapsed time exceeds `TTFE_TARGET_MS` defaulting to
+`60000`.
