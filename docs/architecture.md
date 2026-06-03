@@ -50,6 +50,25 @@ step's boundary or creates the fitness test that catches drift.
 | 7 | CLI reference integration. | The CLI is the proof that a developer can compose the platform without first-party UI privileges. | `integrations/cli/src/index.mjs`, `integrations/cli/tests/ttfe.drill.ts`. |
 | 8 | Developer Portal and Epic 7 agent rewire. | The portal is a short should-ship consumer of the public surface; the agent rewire is the architectural payoff and belongs behind a feature flag so Part 2 behavior can be preserved. | `web/src/pages/DeveloperPortal.tsx`, `docs/architecture.md#agent-as-citizen`, `PLUGFORGE_AI_COST_ANALYSIS.md`. |
 
+## Critical Guidance
+
+- Public/internal split is a one-way door. `/api/v1` must never import internal
+  `/api` route handlers "just this once." The lint/fitness rule is not optional.
+- Generate the OpenAPI spec; do not write it by hand. Public request/response
+  schemas live in Zod route metadata adjacent to handlers, and the generator
+  walks that metadata.
+- Webhook unit tests should use synchronous in-memory delivery or deterministic
+  clock injection. Timing-based tests with `setTimeout` waits are treated as
+  flaky tests.
+- One LLM call per agent turn, period. The platform never invokes the LLM. Any
+  platform-layer "smart suggestion" is scope creep unless it is explicitly an
+  agent turn.
+- External integrations live in `integrations/` and import public packages such
+  as `@ship/sdk`, never `api/src`. This is what makes "the agent is a platform
+  citizen" real rather than aspirational.
+- Time-to-first-event belongs in CI from the moment the SDK and one resource
+  exist. The drill catches contract regressions faster than isolated unit tests.
+
 ## Technical Stack
 
 The stack follows the pre-search constraint: use whatever helps Ship ship, but

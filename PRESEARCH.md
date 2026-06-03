@@ -195,6 +195,17 @@ The timestamp prevents replay. SDK verifier rejects timestamps older than 300 se
    calls with SDK/public API calls behind a feature flag so Part 2 tests pass
    with the flag on or off.
 
+Critical guidance:
+
+- The public/internal split is a one-way door; `/api/v1` cannot import internal
+  `/api` route handlers.
+- OpenAPI is generated from Zod route metadata, never hand-written.
+- Webhook tests use synchronous in-memory delivery or deterministic clocks, not
+  real `setTimeout` waits.
+- The platform is LLM-free; LLM calls remain agent-turn-only.
+- External integrations import `@ship/sdk`, never `api/src`.
+- TTFE runs in CI as soon as SDK + one resource exist.
+
 ### 3.1 Security And Failure Modes
 
 **OAuth app owner deleted.** Deactivate apps by default and allow workspace admin transfer. Do not leave active orphaned apps.
