@@ -20,6 +20,7 @@
     "@langchain/core": "latest",
     "@langchain/langgraph": "latest",
     "@langchain/langgraph-checkpoint-postgres": "latest",
+    "@ship/sdk": "workspace:*",
     "@ship/shared": "workspace:*",
     "express": "^4.21.2",
     "langsmith": "latest",

@@ -15,34 +15,58 @@
 - SDK package metadata is publish-ready with public scoped publish config, prepack build, package file allowlist, and changelog.
 - Frontend deployment script now accepts `shadow`, matching the backend deployment script.
 - SSM sync script now prints exact bootstrap commands for missing prod/dev/shadow Terraform config parameters.
+- Production backend was redeployed to Elastic Beanstalk version `v20260603152032`.
+  The live webhook event registry now exposes all eight required event types.
+- The PlugForge flake drill passed 20 consecutive runs with zero failures:
+  `corepack.cmd pnpm plugforge:flake` reported `runs: 20`, `failures: 0`,
+  and `flake_rate: 0`.
+- The pre-commit hook now checks for a compatible `comply opensource` command
+  before invoking it, so unrelated `comply` binaries do not break commits.
 
 ## Local Verification
 
 ```powershell
 corepack.cmd pnpm --filter @ship/api plugforge:openapi
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
+corepack.cmd pnpm plugforge:flake
 ```
 
 Latest local fitness result:
 
 - `fitness.test.ts`: 8 tests passed.
 - `platform.test.ts`: 25 tests passed.
+- `plugforge:flake`: 20 runs passed, 0 failures, flake rate 0.
 
 ## Remaining External Blockers
 
-- AWS CLI is not available in the current shell, so deployment and SSM bootstrap
-  cannot be executed from this environment.
+- AWS CLI is not available in the current shell. Deployment was completed with
+  a temporary AWS SDK helper instead.
 - Terraform is not available in the current shell.
-- Docker is available.
+- Docker Desktop is installed, but the Linux engine is currently unhealthy in
+  this workstation session. `docker version` returns client metadata but a
+  server-side 500 for `dockerDesktopLinuxEngine`.
 - `bash.exe` resolves to WSL, but WSL cannot launch `/bin/bash` in this session,
   so the Bash deployment scripts cannot run here.
-- Production deploy still requires SSM Terraform config to exist:
+- Full Playwright E2E was launched through the progress reporter with one
+  worker and redirected logs. It exited during global setup after a low-memory
+  warning and before `test-results/summary.json` was written; because the suite
+  uses Testcontainers for each worker, the unhealthy Docker engine remains the
+  blocker for the complete 600+ test regression proof.
+- The PyPI package named `comply-cli` installs a `comply` binary, but it does
+  not expose the repository's expected `comply opensource` subcommand. The hook
+  now detects this mismatch and prints the same non-blocking warning used when
+  the command is absent.
+
+Production SSM Terraform config exists for the deployed environment, but local
+AWS CLI/Terraform workstation setup is still needed for the standard scripts:
 
 ```powershell
-aws ssm put-parameter --name /ship/terraform-config/environment --value prod --type String
+aws ssm get-parameter --name /ship/terraform-config/environment
+terraform -chdir=infra plan
 ```
 
-- Shadow deploy requires:
+Shadow deploy still requires its shadow-prefixed SSM parameters before the
+standard script can run:
 
 ```powershell
 aws ssm put-parameter --name /ship/terraform-config/shadow/environment --value shadow --type String

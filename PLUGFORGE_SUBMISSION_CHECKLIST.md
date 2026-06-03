@@ -106,7 +106,7 @@ node integrations/cli/src/index.mjs --help
 | Webhook event registry and schemas | Pass: `api/src/platform/events.ts` registers `document.created`, `document.updated`, `document.deleted`, `issue.created`, `issue.assigned`, `issue.status_changed`, `sprint.started`, and `sprint.completed` with Zod schemas; live registry verified on `v20260603152032`. |
 | Event bus and domain publication | Pass: `IEventBus` and in-process implementation live in `api/src/platform/events.ts`; document writes publish from `api/src/platform/domain/documents.ts`; fitness blocks route-layer webhook publication. |
 | Webhook signing, retries, DLQ, replay | Pass: `api/src/platform/webhooks.ts`; tests assert `Ship-Signature`, `Idempotency-Key`, first retry near 1s, 4xx dead-lettering, delivery listing, replay, rotation, and deactivation. |
-| Regression and performance guardrails | Partial in this session: focused Playwright PKCE, `plugforge:final-check`, `plugforge:fitness`, type-check, and build passed. Full 600+ Playwright suite should be run via the repo E2E runner workflow, not directly. |
+| Regression and performance guardrails | Partial in this session: focused Playwright PKCE, `plugforge:final-check`, `plugforge:fitness`, type-check, build, and the 20-run `plugforge:flake` drill passed. Full 600+ Playwright suite was attempted through the progress reporter but blocked by this workstation's unhealthy Docker/Testcontainers runtime; run the repo E2E runner workflow on a healthy Docker host for the complete gate. |
 | Deployed public app and grader app | Pass: CloudFront URLs above plus read-only grader app; Elastic Beanstalk version `v20260603152032` exposes the all-event webhook registry live. |
 
 ## Demo Flow

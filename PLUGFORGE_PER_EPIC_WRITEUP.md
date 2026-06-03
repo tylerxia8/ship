@@ -98,14 +98,18 @@ tail webhooks, and verify the signed event.
 **Before.** FleetGraph was architecturally able to use privileged/direct Ship
 access patterns, which made it unlike an external developer app.
 
-**Fix.** Documented and shaped the rewire path so the agent authenticates as an
-OAuth app, uses `@ship/sdk`, and reaches Ship through `/api/v1` with scopes,
-rate limits, and audit rows.
+**Fix.** Added a public API read path behind `SHIP_PUBLIC_API_TOKEN` so the
+agent can authenticate as an OAuth app, use `@ship/sdk`, and read documents
+through `/api/v1` with scopes, rate limits, and audit rows. The legacy
+service-account path remains for associations and finding writes until those
+surfaces are promoted to the public API.
 
 **After.** The access shape is the same as external integrations, while model
 cost remains isolated to explicit agent turns.
 
-**Proof.** `docs/architecture.md#agent-as-citizen`,
-`PLUGFORGE_AI_COST_ANALYSIS.md`, and the public audit trail exposed through
-`api/src/platform/audit.ts`. Final production proof should be an audit-log row
-showing the FleetGraph app `client_id`, route, scope, status, and latency.
+**Proof.** `agent/src/ship-client.ts`, `agent/src/config.ts`, `agent/README.md`,
+`docs/architecture.md#agent-as-citizen`, `PLUGFORGE_AI_COST_ANALYSIS.md`, and
+the public audit trail exposed through `api/src/platform/audit.ts`. Final
+production proof should be an audit-log row showing the FleetGraph app
+`client_id`, route, scope, status, and latency after `SHIP_PUBLIC_API_TOKEN` is
+set in the agent environment.

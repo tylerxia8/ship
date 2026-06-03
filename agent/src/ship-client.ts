@@ -1,9 +1,10 @@
 /**
  * Ship REST API client for the FleetGraph agent.
  *
- * Authenticates via the service-account API token (Bearer auth, same flow
- * as Ship's existing api_tokens). The token is issued by
- * api/scripts/create-service-account.ts and lives in SHIP_SERVICE_ACCOUNT_KEY.
+ * Reads documents through the public API when SHIP_PUBLIC_API_TOKEN is set,
+ * which makes FleetGraph an OAuth app shaped like any external integration.
+ * Association reads and finding writes still use the service-account path until
+ * those surfaces exist under /api/v1.
  *
  * Wraps the read paths the agent's fetch nodes need:
  *   - GET /api/documents (filtered list)
@@ -15,6 +16,8 @@
  * to retry, degrade, or fail the run.
  */
 
+import { ShipClient } from '@ship/sdk';
+import type { ShipDocument as PublicShipDocument } from '@ship/sdk';
 import { config } from './config.js';
 import type { ShipDocument, ShipAssociation } from './state.js';
 
@@ -112,6 +115,21 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+let publicClientInstance: ShipClient | null | undefined;
+
+function publicClient(): ShipClient | null {
+  if (publicClientInstance !== undefined) return publicClientInstance;
+  if (!config.ship.publicApiToken) {
+    publicClientInstance = null;
+    return publicClientInstance;
+  }
+  publicClientInstance = new ShipClient({
+    token: config.ship.publicApiToken,
+    baseUrl: config.ship.publicApiBaseUrl,
+  });
+  return publicClientInstance;
+}
+
 // ─── Typed read helpers ────────────────────────────────────────────────────
 
 // Ship's API returns one of two shapes depending on endpoint:
@@ -142,6 +160,12 @@ function unwrap<T>(body: unknown): T {
 }
 
 export async function getDocument(id: string): Promise<ShipDocument> {
+  const client = publicClient();
+  if (client) {
+    const body = await client.documents.get(id);
+    return normalizePublicDocument(body.data);
+  }
+
   const body = await shipFetch(`/api/documents/${encodeURIComponent(id)}`);
   return unwrap<ShipDocument>(body);
 }
@@ -155,6 +179,19 @@ export interface ListDocumentsOptions {
 }
 
 export async function listDocuments(opts: ListDocumentsOptions = {}): Promise<ShipDocument[]> {
+  const client = publicClient();
+  if (client) {
+    const page = await client.documents.list({
+      limit: opts.limit ?? 100,
+      type: opts.documentType,
+    });
+    return page.data
+      .map(normalizePublicDocument)
+      .filter((doc) => !opts.workspaceId || doc.workspace_id === opts.workspaceId)
+      .filter((doc) => !opts.programId || doc.program_id === opts.programId)
+      .filter((doc) => !opts.projectId || doc.project_id === opts.projectId);
+  }
+
   const params = new URLSearchParams();
   if (opts.workspaceId) params.set('workspace_id', opts.workspaceId);
   if (opts.documentType) params.set('type', opts.documentType);
@@ -165,6 +202,26 @@ export async function listDocuments(opts: ListDocumentsOptions = {}): Promise<Sh
   const qs = params.toString();
   const body = await shipFetch(`/api/documents${qs ? `?${qs}` : ''}`);
   return unwrap<ShipDocument[]>(body);
+}
+
+function normalizePublicDocument(doc: PublicShipDocument): ShipDocument {
+  const properties = doc.properties ?? {};
+  return {
+    id: doc.id,
+    document_type: doc.document_type,
+    title: doc.title,
+    workspace_id: doc.workspace_id,
+    program_id: stringOrNull(properties.program_id),
+    project_id: stringOrNull(properties.project_id),
+    parent_id: stringOrNull(properties.parent_id),
+    properties,
+    created_at: doc.created_at,
+    updated_at: doc.updated_at,
+  };
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
 export async function getAssociations(documentId: string): Promise<ShipAssociation[]> {

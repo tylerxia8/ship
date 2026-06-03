@@ -78,6 +78,9 @@ importers:
       '@langchain/langgraph-checkpoint-postgres':
         specifier: latest
         version: 1.0.2(@langchain/core@1.1.48(ws@8.20.1))(@langchain/langgraph-checkpoint@1.0.4(@langchain/core@1.1.48(ws@8.20.1)))
+      '@ship/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@ship/shared':
         specifier: workspace:*
         version: link:../shared
@@ -86,7 +89,7 @@ importers:
         version: 4.22.1
       langsmith:
         specifier: latest
-        version: 0.7.3(ws@8.20.1)
+        version: 0.7.4(ws@8.20.1)
       pg:
         specifier: ^8.13.1
         version: 8.16.3
@@ -3803,8 +3806,8 @@ packages:
   keyboardevent-key-polyfill@1.1.0:
     resolution: {integrity: sha512-NTDqo7XhzL1fqmUzYroiyK2qGua7sOMzLav35BfNA/mPUSCtw8pZghHFMTYR9JdnJ23IQz695FcaM6EE6bpbFQ==}
 
-  langsmith@0.7.3:
-    resolution: {integrity: sha512-Gg+IeRGoF1/aStu80aEnIXJCu+N6+4NoV4tAVFS51ZPRBsRa2KG0LkS7K7/ryZ/yES7O9xdqah5QuuWMIeMjQw==}
+  langsmith@0.7.4:
+    resolution: {integrity: sha512-EGYCw85etSarYazeTgj8DICVIFg+26gsVZ0zq8V7kjIb59huURJpZZJqVFkvRpZFxmfyYrpIhtk2qtHgGR8K+w==}
     peerDependencies:
       '@opentelemetry/api': '*'
       '@opentelemetry/exporter-trace-otlp-proto': '*'
@@ -6560,7 +6563,7 @@ snapshots:
       '@cfworker/json-schema': 4.1.1
       '@standard-schema/spec': 1.1.0
       js-tiktoken: 1.0.21
-      langsmith: 0.7.3(ws@8.20.1)
+      langsmith: 0.7.4(ws@8.20.1)
       mustache: 4.2.0
       p-queue: 6.6.2
       zod: 3.25.76
@@ -9304,7 +9307,7 @@ snapshots:
 
   keyboardevent-key-polyfill@1.1.0: {}
 
-  langsmith@0.7.3(ws@8.20.1):
+  langsmith@0.7.4(ws@8.20.1):
     dependencies:
       p-queue: 6.6.2
     optionalDependencies:

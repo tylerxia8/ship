@@ -40,6 +40,11 @@ export const config = {
   // see migration 0NN_service_account.sql). For dev, point at local API.
   ship: {
     apiBaseUrl: optional('SHIP_API_BASE_URL', 'http://localhost:3000'),
+    publicApiBaseUrl: optional(
+      'SHIP_PUBLIC_API_BASE_URL',
+      `${optional('SHIP_API_BASE_URL', 'http://localhost:3000').replace(/\/$/, '')}/api/v1`,
+    ),
+    publicApiToken: optional('SHIP_PUBLIC_API_TOKEN', ''),
     serviceAccountKey: optional('SHIP_SERVICE_ACCOUNT_KEY', ''),
     agentSharedSecret: optional('AGENT_SHARED_SECRET', ''),
   },

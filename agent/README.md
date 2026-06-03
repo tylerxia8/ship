@@ -16,6 +16,8 @@ Architecture: see [FLEETGRAPH.md](../FLEETGRAPH.md) at the repo root.
 | `LANGSMITH_TRACING` | no (default `true`) | Toggle tracing on/off |
 | `LANGSMITH_ENDPOINT` | no (default `api.smith.langchain.com`) | LangSmith API endpoint |
 | `SHIP_API_BASE_URL` | no (default `http://localhost:3000`) | Ship API host |
+| `SHIP_PUBLIC_API_BASE_URL` | no (default `${SHIP_API_BASE_URL}/api/v1`) | Public API base URL used by the OAuth/SDK read path |
+| `SHIP_PUBLIC_API_TOKEN` | no | OAuth bearer token for FleetGraph document reads through `@ship/sdk` and `/api/v1` |
 | `SHIP_SERVICE_ACCOUNT_KEY` | yes (prod) | Long-lived agent API key |
 | `AGENT_SHARED_SECRET` | yes (prod) | Shared service secret; validates browser-to-agent proxy calls and agent-to-Ship finding writes |
 | `DATABASE_URL` | yes (prod) | Postgres for PostgresSaver checkpoints |
@@ -29,6 +31,12 @@ proxy to this service.
 
 **Never commit env files** with real values. Set vars in your shell or via
 Render's encrypted env var UI.
+
+When `SHIP_PUBLIC_API_TOKEN` is set, FleetGraph reads documents through
+`@ship/sdk` against `/api/v1`, so those reads produce the same OAuth app audit
+rows, scope checks, and rate-limit behavior as an external integration.
+Association reads and finding writes still use the service-account path until
+those surfaces are promoted into the public API.
 
 ## Quick start
 

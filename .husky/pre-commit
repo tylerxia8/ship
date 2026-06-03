@@ -9,15 +9,15 @@ if [ -f "./scripts/check-api-coverage.sh" ]; then
 fi
 
 # Open source compliance checks (secrets scan + AI analysis)
-if command -v comply &> /dev/null; then
+if command -v comply &> /dev/null && comply opensource --help &> /dev/null; then
   # NOTE: --skip-trivy is temporary workaround for compliance-toolkit bug
   # https://github.com/US-Department-of-the-Treasury/compliance-toolkit/issues/XXX
   # Remove --skip-trivy once the ImportError in sbom module is fixed
   comply opensource --hook --staged --exclude e2e --skip-trivy
 else
   echo ""
-  echo "WARNING: 'comply' CLI not installed - skipping open source compliance checks"
-  echo "Install with: pip install comply-cli"
+  echo "WARNING: compatible 'comply opensource' CLI not installed - skipping open source compliance checks"
+  echo "Install the compliance-toolkit CLI that provides: comply opensource"
   echo ""
   echo "This project requires comply for pre-commit security scanning."
   echo "Your commit will proceed, but please install comply for future commits."
