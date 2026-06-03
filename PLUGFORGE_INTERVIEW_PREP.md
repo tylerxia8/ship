@@ -185,3 +185,15 @@ can an outside developer create a useful loop?" That is why OAuth, scopes,
 generated OpenAPI, the SDK, signed webhooks, and the CLI drill are all connected.
 They are separate pieces, but they serve one contract: a stranger can integrate
 with Ship and trust what happens.
+
+## Thesis To Defend
+
+A small public API that matches its spec beats a sprawling public API that
+contradicts it. One excellent reference integration beats three half-finished
+ones. An agent that goes through the front door beats an agent with a privileged
+shortcut.
+
+The interview defense is depth over breadth and proof over promises. The TTFE
+drill is the rubric: public/internal boundary, OAuth flow choices, generated
+OpenAPI, signed webhooks, SDK ergonomics, and the moment the agent becomes a
+citizen of the platform it lives in.

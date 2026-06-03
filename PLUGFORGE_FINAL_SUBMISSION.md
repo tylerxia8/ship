@@ -210,6 +210,11 @@ proof above used an ephemeral Webhook.site URL, then verified Ship's
 
 ## Final Notes
 
+- Submission thesis: a small public API that matches its spec beats a sprawling
+  public API that contradicts it; one excellent reference integration beats
+  three half-finished ones; an agent that goes through the front door beats an
+  agent with a privileged shortcut.
+- Depth over breadth. Proof over promises. The TTFE drill is the rubric.
 - The public platform uses `/api/v1/*`; first-party Ship UI routes remain under
   `/api/*`.
 - Public API responses include request IDs and rate-limit headers.
