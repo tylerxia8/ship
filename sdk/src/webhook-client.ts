@@ -1,5 +1,6 @@
 import type {
   CreateWebhookSubscriptionInput,
+  CreateWebhookInput,
   CreateWebhookSubscriptionResponse,
   Page,
   RotateWebhookSubscriptionSecretResponse,
@@ -27,6 +28,13 @@ export class WebhooksClient {
     return this.transport.request<CreateWebhookSubscriptionResponse>('/webhooks/subscriptions', {
       method: 'POST',
       body: JSON.stringify(input),
+    });
+  }
+
+  create(input: CreateWebhookInput): Promise<CreateWebhookSubscriptionResponse> {
+    return this.createSubscription({
+      event_type: input.event,
+      target_url: input.target_url,
     });
   }
 

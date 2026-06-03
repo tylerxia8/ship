@@ -10,6 +10,7 @@
   "scripts": {
     "build": "node src/index.mjs --help",
     "smoke": "node src/index.mjs --help",
+    "test:drill": "corepack pnpm --filter @ship/sdk build && vitest run tests/ttfe.drill.test.ts",
     "type-check": "node src/index.mjs --help"
   },
   "dependencies": {

@@ -14,6 +14,14 @@ function s256(verifier: string): string {
   return crypto.createHash('sha256').update(verifier).digest('base64url');
 }
 
+function resolveClientId(clientId: string | undefined): string {
+  const resolved = clientId ?? process.env.SHIP_CLIENT_ID;
+  if (!resolved) {
+    throw new ShipSDKError('auth', 'Ship device login requires clientId or SHIP_CLIENT_ID');
+  }
+  return resolved;
+}
+
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -71,6 +79,7 @@ async function pollToken(
   options: DeviceLoginOptions,
   deviceCode: string,
   intervalMs: number,
+  clientId: string,
 ): Promise<OAuthTokenResponse> {
   let waitMs = intervalMs;
 
@@ -84,7 +93,7 @@ async function pollToken(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           grant_type: DEVICE_GRANT,
-          client_id: options.clientId,
+          client_id: clientId,
           device_code: deviceCode,
         }),
         signal: options.signal,
@@ -125,9 +134,10 @@ export async function deviceLogin(options: DeviceLoginOptions): Promise<OAuthTok
   const fetchImpl = options.fetch ?? fetch;
   const shipUrl = (options.shipUrl ?? 'http://localhost:3000').replace(/\/$/, '');
   const oauthBaseUrl = `${shipUrl}/oauth`;
+  const clientId = resolveClientId(options.clientId);
 
   const codeResponse = await requestJson(fetchImpl, `${oauthBaseUrl}/device/code`, {
-    client_id: options.clientId,
+    client_id: clientId,
     scope: options.scope,
   }, options.signal) as DeviceCodeResponse;
 
@@ -140,6 +150,7 @@ export async function deviceLogin(options: DeviceLoginOptions): Promise<OAuthTok
     options,
     codeResponse.device_code,
     options.pollIntervalMs ?? codeResponse.interval * 1000,
+    clientId,
   );
   await options.tokenStore?.set(tokens);
   return tokens;

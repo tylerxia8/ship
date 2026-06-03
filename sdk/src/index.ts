@@ -12,6 +12,7 @@ export type {
   ApiError,
   ApiErrorCode,
   CreateDocumentInput,
+  CreateWebhookInput,
   CreateIssueInput,
   CreateOAuthAppInput,
   CreateSprintInput,

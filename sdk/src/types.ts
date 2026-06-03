@@ -43,7 +43,7 @@ export interface OAuthTokenResponse {
 }
 
 export interface DeviceLoginOptions {
-  clientId: string;
+  clientId?: string;
   scope?: string;
   shipUrl?: string;
   fetch?: typeof fetch;
@@ -237,6 +237,11 @@ export interface ShipWebhookDelivery {
 
 export interface CreateWebhookSubscriptionInput {
   event_type: WebhookEventType;
+  target_url: string;
+}
+
+export interface CreateWebhookInput {
+  event: WebhookEventType;
   target_url: string;
 }
 
