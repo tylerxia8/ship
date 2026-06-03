@@ -23,7 +23,7 @@ Start here when reviewing the Week 6 final submission.
 
 - Pre-search: `PRESEARCH.md`
 - Architecture defense: `docs/architecture.md`
-- Technical stack matrix: `docs/architecture.md#technical-stack`
+- Extended stack/rationale appendix: `docs/architecture-extended.md`
 - Security controls: `PLUGFORGE_SECURITY.md`
 - Operational readiness: `PLUGFORGE_OPERATIONAL_READINESS.md`
 - AI cost analysis: `PLUGFORGE_AI_COST_ANALYSIS.md`
