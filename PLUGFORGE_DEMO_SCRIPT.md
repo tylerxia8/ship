@@ -21,6 +21,28 @@ Say:
 > developer portal. The core proof is Time-to-First-Event: how quickly a new
 > developer can create a useful loop and receive a verified signed webhook.
 
+## Five-Line Story
+
+Say:
+
+> The whole developer story compresses to five lines.
+
+Show:
+
+```bash
+$ pnpm install @ship/sdk
+$ ship login
+$ ship docs create --title "hello"
+$ ship webhooks tail
+# document.created event arrives, signature verified
+```
+
+Say:
+
+> The CI drill is the scripted version of this loop: device login, SDK-backed
+> document creation, signed delivery, SDK signature verification, and delivery
+> log confirmation.
+
 ## Demo Flow
 
 ### 1. Ship App

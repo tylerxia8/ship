@@ -14,6 +14,7 @@ Start here when reviewing the Week 6 final submission.
 - Evidence pack: `PLUGFORGE_EVIDENCE_PACK.md`
 - Live proof IDs: `PLUGFORGE_LIVE_PROOF.md`
 - Demo video script: `PLUGFORGE_DEMO_SCRIPT.md`
+- Five-line developer story: `PLUGFORGE_FIVE_LINE_STORY.md`
 - Screenshots: `docs/screenshots/plugforge/`
 - Latest authenticated TTFE proof: document `436f86e1-07e1-4e4e-adff-e958f23200c9`,
   delivery `52d11acd-1c1c-44df-92b6-889f2829408c`, signature verified.

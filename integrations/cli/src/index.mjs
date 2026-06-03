@@ -7,6 +7,13 @@ const DEFAULT_SHIP_URL = process.env.SHIP_URL || 'http://localhost:3000';
 const CONFIG_PATH = process.env.SHIP_CLI_CONFIG || join(homedir(), '.ship', 'plugforge-cli.json');
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
 
+let sdkModulePromise = null;
+
+async function loadSdk() {
+  sdkModulePromise ??= import('@ship/sdk');
+  return sdkModulePromise;
+}
+
 class ApiRequestError extends Error {
   constructor(message, response, body) {
     super(message);
@@ -25,7 +32,7 @@ Usage:
   ship me [--ship-url <url>]
   ship docs ls [--ship-url <url>] [--limit 25] [--cursor <cursor>] [--type <type>]
   ship docs get <document-id> [--ship-url <url>]
-  ship docs create <title> [--ship-url <url>]
+  ship docs create --title <title> [--ship-url <url>]
   ship webhooks events [--ship-url <url>]
   ship webhooks subscribe --url <target> [--event document.created] [--ship-url <url>]
   ship webhooks rotate-secret <subscription-id> [--ship-url <url>]
@@ -157,6 +164,16 @@ async function api(shipUrl, path, options = {}) {
   }
 }
 
+async function sdkClient(shipUrl) {
+  const { ShipClient } = await loadSdk();
+  const tokenEntry = await tokenEntryFor(shipUrl);
+  const token = typeof tokenEntry === 'string' ? tokenEntry : tokenEntry.access_token;
+  return new ShipClient({
+    token,
+    baseUrl: `${shipUrl.replace(/\/$/, '')}/api/v1`,
+  });
+}
+
 async function login(args) {
   const { flags } = parseFlags(args);
   const clientId = flags['client-id'];
@@ -229,33 +246,33 @@ async function main() {
   }
 
   if (command === 'me') {
-    console.log(JSON.stringify(await api(shipUrl, '/me'), null, 2));
+    const client = await sdkClient(shipUrl);
+    console.log(JSON.stringify(await client.me(), null, 2));
     return;
   }
 
   if (command === 'docs' && subcommand === 'ls') {
-    const search = new URLSearchParams();
-    if (flags.limit) search.set('limit', flags.limit);
-    if (flags.cursor) search.set('cursor', flags.cursor);
-    if (flags.type) search.set('type', flags.type);
-    const query = search.toString();
-    console.log(JSON.stringify(await api(shipUrl, `/documents${query ? `?${query}` : ''}`), null, 2));
+    const client = await sdkClient(shipUrl);
+    console.log(JSON.stringify(await client.documents.list({
+      limit: flags.limit ? Number(flags.limit) : undefined,
+      cursor: flags.cursor,
+      type: flags.type,
+    }), null, 2));
     return;
   }
 
   if (command === 'docs' && subcommand === 'get') {
     const documentId = positional[0];
     if (!documentId) throw new Error('Missing document id');
-    console.log(JSON.stringify(await api(shipUrl, `/documents/${encodeURIComponent(documentId)}`), null, 2));
+    const client = await sdkClient(shipUrl);
+    console.log(JSON.stringify(await client.documents.get(documentId), null, 2));
     return;
   }
 
   if (command === 'docs' && subcommand === 'create') {
-    const title = positional.join(' ') || 'Untitled';
-    console.log(JSON.stringify(await api(shipUrl, '/documents', {
-      method: 'POST',
-      body: JSON.stringify({ title }),
-    }), null, 2));
+    const title = flags.title || positional.join(' ') || 'Untitled';
+    const client = await sdkClient(shipUrl);
+    console.log(JSON.stringify(await client.documents.create({ title }), null, 2));
     return;
   }
 
@@ -295,7 +312,8 @@ async function main() {
   }
 
   if (command === 'webhooks' && subcommand === 'deliveries') {
-    console.log(JSON.stringify(await api(shipUrl, '/webhooks/deliveries'), null, 2));
+    const client = await sdkClient(shipUrl);
+    console.log(JSON.stringify(await client.webhooks.listDeliveries(), null, 2));
     return;
   }
 
@@ -303,7 +321,8 @@ async function main() {
     const intervalMs = Math.max(1, Number(flags.interval || 2)) * 1000;
     const seen = new Set();
     while (true) {
-      const page = await api(shipUrl, '/webhooks/deliveries');
+      const client = await sdkClient(shipUrl);
+      const page = await client.webhooks.listDeliveries();
       for (const delivery of [...page.data].reverse()) {
         if (seen.has(delivery.id)) continue;
         seen.add(delivery.id);

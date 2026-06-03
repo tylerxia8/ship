@@ -273,7 +273,11 @@ importers:
         specifier: ^4.0.16
         version: 4.0.17(@types/node@22.19.5)(@vitest/ui@4.0.17)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
 
-  integrations/cli: {}
+  integrations/cli:
+    dependencies:
+      '@ship/sdk':
+        specifier: workspace:*
+        version: link:../../sdk
 
   sdk:
     devDependencies:

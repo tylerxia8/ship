@@ -11,5 +11,8 @@
     "build": "node src/index.mjs --help",
     "smoke": "node src/index.mjs --help",
     "type-check": "node src/index.mjs --help"
+  },
+  "dependencies": {
+    "@ship/sdk": "workspace:*"
   }
 }
