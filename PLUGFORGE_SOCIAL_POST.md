@@ -21,6 +21,11 @@ Demo highlights:
 
 Live proof is running against the deployed Ship app, not mocks.
 
+Tag: `@GauntletAI`
+
+Screenshot to attach: terminal running `ship webhooks tail` with a
+`document.created` event arriving in real time and signature verification shown.
+
 ## Suggested Screenshots
 
 Captured screenshots are available in `docs/screenshots/plugforge/`:

@@ -43,6 +43,12 @@ Say:
 > document creation, signed delivery, SDK signature verification, and delivery
 > log confirmation.
 
+After the terminal moment, switch to the Developer Portal, open the app's
+delivery log, select the delivered event, and replay it. Say:
+
+> The same event is visible operationally here. I can replay a delivery with
+> the original idempotency key, so subscribers can dedupe safely.
+
 ## Demo Flow
 
 ### 1. Ship App

@@ -17,6 +17,9 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Copyable API examples: `PLUGFORGE_API_EXAMPLES.md`
 - Early submission entry point: `PLUGFORGE_EARLY_SUBMISSION.md`
 - Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`
+- Submission requirements map: `PLUGFORGE_SUBMISSION_REQUIREMENTS.md`
+- Per-epic write-up: `PLUGFORGE_PER_EPIC_WRITEUP.md`
+- Three discoveries: `PLUGFORGE_DISCOVERIES.md`
 - Social post draft and screenshot plan: `PLUGFORGE_SOCIAL_POST.md`
 - Security controls summary: `PLUGFORGE_SECURITY.md`
 - Operational readiness: `PLUGFORGE_OPERATIONAL_READINESS.md`
