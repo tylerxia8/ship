@@ -30,3 +30,14 @@ full challenge rubric, `TTFE_TARGET_MS=1800000` represents the 30-minute human
 threshold. Against a deployed Ship URL, provide `SHIP_URL` and `SHIP_TOKEN` and
 run `corepack.cmd pnpm drill ttfe --no-docker` with a publicly reachable webhook
 receiver.
+
+### Drill Stage Criteria
+
+| Stage | Expected outcome | Assertion |
+|---|---|---|
+| Install: `pnpm install @ship/sdk` | Workspace package resolves, TypeScript types load, and no peer-dependency errors block usage. | `corepack.cmd pnpm drill ttfe` packs `@ship/sdk`, installs it into a temporary clean project, and imports `ShipClient` plus `verifyWebhook` before running the loop. |
+| Auth: `ship login` device flow | User code is displayed, polling succeeds within 60s in tests, and the token persists in the configured store. | `integrations/cli/tests/ttfe.drill.ts` asserts the user code callback and `ITokenStore` contents; the CLI drill reports the login stage timing. |
+| Subscribe: `client.webhooks.create` | Subscription is persisted, signing secret is returned once, and the subscription is visible through the developer surface. | The drill asserts the created subscription payload, one-time `signing_secret`, and delivery-log visibility; platform tests cover developer portal subscription/delivery visibility. |
+| Trigger: `client.documents.create` | Document is created, `document.created` is published by the domain bus, and subscribers receive a POST. | The platform tests cover domain event publication; the TTFE drill waits for the subscriber POST after SDK document creation. |
+| Verify: `verifyWebhook(headers, rawBody, secret)` | Valid signature passes; tampered body and timestamps older than five minutes fail. | Both `scripts/plugforge-ttfe-drill.mjs` and the CLI drill assert the valid, tampered, and expired cases. |
+| Total elapsed | CI completes in under 60s; clean-machine docs-only path stays within 30 minutes. | `TTFE_TARGET_MS` defaults to `60000`; use `TTFE_TARGET_MS=1800000` for the human challenge threshold. |

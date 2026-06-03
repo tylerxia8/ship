@@ -47,6 +47,16 @@ the 30-minute human challenge threshold. For a deployed Ship URL, provide
 `SHIP_URL` and `SHIP_TOKEN`, then run `corepack.cmd pnpm drill ttfe --no-docker`
 with a publicly reachable webhook receiver.
 
+Expected drill gates:
+
+| Stage | Outcome |
+|---|---|
+| Install | `@ship/sdk` resolves from a clean project with usable TypeScript types. |
+| Auth | Device login shows a user code, completes polling, and persists tokens through `ITokenStore`. |
+| Subscribe | `client.webhooks.create` returns a persisted subscription and one-time signing secret. |
+| Trigger | `client.documents.create` emits `document.created` to subscribed targets. |
+| Verify | `verifyWebhook(headers, rawBody, secret)` accepts valid payloads and rejects tampered or expired payloads. |
+
 ## Quickstart
 
 Build the SDK from the repository root:

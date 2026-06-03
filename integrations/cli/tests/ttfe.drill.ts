@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import http from 'node:http';
 import { afterEach, expect, test } from 'vitest';
-import { ShipClient, verifyWebhook } from '../../../sdk/src/index.js';
+import { InMemoryTokenStore, ShipClient, verifyWebhook } from '../../../sdk/src/index.js';
 
 interface Delivery {
   headers: http.IncomingHttpHeaders;
@@ -86,8 +86,7 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-function signWebhook(rawBody: string, secret: string): string {
-  const timestamp = Math.floor(Date.now() / 1000);
+function signWebhook(rawBody: string, secret: string, timestamp = Math.floor(Date.now() / 1000)): string {
   const signature = crypto
     .createHmac('sha256', secret)
     .update(`${timestamp}.${rawBody}`)
@@ -193,21 +192,35 @@ test('time to first event', async () => {
   };
 
   try {
+    const tokenStore = new InMemoryTokenStore();
     const client = await ShipClient.deviceLogin({
       fetch: fetchImpl,
       shipUrl: 'http://ship.test',
       pollIntervalMs: 0,
+      tokenStore,
       onUserCode: (code) => {
         process.env.SHIP_DEVICE_CODE = code;
       },
     });
 
     expect(process.env.SHIP_DEVICE_CODE).toBe('TTFE-2026');
+    expect(tokenStore.get()).toMatchObject({
+      access_token: 'ship_at_test',
+      refresh_token: 'ship_rt_test',
+    });
 
     const sub = await client.webhooks.create({
       event: 'document.created',
       target_url: testListener.url,
     });
+    expect(sub.data).toMatchObject({
+      id: 'sub_ttfe',
+      event_type: 'document.created',
+      target_url: testListener.url,
+      active: true,
+    });
+    expect(sub.signing_secret).toBe(signingSecret);
+    expect(sub.secret_display).toBe('shown_once');
 
     const doc = await client.documents.create({ title: 'hello' });
     expect(doc.data.id).toBe('doc_ttfe');
@@ -218,6 +231,16 @@ test('time to first event', async () => {
     );
 
     expect(delivery.event.type).toBe('document.created');
+    expect(verifyWebhook(delivery.headers, delivery.rawBody, sub.signing_secret)).toBe(true);
+    expect(verifyWebhook(delivery.headers, `${delivery.rawBody} `, sub.signing_secret)).toBe(false);
+
+    const expiredTimestamp = Math.floor(Date.now() / 1000) - 301;
+    const expiredHeaders = {
+      ...delivery.headers,
+      'Ship-Signature': signWebhook(delivery.rawBody, sub.signing_secret, expiredTimestamp),
+      'ship-signature': signWebhook(delivery.rawBody, sub.signing_secret, expiredTimestamp),
+    };
+    expect(verifyWebhook(expiredHeaders, delivery.rawBody, sub.signing_secret)).toBe(false);
     expect(performance.now() - t0).toBeLessThan(60_000);
   } finally {
     await testListener.close();
