@@ -124,28 +124,32 @@ const manifest = {
   skipped,
 };
 
-writeFileSync(
-  path.join(outputDir, 'README.md'),
+const readmeSections = [
   `# Plugforge Screenshots
 
 Generated: \`${manifest.generated_at}\`
 
-Base URL: \`${shipUrl}\`
+Base URL: \`${shipUrl}\``,
+  `## Captured
 
-## Captured
+${captured.map((item) => `- [${item.name}](./${item.name})`).join('\n')}`,
+];
 
-${captured.map((item) => `- [${item.name}](./${item.name})`).join('\n')}
+if (retained.length) {
+  readmeSections.push(`## Retained
 
-${retained.length ? `## Retained
+${retained.map((item) => `- [${item.name}](./${item.name}) - ${item.reason}`).join('\n')}`);
+}
 
-${retained.map((item) => `- [${item.name}](./${item.name}) - ${item.reason}`).join('\n')}
-` : ''}
+if (skipped.length) {
+  readmeSections.push(`## Skipped
 
-${skipped.length ? `## Skipped
+${skipped.map((item) => `- ${item}`).join('\n')}`);
+}
 
-${skipped.map((item) => `- ${item}`).join('\n')}
-` : ''}
-`,
+writeFileSync(
+  path.join(outputDir, 'README.md'),
+  `${readmeSections.join('\n\n')}\n`,
 );
 writeFileSync(path.join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
