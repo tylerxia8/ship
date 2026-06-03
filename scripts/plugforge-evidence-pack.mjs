@@ -48,7 +48,7 @@ function visibleStatus(rawStatus) {
   const visible = rawStatus
     .split('\n')
     .filter((line) => {
-      const path = line.slice(3).replace(/\\/g, '/');
+      const path = line.replace(/^\s*[MADRCU?!]{1,2}\s+/, '').replace(/\\/g, '/');
       return !ignored.has(path);
     })
     .join('\n')
