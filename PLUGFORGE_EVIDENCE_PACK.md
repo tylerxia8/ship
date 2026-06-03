@@ -1,6 +1,6 @@
 # Plugforge Evidence Pack
 
-Generated: `2026-06-03T21:32:35.194Z`
+Generated: `2026-06-03T22:15:03.346Z`
 
 ## Deployment
 
@@ -22,10 +22,10 @@ No relevant uncommitted changes.
 
 | Check | Status | HTTP | Latency |
 | --- | --- | --- | --- |
-| `/health` | Yes | 200 | 251ms |
-| `/api/v1/openapi.json` | Yes | 200 | 275ms |
-| `/api/v1/scopes` | Yes | 200 | 203ms |
-| `/api/v1/webhooks/events` | Yes | 200 | 209ms |
+| `/health` | Yes | 200 | 242ms |
+| `/api/v1/openapi.json` | Yes | 200 | 279ms |
+| `/api/v1/scopes` | Yes | 200 | 191ms |
+| `/api/v1/webhooks/events` | Yes | 200 | 213ms |
 
 ## OpenAPI Contract Coverage
 
@@ -45,32 +45,32 @@ No relevant uncommitted changes.
 
 - Command: `corepack.cmd pnpm plugforge:live-smoke`
 - Passed: Yes
-- Elapsed: 1256ms
+- Elapsed: 1332ms
 
 ```text
   "authenticated_checks": false,
-  "checked_at": "2026-06-03T21:32:22.970Z",
+  "checked_at": "2026-06-03T22:14:51.147Z",
   "results": [
     {
       "name": "GET /health",
       "path": "/health",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 184
+      "elapsed_ms": 200
     },
     {
       "name": "GET /api/v1/openapi.json",
       "path": "/api/v1/openapi.json",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 199
+      "elapsed_ms": 204
     },
     {
       "name": "GET /api/v1/scopes",
       "path": "/api/v1/scopes",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 113
+      "elapsed_ms": 64
     },
     {
       "name": "GET /api/v1/webhooks/events",
@@ -84,7 +84,7 @@ No relevant uncommitted changes.
       "path": "/oauth/device/code",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 71
+      "elapsed_ms": 65
     }
   ]
 }
@@ -93,50 +93,50 @@ No relevant uncommitted changes.
 ## Final Check
 
 - Command: `corepack.cmd pnpm plugforge:final-check`
-- Passed: No
-- Elapsed: 12082ms
+- Passed: Yes
+- Elapsed: 11999ms
 
 ```text
+      "ok": true,
+      "exit_code": 0,
+      "elapsed_ms": 1191,
+      "stderr_excerpt": null,
+      "stdout_excerpt": "> ship@0.0.0 plugforge:live-smoke C:\\Users\\tyler\\ship\n> node scripts/plugforge-live-smoke.mjs\n\n{\n  \"ok\": true,\n  \"ship_url\": \"https://d2rr1fze9v095b.cloudfront.net\",\n  \"authenticated_checks\": false,\n  \"checked_at\": \"2026-06-03T22:14:53.041Z\",\n  \"results\": [\n    {\n      \"name\": \"GET /health\",\n      \""
+    },
+    {
+      "name": "cli scopes discovery",
+      "ok": true,
+      "exit_code": 0,
+      "elapsed_ms": 326,
+      "stderr_excerpt": null,
+      "stdout_excerpt": "{\n  \"data\": [\n    {\n      \"name\": \"documents:read\",\n      \"description\": \"Read documents visible to the authorized user.\"\n    },\n    {\n      \"name\": \"documents:write\",\n      \"description\": \"Create and update documents as the authorized user.\"\n    },\n    {\n      \"name\": \"issues:read\",\n      \"descript"
+    },
+    {
+      "name": "cli webhook event discovery",
+      "ok": true,
+      "exit_code": 0,
+      "elapsed_ms": 340,
+      "stderr_excerpt": null,
       "stdout_excerpt": "{\n  \"data\": [\n    {\n      \"type\": \"document.created\",\n      \"description\": \"A document was created.\",\n      \"required_scope\": \"documents:read\"\n    },\n    {\n      \"type\": \"document.updated\",\n      \"description\": \"A document was updated.\",\n      \"required_scope\": \"documents:read\"\n    },\n    {\n      \"t"
     },
     {
       "name": "cli help",
       "ok": true,
       "exit_code": 0,
-      "elapsed_ms": 62,
+      "elapsed_ms": 70,
       "stderr_excerpt": null,
       "stdout_excerpt": "Ship Plugforge CLI\n\nUsage:\n  ship login --client-id <id> [--ship-url <url>] [--scope <scopes>]\n  ship scopes [--ship-url <url>]\n  ship me [--ship-url <url>]\n  ship docs ls [--ship-url <url>] [--limit 25] [--cursor <cursor>] [--type <type>]\n  ship docs get <document-id> [--ship-url <url>]\n  ship docs"
     },
     {
       "name": "plugforge fitness",
-      "ok": false,
-      "exit_code": 1,
-      "elapsed_ms": 9292,
-      "stderr_excerpt": "\u001b[31m⎯⎯⎯⎯⎯⎯\u001b[39m\u001b[1m\u001b[41m Unhandled Errors \u001b[49m\u001b[22m\u001b[31m⎯⎯⎯⎯⎯⎯\u001b[39m\n\u001b[31m\u001b[1m\nVitest caught 1 unhandled error during the test run.\nThis might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.\u001b[22m\u001b[39m\n\n\u001b[31m⎯⎯⎯⎯⎯⎯\u001b[39m\u001b[1m\u001b[41m Unhandled Error \u001b[49m\u001b[2",
+      "ok": true,
+      "exit_code": 0,
+      "elapsed_ms": 9354,
+      "stderr_excerpt": null,
       "stdout_excerpt": "> @ship/api@0.0.0 plugforge:fitness C:\\Users\\tyler\\ship\\api\n> vitest run src/platform/fitness.test.ts && vitest run src/platform/platform.test.ts\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.17 \u001b[39m\u001b[90mC:/Users/tyler/ship/api\u001b[39m\n\n \u001b[32m✓\u001b[39m src/platform/fitness.test.ts \u001b[2m(\u001b[22m\u001b[2m8 tests\u001b[22m\u001b[2m)\u001b"
     }
   ]
 }
- ELIFECYCLE  Command failed with exit code 1.
-[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Unhandled Errors [49m[22m[31m⎯⎯⎯⎯⎯⎯[39m
-[31m[1m
-Vitest caught 1 unhandled error during the test run.
-This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.[22m[39m
-
-[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Unhandled Error [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
-[31m[1mError[22m: [vitest-pool]: Worker forks emitted error.[39m
-[90m [2m❯[22m EventEmitter.<anonymous> ../node_modules/.pnpm/vitest@4.0.17_@types+node@2_4e49cfd8fab5854e39624a9c8e4e2466/node_modules/vitest/dist/chunks/cli-api.Cx2DW4Bc.js:[2m8043:22[22m[39m
-[90m [2m❯[22m EventEmitter.emit node:events:[2m509:28[22m[39m
-[90m [2m❯[22m ChildProcess.emitUnexpectedExit ../node_modules/.pnpm/vitest@4.0.17_@types+node@2_4e49cfd8fab5854e39624a9c8e4e2466/node_modules/vitest/dist/chunks/cli-api.Cx2DW4Bc.js:[2m7610:22[22m[39m
-[90m [2m❯[22m ChildProcess.emit node:events:[2m509:28[22m[39m
-[90m [2m❯[22m Process.ChildProcess._handle.onexit node:internal/child_process:[2m295:12[22m[39m
-
-[31m[1mCaused by: Error[22m: Worker exited unexpectedly[39m
-[90m [2m❯[22m ChildProcess.emitUnexpectedExit ../node_modules/.pnpm/vitest@4.0.17_@types+node@2_4e49cfd8fab5854e39624a9c8e4e2466/node_modules/vitest/dist/chunks/cli-api.Cx2DW4Bc.js:[2m7609:33[22m[39m
-[90m [2m❯[22m ChildProcess.emit node:events:[2m509:28[22m[39m
-[90m [2m❯[22m Process.ChildProcess._handle.onexit node:internal/child_process:[2m295:12[22m[39m
-
-[31m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39m
 ```
 
 
