@@ -43,6 +43,40 @@ developers explicitly call an agent feature that runs an LLM. This keeps
 Plugforge from turning every document create, webhook delivery, or API read into
 an implicit AI bill.
 
+## Development And Testing Costs To Track
+
+Run the cost snapshot from the repository root:
+
+```powershell
+corepack.cmd pnpm plugforge:costs -- --measure-ci
+```
+
+Use `--ttfe` when `SHIP_URL`/`SHIP_TOKEN` or local Docker are available and the
+full TTFE loop should be timed:
+
+```powershell
+corepack.cmd pnpm plugforge:costs -- --measure-ci --ttfe
+```
+
+| Cost bucket | What to track | How to measure | Target or invariant |
+|---|---|---|---|
+| LLM API spend during Epic 7 agent rewire | Daily provider spend, baseline tokens per turn, rewire tokens per turn. | Export provider billing/LangSmith token counts, then run `EPIC7_LLM_SPEND_USD_DAY=<n> EPIC7_AGENT_BASELINE_TOKENS_PER_TURN=<n> EPIC7_AGENT_REWIRE_TOKENS_PER_TURN=<n> corepack.cmd pnpm plugforge:costs`. | Rewire direct service calls to SDK/public API calls without changing token volume for the same user-initiated agent turns. |
+| CI minutes for TTFE drill | Elapsed time for `corepack.cmd pnpm drill ttfe` on Day 1 and weekly PR volume. | `corepack.cmd pnpm plugforge:costs -- --ttfe` records the drill elapsed time; CI history gives P95 and weekly run count. | CI P95 stays below 60s; weekly CI bill is budgeted from measured minutes times PR count. |
+| OAuth flow testing | Number of Playwright browser-backed tests launched for auth-code PKCE. | `plugforge:costs` counts tests in `e2e/plugforge-oauth.spec.ts`; current focused suite is one browser-backed test. | Count remains explicit when adding more browser auth cases. |
+| OpenAPI spec generation and validation overhead | Time spent generating and schema-validating the public OpenAPI document in CI. | `plugforge:costs -- --measure-ci` times `@ship/api plugforge:openapi` and the focused OpenAPI schema validation test. | Keep as a measured small fixed cost instead of a hand-wave. |
+| Dev portal demo storage and egress | Expected weekly webhook event rows, delivery rows, audit rows, subscriber POST egress, and portal log-read egress. | `plugforge:costs` estimates volume from `PLUGFORGE_COST_DRILL_RUNS_PER_WEEK`, `PLUGFORGE_COST_WEBHOOK_ATTEMPTS_PER_DRILL`, and `PLUGFORGE_COST_PORTAL_VIEWS_PER_WEEK`. | Demo-volume logs should remain tiny; growth should be visible before production retention decisions. |
+
+Default demo-volume assumptions are intentionally conservative: 100 drill runs
+per week, one webhook delivery attempt per drill, and 25 Developer Portal log
+views. Override them with:
+
+```powershell
+$env:PLUGFORGE_COST_DRILL_RUNS_PER_WEEK = "250"
+$env:PLUGFORGE_COST_WEBHOOK_ATTEMPTS_PER_DRILL = "2"
+$env:PLUGFORGE_COST_PORTAL_VIEWS_PER_WEEK = "50"
+corepack.cmd pnpm plugforge:costs
+```
+
 ## Evidence In Code
 
 - `api/src/platform/*` implements the public API, OAuth, scopes, OpenAPI,
