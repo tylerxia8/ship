@@ -9,6 +9,8 @@ export { verifyWebhook } from './webhooks.js';
 export type {
   AuthorizationCodeFlow,
   AuthorizationCodeFlowOptions,
+  ApiError,
+  ApiErrorCode,
   CreateDocumentInput,
   CreateIssueInput,
   CreateOAuthAppInput,
@@ -16,6 +18,7 @@ export type {
   CreateWebhookSubscriptionInput,
   CreateWebhookSubscriptionResponse,
   DeviceCodeResponse,
+  DeviceLoginClientOptions,
   DeviceLoginOptions,
   ITokenStore,
   OAuthTokenResponse,

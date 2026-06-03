@@ -11,6 +11,21 @@ export interface ShipClientOptions {
   fetch?: typeof fetch;
 }
 
+export type ApiErrorCode =
+  | 'unauthorized'
+  | 'forbidden'
+  | 'not_found'
+  | 'validation_failed'
+  | 'rate_limited'
+  | 'server_error';
+
+export interface ApiError {
+  code: ApiErrorCode;
+  message: string;
+  details?: Record<string, unknown>;
+  request_id: string;
+}
+
 export interface DeviceCodeResponse {
   device_code: string;
   user_code: string;
@@ -35,7 +50,13 @@ export interface DeviceLoginOptions {
   signal?: AbortSignal;
   pollIntervalMs?: number;
   onCode?: (code: DeviceCodeResponse) => void | Promise<void>;
+  onUserCode?: (code: string, verifyUrl: string) => void | Promise<void>;
+  tokenStore?: ITokenStore;
 }
+
+export type DeviceLoginClientOptions = Omit<DeviceLoginOptions, 'onCode'> & {
+  onUserCode: (code: string, verifyUrl: string) => void | Promise<void>;
+};
 
 export interface RefreshTokenOptions {
   clientId: string;

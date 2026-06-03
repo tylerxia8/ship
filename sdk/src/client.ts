@@ -1,7 +1,7 @@
 import { DocumentsClient, type Transport } from './documents.js';
 import { authorizationCodeFlow, deviceLogin, refreshAccessToken } from './auth.js';
 import { ShipSDKError, kindForStatus, type ShipApiErrorBody } from './errors.js';
-import type { AuthorizationCodeFlow, AuthorizationCodeFlowOptions, DeviceLoginOptions, ITokenStore, OAuthTokenResponse, Page, PublicScopeDefinition, RefreshTokenOptions, ShipClientOptions, ShipMe } from './types.js';
+import type { AuthorizationCodeFlow, AuthorizationCodeFlowOptions, DeviceLoginClientOptions, DeviceLoginOptions, ITokenStore, OAuthTokenResponse, Page, PublicScopeDefinition, RefreshTokenOptions, ShipClientOptions, ShipMe } from './types.js';
 import { WebhooksClient } from './webhook-client.js';
 import { IssuesClient, SprintsClient } from './document-resources.js';
 import { OAuthAppsClient } from './oauth-apps.js';
@@ -33,8 +33,19 @@ export class ShipClient implements Transport {
     return authorizationCodeFlow(options);
   }
 
-  static deviceLogin(options: DeviceLoginOptions): Promise<OAuthTokenResponse> {
-    return deviceLogin(options);
+  static deviceLogin(options: DeviceLoginClientOptions): Promise<ShipClient>;
+  static deviceLogin(options: DeviceLoginOptions): Promise<OAuthTokenResponse>;
+  static async deviceLogin(options: DeviceLoginOptions): Promise<OAuthTokenResponse | ShipClient> {
+    const tokens = await deviceLogin(options);
+    if (options.onUserCode) {
+      return new ShipClient({
+        token: options.tokenStore ? undefined : tokens.access_token,
+        tokenStore: options.tokenStore,
+        baseUrl: `${(options.shipUrl ?? 'http://localhost:3000').replace(/\/$/, '')}/api/v1`,
+        fetch: options.fetch,
+      });
+    }
+    return tokens;
   }
 
   static refreshAccessToken(options: RefreshTokenOptions): Promise<OAuthTokenResponse> {

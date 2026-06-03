@@ -132,14 +132,17 @@ export async function deviceLogin(options: DeviceLoginOptions): Promise<OAuthTok
   }, options.signal) as DeviceCodeResponse;
 
   await options.onCode?.(codeResponse);
+  await options.onUserCode?.(codeResponse.user_code, `${shipUrl}${codeResponse.verification_uri}`);
 
-  return pollToken(
+  const tokens = await pollToken(
     fetchImpl,
     oauthBaseUrl,
     options,
     codeResponse.device_code,
     options.pollIntervalMs ?? codeResponse.interval * 1000,
   );
+  await options.tokenStore?.set(tokens);
+  return tokens;
 }
 
 export function authorizationCodeFlow(options: AuthorizationCodeFlowOptions): AuthorizationCodeFlow {

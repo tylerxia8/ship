@@ -125,14 +125,20 @@ for await (const item of client.issues.iterate()) {
 ## Device Login
 
 ```ts
-const token = await ShipClient.deviceLogin({
+import { InMemoryTokenStore, ShipClient } from '@ship/sdk';
+
+const tokenStore = new InMemoryTokenStore();
+const client = await ShipClient.deviceLogin({
   clientId: 'ship_app_...',
   shipUrl: process.env.SHIP_URL,
   scope: 'documents:read documents:write webhooks:manage',
-  onCode(code) {
-    console.log(`Open ${code.verification_uri} and enter ${code.user_code}`);
+  tokenStore,
+  onUserCode(code, verifyUrl) {
+    console.log(`Open ${verifyUrl} and enter ${code}`);
   },
 });
+
+console.log(await client.me());
 ```
 
 ## Authorization Code + PKCE
