@@ -62,6 +62,48 @@ database, audit-log, webhook POST, and delivery-log storage cost. The agent LLM
 portion is separately attributable because the agent authenticates as an app and
 its activity is visible through the same public audit trail as other apps.
 
+### Projection Assumptions
+
+Webhook fanout ratio is the average number of active subscriptions for the event
+type emitted by each write. One document write creates one webhook event row and
+then fans out to one delivery per matching active subscription. Retries add
+additional delivery attempt rows, but the table assumes first-attempt success for
+the baseline.
+
+| Tier | Writes/day | Avg subscriptions per event type | Webhook fanout ratio | Resulting deliveries/day |
+|---|---:|---:|---:|---:|
+| 100 users | ~5,000 | 1 | 1x | ~5,000 |
+| 1,000 users | ~50,000 | 1 | 1x | ~50,000 |
+| 10,000 users | ~500,000 | 1 | 1x | ~500,000 |
+| 100,000 users | ~5,000,000 | 1 | 1x | ~5,000,000 |
+
+Agent active rate is the cost-bending assumption. The projection assumes 5% of
+users use agent features on a given day and average 10 agent turns per active
+agent user. That yields 0.5 LLM-bearing agent calls per total user per day. If
+the active rate or turns per active user doubles, agent LLM calls double; normal
+platform API traffic does not bend that curve.
+
+| Tier | Daily users | Agent active rate | Turns per active user/day | Agent LLM calls/day |
+|---|---:|---:|---:|---:|
+| 100 users | 100 | 5% | 10 | ~50 |
+| 1,000 users | 1,000 | 5% | 10 | ~500 |
+| 10,000 users | 10,000 | 5% | 10 | ~5,000 |
+| 100,000 users | 100,000 | 5% | 10 | ~50,000 |
+
+Storage retention is explicit:
+
+| Data | Retention | Why |
+|---|---:|---|
+| Webhook events and delivery attempts | 30 days | Enough for developer debugging, replay during active integration work, and demo evidence without turning delivery logs into long-term analytics storage. |
+| Public API audit rows | 90 days | Longer because OAuth app activity is security and billing-adjacent evidence. Ninety days gives reviewers/operators a useful trail while keeping the MVP retention bounded. |
+
+Storage estimate formula:
+
+```text
+webhook storage = (event rows * bytes/event + delivery attempt rows * bytes/delivery) * delivery_retention_days / 7
+audit storage = audit rows * bytes/audit_row * audit_retention_days / 7
+```
+
 ## Development And Testing Costs To Track
 
 Run the cost snapshot from the repository root:
@@ -83,15 +125,19 @@ corepack.cmd pnpm plugforge:costs -- --measure-ci --ttfe
 | CI minutes for TTFE drill | Elapsed time for `corepack.cmd pnpm drill ttfe` on Day 1 and weekly PR volume. | `corepack.cmd pnpm plugforge:costs -- --ttfe` records the drill elapsed time; CI history gives P95 and weekly run count. | CI P95 stays below 60s; weekly CI bill is budgeted from measured minutes times PR count. |
 | OAuth flow testing | Number of Playwright browser-backed tests launched for auth-code PKCE. | `plugforge:costs` counts tests in `e2e/plugforge-oauth.spec.ts`; current focused suite is one browser-backed test. | Count remains explicit when adding more browser auth cases. |
 | OpenAPI spec generation and validation overhead | Time spent generating and schema-validating the public OpenAPI document in CI. | `plugforge:costs -- --measure-ci` times `@ship/api plugforge:openapi` and the focused OpenAPI schema validation test. | Keep as a measured small fixed cost instead of a hand-wave. |
-| Dev portal demo storage and egress | Expected weekly webhook event rows, delivery rows, audit rows, subscriber POST egress, and portal log-read egress. | `plugforge:costs` estimates volume from `PLUGFORGE_COST_DRILL_RUNS_PER_WEEK`, `PLUGFORGE_COST_WEBHOOK_ATTEMPTS_PER_DRILL`, and `PLUGFORGE_COST_PORTAL_VIEWS_PER_WEEK`. | Demo-volume logs should remain tiny; growth should be visible before production retention decisions. |
+| Dev portal demo storage and egress | Expected weekly webhook event rows, delivery rows, audit rows, subscriber POST egress, portal log-read egress, and retained storage. | `plugforge:costs` estimates volume from `PLUGFORGE_COST_WRITE_OPS_PER_WEEK`, `PLUGFORGE_COST_SUBSCRIPTIONS_PER_EVENT_TYPE`, `PLUGFORGE_COST_WEBHOOK_ATTEMPTS_PER_DELIVERY`, retention windows, and portal views. | Demo-volume logs should remain tiny; growth should be visible before production retention decisions. |
 
-Default demo-volume assumptions are intentionally conservative: 100 drill runs
-per week, one webhook delivery attempt per drill, and 25 Developer Portal log
-views. Override them with:
+Default demo-volume assumptions are intentionally conservative: 100 write
+operations per week, one active subscription per event type, one webhook delivery
+attempt per logical delivery, 30-day webhook retention, 90-day audit retention,
+and 25 Developer Portal log views. Override them with:
 
 ```powershell
-$env:PLUGFORGE_COST_DRILL_RUNS_PER_WEEK = "250"
-$env:PLUGFORGE_COST_WEBHOOK_ATTEMPTS_PER_DRILL = "2"
+$env:PLUGFORGE_COST_WRITE_OPS_PER_WEEK = "250"
+$env:PLUGFORGE_COST_SUBSCRIPTIONS_PER_EVENT_TYPE = "2"
+$env:PLUGFORGE_COST_WEBHOOK_ATTEMPTS_PER_DELIVERY = "1.2"
+$env:PLUGFORGE_COST_DELIVERY_RETENTION_DAYS = "30"
+$env:PLUGFORGE_COST_AUDIT_RETENTION_DAYS = "90"
 $env:PLUGFORGE_COST_PORTAL_VIEWS_PER_WEEK = "50"
 corepack.cmd pnpm plugforge:costs
 ```
