@@ -30,4 +30,22 @@ jobs:
       - name: Run TTFE drill
         env:
           TTFE_TARGET_MS: "60000"
-        run: corepack pnpm drill ttfe
+        run: |
+          mkdir -p test-results
+          corepack pnpm drill ttfe | tee test-results/ttfe.log
+
+      - name: Run flake drill
+        env:
+          PLUGFORGE_FLAKE_RUNS: "20"
+          PLUGFORGE_FLAKE_OUTPUT: test-results/plugforge-flake-proof.json
+        run: corepack pnpm plugforge:flake
+
+      - name: Upload PlugForge proof artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugforge-drill-proof
+          path: |
+            test-results/ttfe.log
+            test-results/plugforge-flake-proof.json
+          if-no-files-found: warn

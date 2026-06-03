@@ -17,6 +17,8 @@ Start here when reviewing the Week 6 final submission.
 - Screenshots: `docs/screenshots/plugforge/`
 - Latest authenticated TTFE proof: document `436f86e1-07e1-4e4e-adff-e958f23200c9`,
   delivery `52d11acd-1c1c-44df-92b6-889f2829408c`, signature verified.
+- Agent-as-citizen proof: `ship_app_d8200057ae8afcd914151e0738af09f3`
+  called `/api/v1/documents/` with `documents:read`; audit row captured.
 
 ## Architecture
 
@@ -33,6 +35,8 @@ Start here when reviewing the Week 6 final submission.
 - API examples: `PLUGFORGE_API_EXAMPLES.md`
 - SDK quickstart: `sdk/README.md`
 - Signature TTFE drill: `corepack.cmd pnpm drill ttfe`
+- Workstation readiness: `corepack.cmd pnpm plugforge:doctor`
+- Agent audit proof: `corepack.cmd pnpm plugforge:agent-audit-proof`
 - Runnable SDK examples: `examples/plugforge/`
 - CLI reference integration: `integrations/cli/src/index.mjs`
 
@@ -54,6 +58,7 @@ corepack.cmd pnpm --filter @ship/sdk build
 
 ```powershell
 corepack.cmd pnpm plugforge:final-check
+corepack.cmd pnpm plugforge:doctor
 corepack.cmd pnpm plugforge:evidence-pack -- --include-final-check
 corepack.cmd pnpm plugforge:screenshots
 ```

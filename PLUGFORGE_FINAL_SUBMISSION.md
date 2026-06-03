@@ -87,6 +87,7 @@ new app.
 | Cursor pagination | `api/src/platform/pagination.ts`, `api/src/platform/routes/documents.ts`; cursors encode `{ id, timestamp }`, list responses return `{ data, next_cursor }`, and platform tests assert cursor stability after `updated_at` reordering. |
 | OpenAPI 3.1 served at `/api/v1/openapi.json`, generated from route metadata, schema-validated | `api/src/platform/openapi.ts`; `publicRouteMetadata` feeds `generatePublicOpenApiDocument()`, `corepack.cmd pnpm --filter @ship/api plugforge:openapi`, and fitness validates against the OpenAPI 3.1 schema. |
 | SDK workspace package with `new ShipClient({ token }).me()` | `sdk/src/client.ts`, `sdk/README.md`, `examples/plugforge/`; SDK parity covered by `api/src/platform/platform.test.ts`. |
+| SDK package proof | `corepack.cmd pnpm plugforge:sdk-pack` builds and packs `@ship/sdk` into `.tmp/ship-sdk-0.0.0.tgz`, proving the workspace package resolves as an installable artifact. |
 | Typed SDK surface, OAuth helpers, token stores, iterator pagination, verifier, typed errors | `ShipClient` exposes `documents`, `issues`, `sprints`, and `webhooks`; `authorizationCodeFlow()`, `deviceLogin()`, `ITokenStore`, in-memory/file/browser stores, async iterators, `verifyWebhook()`, and `ShipSDKErrorUnion` are implemented under `sdk/src/` and checked by fitness/type-check. |
 | Per-app and per-token rate limits with public headers | `api/src/platform/ratelimit.ts`; platform tests assert token isolation, shared app bucket enforcement, `X-RateLimit-*`, and `Retry-After`; generated OpenAPI declares the headers. |
 | Public audit trail queryable in Developer Portal | `api/src/platform/audit.ts` records timestamp, client ID, user, route, scope, status, and latency; `/api/v1/oauth/apps/{id}/audit` and `web/src/pages/DeveloperPortal.tsx` expose it. |
@@ -94,6 +95,7 @@ new app.
 | Webhook event registry, domain event bus, signing, retries, DLQ, replay | `api/src/platform/events.ts` defines event types and Zod schemas as data; domain writes publish through `IEventBus`; `api/src/platform/webhooks.ts` signs with `Ship-Signature`, retries 5xx/timeouts on `1s, 4s, 16s, 1m, 5m, 30m`, dead-letters 4xx/permanent failures, and preserves `Idempotency-Key` on replay. |
 | Existing regression/perf guardrails | Focused Playwright PKCE passed; `plugforge:final-check`, `plugforge:fitness`, type-check, build, and the 20-run `plugforge:flake` drill passed. Full 600+ Playwright regression was attempted through the progress reporter but blocked by this workstation's unhealthy Docker/Testcontainers runtime; use the repo E2E runner workflow on a healthy Docker host for the complete mainline gate. |
 | Deployed and publicly accessible with OpenAPI and read-only grader app | Live URLs above; read-only app `ship_app_8d138f5f898a7dd8bd9ae88e1d6f18c5`. Production is on Elastic Beanstalk version `v20260603152032`; the live webhook registry exposes all eight required event definitions. |
+| Agent-as-citizen audit proof | `agent/src/ship-client.ts` can read documents through `@ship/sdk` and `/api/v1` when `SHIP_PUBLIC_API_TOKEN` is set; live proof captured an audit row for client `ship_app_d8200057ae8afcd914151e0738af09f3`, route `/api/v1/documents/`, scope `documents:read`, status `200`, latency `5ms`. |
 
 ## Performance Target Map
 
@@ -132,6 +134,14 @@ Latest authenticated TTFE proof, captured `2026-06-02T22:54Z`:
 - HMAC signature verification: `true`.
 - Temporary subscription deactivated after proof capture.
 
+Latest agent-as-citizen audit proof, captured `2026-06-03T22:05Z`:
+
+- Proof command: `corepack.cmd pnpm plugforge:agent-audit-proof`.
+- OAuth app/client: `ship_app_d8200057ae8afcd914151e0738af09f3`.
+- Public call: `GET /api/v1/documents`, status `200`.
+- Audit row: route `/api/v1/documents/`, scope `documents:read`, status `200`,
+  latency `5ms`, created `2026-06-03T22:05:34.272Z`.
+
 ## SDK Packaging Note
 
 `@ship/sdk` is implemented as a workspace package for the assignment. The
@@ -144,6 +154,7 @@ cd ship
 git checkout plugforge/main
 corepack.cmd pnpm install
 corepack.cmd pnpm --filter @ship/sdk build
+corepack.cmd pnpm plugforge:sdk-pack
 ```
 
 ## Repeatable Verification
@@ -152,6 +163,8 @@ Run the final check from the repository root:
 
 ```powershell
 corepack.cmd pnpm plugforge:final-check
+corepack.cmd pnpm plugforge:doctor
+corepack.cmd pnpm plugforge:agent-audit-proof
 ```
 
 The final check runs:

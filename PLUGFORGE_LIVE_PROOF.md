@@ -49,6 +49,20 @@ Captured: `2026-06-02T22:54Z`
 - Signature verified: `true`
 - Temporary subscription deactivated after proof capture.
 
+## Agent-As-Citizen Audit Proof
+
+Captured: `2026-06-03T22:05Z`
+
+- Proof command: `corepack.cmd pnpm plugforge:agent-audit-proof`.
+- OAuth app/client: `ship_app_d8200057ae8afcd914151e0738af09f3`.
+- OAuth app id: `359b1bff-744a-4622-b885-8c53d26aa346`.
+- Public call: `GET /api/v1/me`, status `200`, scopes `documents:read`.
+- Public call: `GET /api/v1/documents`, status `200`, returned `1` document.
+- Audit row: route `/api/v1/documents/`, scope `documents:read`, status `200`,
+  latency `5ms`, created `2026-06-03T22:05:34.272Z`.
+- This is the same audit shape FleetGraph uses when `SHIP_PUBLIC_API_TOKEN` is
+  set in the agent environment.
+
 ## Screenshots
 
 - `docs/screenshots/plugforge/developer-portal.png`
@@ -61,6 +75,8 @@ Captured: `2026-06-02T22:54Z`
 
 ```powershell
 corepack.cmd pnpm plugforge:live-smoke
+corepack.cmd pnpm plugforge:doctor
+corepack.cmd pnpm plugforge:agent-audit-proof
 corepack.cmd pnpm plugforge:evidence-pack -- --include-final-check
 corepack.cmd pnpm plugforge:screenshots
 corepack.cmd pnpm --filter @ship/api plugforge:fitness

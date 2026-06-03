@@ -108,8 +108,8 @@ surfaces are promoted to the public API.
 cost remains isolated to explicit agent turns.
 
 **Proof.** `agent/src/ship-client.ts`, `agent/src/config.ts`, `agent/README.md`,
+`scripts/plugforge-agent-audit-proof.mjs`,
 `docs/architecture.md#agent-as-citizen`, `PLUGFORGE_AI_COST_ANALYSIS.md`, and
-the public audit trail exposed through `api/src/platform/audit.ts`. Final
-production proof should be an audit-log row showing the FleetGraph app
-`client_id`, route, scope, status, and latency after `SHIP_PUBLIC_API_TOKEN` is
-set in the agent environment.
+the public audit trail exposed through `api/src/platform/audit.ts`. Live proof
+captured `ship_app_d8200057ae8afcd914151e0738af09f3` calling
+`/api/v1/documents/` with `documents:read`, status `200`, latency `5ms`.

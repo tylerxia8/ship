@@ -19,9 +19,19 @@
   The live webhook event registry now exposes all eight required event types.
 - The PlugForge flake drill passed 20 consecutive runs with zero failures:
   `corepack.cmd pnpm plugforge:flake` reported `runs: 20`, `failures: 0`,
-  and `flake_rate: 0`.
+  and `flake_rate: 0`; the script now writes a JSON proof artifact for CI.
 - The pre-commit hook now checks for a compatible `comply opensource` command
   before invoking it, so unrelated `comply` binaries do not break commits.
+- GitHub Actions now uploads TTFE and flake proof artifacts from the PlugForge
+  drill workflow.
+- `corepack.cmd pnpm plugforge:doctor` checks local readiness for Node, pnpm,
+  live endpoints, Docker/Testcontainers, AWS CLI, Terraform, PostgreSQL, and a
+  compatible `comply opensource` scanner.
+- `corepack.cmd pnpm plugforge:sdk-pack` builds and packs the SDK as
+  `.tmp/ship-sdk-0.0.0.tgz`.
+- `corepack.cmd pnpm plugforge:agent-audit-proof` verifies that a FleetGraph
+  OAuth bearer token can call `/api/v1` and that the Developer Portal audit log
+  records the app client ID, route, scope, status, and latency.
 
 ## Local Verification
 
@@ -29,6 +39,9 @@
 corepack.cmd pnpm --filter @ship/api plugforge:openapi
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
 corepack.cmd pnpm plugforge:flake
+corepack.cmd pnpm plugforge:doctor
+corepack.cmd pnpm plugforge:sdk-pack
+corepack.cmd pnpm plugforge:agent-audit-proof
 ```
 
 Latest local fitness result:
@@ -36,6 +49,12 @@ Latest local fitness result:
 - `fitness.test.ts`: 8 tests passed.
 - `platform.test.ts`: 25 tests passed.
 - `plugforge:flake`: 20 runs passed, 0 failures, flake rate 0.
+- `plugforge:doctor`: required checks passed; optional readiness gaps were
+  Docker, AWS CLI, Terraform, PostgreSQL CLI, and compatible `comply`.
+- `plugforge:sdk-pack`: produced `.tmp/ship-sdk-0.0.0.tgz`.
+- `plugforge:agent-audit-proof`: live audit row captured for
+  `ship_app_d8200057ae8afcd914151e0738af09f3`, route `/api/v1/documents/`,
+  scope `documents:read`, status `200`, latency `5ms`.
 
 ## Remaining External Blockers
 

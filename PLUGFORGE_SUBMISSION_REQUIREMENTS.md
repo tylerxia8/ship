@@ -10,7 +10,7 @@ Deadline: Sunday 10:59 PM CT.
 | Architecture document | Ready | `docs/architecture.md` is the concise required architecture doc; `docs/architecture-extended.md` preserves deeper rationale. |
 | OpenAPI spec live and static | Ready | Live `/api/v1/openapi.json`; static `docs/openapi.json`; schema validation in `api/src/platform/fitness.test.ts`. |
 | AI cost analysis | Ready | `PLUGFORGE_AI_COST_ANALYSIS.md` tracks dev spend, production projections, webhook fanout, agent active rate, and retention assumptions. |
-| Per-epic write-up | Ready | `PLUGFORGE_PER_EPIC_WRITEUP.md`. Epic 6 proof is TTFE/flows; Epic 7 proof target is agent OAuth app audit rows. |
+| Per-epic write-up | Ready | `PLUGFORGE_PER_EPIC_WRITEUP.md`. Epic 6 proof is TTFE/flows; Epic 7 proof is a live OAuth app audit row captured by `corepack.cmd pnpm plugforge:agent-audit-proof`. |
 | Three discoveries | Ready | `PLUGFORGE_DISCOVERIES.md`. |
 | Deployed application | Ready | `PLUGFORGE_FINAL_SUBMISSION.md` lists live app, Developer Portal, OpenAPI URL, read-only OAuth app, reviewer credentials, and the verified Elastic Beanstalk version `v20260603152032`. |
 | Social post | Ready draft | `PLUGFORGE_SOCIAL_POST.md`; screenshot target is terminal `ship webhooks tail` showing a verified signed event, tag `@GauntletAI`. |
