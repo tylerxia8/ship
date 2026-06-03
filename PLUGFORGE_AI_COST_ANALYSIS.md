@@ -43,6 +43,25 @@ developers explicitly call an agent feature that runs an LLM. This keeps
 Plugforge from turning every document create, webhook delivery, or API read into
 an implicit AI bill.
 
+## Production Cost Projections
+
+Platform-layer cost scales with API traffic and webhook delivery, not with LLM
+calls. The numbers below assume the agent app is one of N installed apps at each
+tier. LLM cost is attributable to the agent app's user-driven sessions, not the
+platform itself.
+
+| Tier | API calls/day | Webhook deliveries/day | Agent LLM calls/day | Estimated cost/month |
+|---|---:|---:|---:|---:|
+| 100 users | ~20,000 | ~5,000 | ~50 | $2-8 |
+| 1,000 users | ~200,000 | ~50,000 | ~500 | $15-50 |
+| 10,000 users | ~2,000,000 | ~500,000 | ~5,000 | $80-250 |
+| 100,000 users | ~20,000,000 | ~5,000,000 | ~50,000 | $500-1,500 |
+
+These are planning ranges, not invoices. The platform portion is ordinary API,
+database, audit-log, webhook POST, and delivery-log storage cost. The agent LLM
+portion is separately attributable because the agent authenticates as an app and
+its activity is visible through the same public audit trail as other apps.
+
 ## Development And Testing Costs To Track
 
 Run the cost snapshot from the repository root:
