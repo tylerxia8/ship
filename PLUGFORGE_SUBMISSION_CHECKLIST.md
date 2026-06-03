@@ -20,6 +20,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Submission requirements map: `PLUGFORGE_SUBMISSION_REQUIREMENTS.md`
 - Per-epic write-up: `PLUGFORGE_PER_EPIC_WRITEUP.md`
 - Three discoveries: `PLUGFORGE_DISCOVERIES.md`
+- Interview preparation: `PLUGFORGE_INTERVIEW_PREP.md`
 - Social post draft and screenshot plan: `PLUGFORGE_SOCIAL_POST.md`
 - Security controls summary: `PLUGFORGE_SECURITY.md`
 - Operational readiness: `PLUGFORGE_OPERATIONAL_READINESS.md`
