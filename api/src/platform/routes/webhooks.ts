@@ -5,7 +5,8 @@ import { publicBearerAuth } from '../auth.js';
 import { generateWebhookSecret, hashSecret } from '../crypto.js';
 import { ApiError } from '../errors.js';
 import { requireScope } from '../scopes.js';
-import { deliverWebhook, WEBHOOK_EVENTS } from '../webhooks.js';
+import { publicWebhookEventDefinitions, WEBHOOK_EVENTS } from '../events.js';
+import { deliverWebhook } from '../webhooks.js';
 
 const router = Router();
 
@@ -13,14 +14,6 @@ const createSubscriptionSchema = z.object({
   event_type: z.enum(WEBHOOK_EVENTS),
   target_url: z.string().url(),
 });
-
-const WebhookEventRegistry = {
-  'document.created': {
-    type: 'document.created',
-    description: 'A document was created through the public API.',
-    required_scope: 'documents:read',
-  },
-} as const;
 
 function publicSubscription(row: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -53,7 +46,7 @@ function publicDelivery(row: Record<string, unknown>): Record<string, unknown> {
 
 router.get('/events', (_req, res) => {
   res.json({
-    data: WEBHOOK_EVENTS.map((eventType) => WebhookEventRegistry[eventType]),
+    data: publicWebhookEventDefinitions(),
     next_cursor: null,
   });
 });

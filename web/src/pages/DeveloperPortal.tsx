@@ -79,7 +79,8 @@ export function DeveloperPortalPage() {
   const [rotatingAppId, setRotatingAppId] = useState<string | null>(null);
   const [deactivatingAppId, setDeactivatingAppId] = useState<string | null>(null);
   const [testingSubscriptionId, setTestingSubscriptionId] = useState<string | null>(null);
-  const [selectedDelivery, setSelectedDelivery] = useState<WebhookDelivery | null>(null);
+  const [replayingDeliveryId, setReplayingDeliveryId] = useState<string | null>(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<{ appId: string; delivery: WebhookDelivery } | null>(null);
   const shipUrl = window.location.origin;
 
   useEffect(() => {
@@ -221,6 +222,24 @@ export function DeveloperPortalPage() {
           ? 'Test event failed permanently. Review the delivery row below before relying on this subscriber.'
           : 'Test event sent. Refresh activity if the delivery row has not appeared yet.';
     setNotice(readableStatus);
+  }
+
+  async function replayDelivery(appId: string, delivery: WebhookDelivery) {
+    setReplayingDeliveryId(delivery.id);
+    setError('');
+    setNotice('');
+
+    const response = await apiPost(`/api/v1/oauth/apps/${appId}/webhook-deliveries/${delivery.id}/replay`);
+    const body = await response.json();
+    setReplayingDeliveryId(null);
+
+    if (!response.ok) {
+      setError(body.error?.message || body.message || 'Could not replay the webhook delivery.');
+      return;
+    }
+
+    await loadPortalDetails(appId);
+    setNotice('Webhook delivery replay accepted. The delivery log has been refreshed.');
   }
 
   async function copyText(label: string, text: string) {
@@ -468,7 +487,7 @@ export function DeveloperPortalPage() {
                       onCopy={copyText}
                       onRefresh={() => void loadPortalDetails(app.id)}
                       onSendTest={sendTestEvent}
-                      onSelectDelivery={setSelectedDelivery}
+                      onSelectDelivery={(delivery) => setSelectedDelivery({ appId: app.id, delivery })}
                     />
                   )}
                 </div>
@@ -480,7 +499,9 @@ export function DeveloperPortalPage() {
 
       {selectedDelivery && (
         <DeliveryDetailDrawer
-          delivery={selectedDelivery}
+          delivery={selectedDelivery.delivery}
+          replaying={replayingDeliveryId === selectedDelivery.delivery.id}
+          onReplay={() => void replayDelivery(selectedDelivery.appId, selectedDelivery.delivery)}
           onClose={() => setSelectedDelivery(null)}
         />
       )}
@@ -792,9 +813,13 @@ function AuditTable({ rows }: { rows: AuditRow[] }) {
 
 function DeliveryDetailDrawer({
   delivery,
+  replaying,
+  onReplay,
   onClose,
 }: {
   delivery: WebhookDelivery;
+  replaying: boolean;
+  onReplay: () => void;
   onClose: () => void;
 }) {
   return (
@@ -834,6 +859,18 @@ function DeliveryDetailDrawer({
           <pre className="mt-2 max-h-40 overflow-auto rounded border border-border bg-muted/5 p-3 text-xs text-foreground">
             <code>{delivery.response_excerpt || 'No response body captured.'}</code>
           </pre>
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <button
+            type="button"
+            onClick={onReplay}
+            disabled={replaying}
+            aria-label={`Replay webhook delivery ${delivery.id}`}
+            className="rounded border border-border px-3 py-2 text-sm text-foreground hover:bg-muted/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {replaying ? 'Replaying...' : 'Replay delivery'}
+          </button>
         </div>
 
         <div className="mt-6 border border-border p-4 text-sm text-muted">

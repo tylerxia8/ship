@@ -51,6 +51,19 @@ async function getWorkerPort(workerIndex: number): Promise<number> {
 
 // Get project root (fixtures is at e2e/fixtures/, so go up 2 levels)
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
+const pnpmExecutable = process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
+
+function pnpmSpawn(commandArgs: string[]): { command: string; args: string[] } {
+  const args = ['pnpm', ...commandArgs];
+  if (process.platform !== 'win32') {
+    return { command: pnpmExecutable, args };
+  }
+
+  return {
+    command: 'cmd.exe',
+    args: ['/d', '/s', '/c', [pnpmExecutable, ...args].join(' ')],
+  };
+}
 
 /**
  * Get available system memory in GB.
@@ -228,7 +241,8 @@ export const test = base.extend<
 
       // Use vite preview instead of vite dev - much lighter weight
       // We pass the API port via env var so vite.config.ts can set up the proxy
-      const proc = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort'], {
+      const vitePreview = pnpmSpawn(['exec', 'vite', 'preview', '--port', String(port), '--strictPort']);
+      const proc = spawn(vitePreview.command, vitePreview.args, {
         cwd: path.join(PROJECT_ROOT, 'web'),
         env: {
           ...process.env,
@@ -290,9 +304,9 @@ async function runMigrations(dbUrl: string): Promise<void> {
       )
     `);
 
-    // Step 3: Mark all migrations as applied since schema.sql represents the full current state.
-    // schema.sql includes all table definitions from all migrations, so running migrations
-    // again would fail on CREATE TABLE statements that don't use IF NOT EXISTS.
+    // Step 3: Apply platform migrations that are not represented in schema.sql yet.
+    // Older tests rely on schema.sql for the base schema; PlugForge's public API
+    // tables still live in migrations, so keep this bridge explicit.
     const migrationsDir = path.join(PROJECT_ROOT, 'api/src/db/migrations');
     let migrationFiles: string[] = [];
 
@@ -304,8 +318,31 @@ async function runMigrations(dbUrl: string): Promise<void> {
       // No migrations directory
     }
 
+    const runnableMigrations = new Set([
+      '041_plugforge_platform.sql',
+      '042_device_code_consumed_at.sql',
+      '043_webhook_signing_secret.sql',
+    ]);
+
     for (const file of migrationFiles) {
       const version = file.replace('.sql', '');
+      if (runnableMigrations.has(file)) {
+        const migrationSql = readFileSync(path.join(migrationsDir, file), 'utf-8');
+        await pool.query('BEGIN');
+        try {
+          await pool.query(migrationSql);
+          await pool.query(
+            'INSERT INTO schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING',
+            [version]
+          );
+          await pool.query('COMMIT');
+          continue;
+        } catch (error) {
+          await pool.query('ROLLBACK');
+          throw error;
+        }
+      }
+
       await pool.query(
         'INSERT INTO schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING',
         [version]

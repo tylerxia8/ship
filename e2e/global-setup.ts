@@ -15,6 +15,15 @@ import os from 'os';
 
 // Get project root (this file is at e2e/global-setup.ts, so go up one level)
 const PROJECT_ROOT = path.resolve(__dirname, '..');
+const pnpmCommand = process.platform === 'win32' ? 'corepack.cmd pnpm' : 'corepack pnpm';
+
+function runPnpm(args: string, env?: NodeJS.ProcessEnv): void {
+  execSync(`${pnpmCommand} ${args}`, {
+    cwd: PROJECT_ROOT,
+    stdio: 'inherit',
+    ...(env ? { env } : {}),
+  });
+}
 
 export default async function globalSetup() {
   // Memory check at startup
@@ -30,10 +39,8 @@ export default async function globalSetup() {
 
   console.log('\nBuilding API for tests...');
   try {
-    execSync('pnpm build:api', {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit',
-    });
+    runPnpm('--filter @ship/shared build');
+    runPnpm('--filter @ship/api build');
     console.log('✓ API build complete');
   } catch (error) {
     console.error('Failed to build API:', error);
@@ -42,11 +49,8 @@ export default async function globalSetup() {
 
   console.log('\nBuilding Web for tests (enables lightweight preview servers)...');
   try {
-    execSync('pnpm build:web', {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit',
-      env: { ...process.env, VITE_APP_ENV: 'test_e2e' },
-    });
+    runPnpm('--filter @ship/shared build', { ...process.env, VITE_APP_ENV: 'test_e2e' });
+    runPnpm('--filter @ship/web build', { ...process.env, VITE_APP_ENV: 'test_e2e' });
     console.log('✓ Web build complete');
   } catch (error) {
     console.error('Failed to build Web:', error);

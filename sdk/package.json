@@ -1,11 +1,16 @@
 {
   "name": "@ship/sdk",
   "version": "0.0.0",
-  "private": true,
   "description": "Typed TypeScript SDK for Ship's public API",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

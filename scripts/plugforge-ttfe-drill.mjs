@@ -1,24 +1,28 @@
 #!/usr/bin/env node
-import crypto from 'node:crypto';
 import http from 'node:http';
+import { ShipClient, verifyWebhook } from '../sdk/dist/index.js';
 
 const shipUrl = (process.env.SHIP_URL || 'http://localhost:3000').replace(/\/$/, '');
 const token = process.env.SHIP_TOKEN;
+const targetMs = Number(process.env.TTFE_TARGET_MS || 60_000);
 
 function usage() {
   console.log(`Plugforge TTFE drill
 
-Runs: subscribe webhook -> create document -> receive signed webhook -> verify delivery log.
+Runs: SDK subscribe webhook -> SDK create document -> receive signed webhook
+-> SDK verifyWebhook -> SDK delivery-log verification.
 
 Required:
   SHIP_TOKEN   Public API bearer token with documents:write and webhooks:manage
 
 Optional:
-  SHIP_URL     Ship API base URL, default http://localhost:3000
-  KEEP_WEBHOOK Set to 1 to leave the temporary webhook subscription active
+  SHIP_URL        Ship API base URL, default http://localhost:3000
+  TTFE_TARGET_MS  Failing threshold, default 60000 for CI
+  KEEP_WEBHOOK    Set to 1 to leave the temporary webhook subscription active
 
 Example:
-  SHIP_URL=https://ship.example.gov SHIP_TOKEN=ship_at_... node scripts/plugforge-ttfe-drill.mjs
+  corepack pnpm --filter @ship/sdk build
+  SHIP_URL=http://localhost:3000 SHIP_TOKEN=ship_at_... node scripts/plugforge-ttfe-drill.mjs
 `);
 }
 
@@ -33,40 +37,17 @@ if (!token) {
   process.exit(1);
 }
 
-async function requestJson(path, options = {}) {
-  const response = await fetch(`${shipUrl}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(options.headers || {}),
-    },
-  });
-  const text = await response.text();
-  const body = text ? JSON.parse(text) : null;
-  if (!response.ok) {
-    throw new Error(`${path} failed: ${response.status} ${body?.message || text}`);
-  }
-  return body;
+if (!Number.isFinite(targetMs) || targetMs <= 0) {
+  console.error('TTFE_TARGET_MS must be a positive number.');
+  process.exit(1);
 }
 
-function verifyWebhook(headers, rawBody, secret) {
-  const value = headers['ship-signature'];
-  if (!value) return false;
-  const parts = Object.fromEntries(String(value).split(',').map((part) => part.split('=')));
-  const timestamp = Number(parts.t);
-  const signature = parts.v1;
-  if (!timestamp || !signature) return false;
-  const expected = crypto.createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
-  const actualBuffer = Buffer.from(signature, 'hex');
-  const expectedBuffer = Buffer.from(expected, 'hex');
-  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
-}
+const client = new ShipClient({ token, baseUrl: `${shipUrl}/api/v1` });
 
 async function waitForDelivery(idempotencyKey) {
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
-    const page = await requestJson('/api/v1/webhooks/deliveries');
+    const page = await client.webhooks.listDeliveries();
     const delivery = page.data.find((row) => row.idempotency_key === idempotencyKey);
     if (delivery) return delivery;
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -95,21 +76,15 @@ try {
   const targetUrl = `http://127.0.0.1:${address.port}/ship-webhook`;
 
   const startedAt = Date.now();
-  const subscription = await requestJson('/api/v1/webhooks/subscriptions', {
-    method: 'POST',
-    body: JSON.stringify({
-      event_type: 'document.created',
-      target_url: targetUrl,
-    }),
+  const subscription = await client.webhooks.createSubscription({
+    event_type: 'document.created',
+    target_url: targetUrl,
   });
   subscriptionId = subscription.data.id;
 
-  const created = await requestJson('/api/v1/documents', {
-    method: 'POST',
-    body: JSON.stringify({
-      title: `Plugforge TTFE ${new Date().toISOString()}`,
-      properties: { source: 'plugforge-ttfe-drill' },
-    }),
+  const created = await client.documents.create({
+    title: `Plugforge TTFE ${new Date().toISOString()}`,
+    properties: { source: 'plugforge-ttfe-drill' },
   });
 
   const idempotencyKey = `document.created:${created.data.id}`;
@@ -125,10 +100,13 @@ try {
   const webhook = received[0];
   const signatureOk = verifyWebhook(webhook.headers, webhook.body, subscription.signing_secret);
   const delivery = await waitForDelivery(idempotencyKey);
+  const elapsedMs = Date.now() - startedAt;
+  const ok = signatureOk && delivery.status === 'delivered' && elapsedMs <= targetMs;
 
   console.log(JSON.stringify({
-    ok: signatureOk && delivery.status === 'delivered',
-    elapsed_ms: Date.now() - startedAt,
+    ok,
+    elapsed_ms: elapsedMs,
+    target_ms: targetMs,
     ship_url: shipUrl,
     document_id: created.data.id,
     subscription_id: subscriptionId,
@@ -139,7 +117,7 @@ try {
     subscription_deactivated: process.env.KEEP_WEBHOOK === '1' ? false : true,
   }, null, 2));
 
-  if (!signatureOk || delivery.status !== 'delivered') {
+  if (!ok) {
     process.exitCode = 1;
   }
 } catch (err) {
@@ -148,9 +126,7 @@ try {
 } finally {
   if (subscriptionId && process.env.KEEP_WEBHOOK !== '1') {
     try {
-      await requestJson(`/api/v1/webhooks/subscriptions/${subscriptionId}/deactivate`, {
-        method: 'POST',
-      });
+      await client.webhooks.deactivateSubscription(subscriptionId);
     } catch (err) {
       console.error(`Could not deactivate temporary webhook subscription ${subscriptionId}:`, err instanceof Error ? err.message : err);
       process.exitCode = 1;

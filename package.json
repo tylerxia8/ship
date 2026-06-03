@@ -31,7 +31,7 @@
     "db:seed": "corepack pnpm --filter @ship/api db:seed",
     "db:migrate": "corepack pnpm --filter @ship/api db:migrate",
     "db:orphan-check": "corepack pnpm --filter @ship/api db:orphan-check",
-    "plugforge:ttfe": "node scripts/plugforge-ttfe-drill.mjs",
+    "plugforge:ttfe": "corepack pnpm --filter @ship/sdk build && node scripts/plugforge-ttfe-drill.mjs",
     "plugforge:live-smoke": "node scripts/plugforge-live-smoke.mjs",
     "plugforge:evidence-pack": "node scripts/plugforge-evidence-pack.mjs",
     "plugforge:screenshots": "node scripts/plugforge-screenshots.mjs",

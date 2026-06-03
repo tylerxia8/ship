@@ -1,7 +1,18 @@
 import { ShipSDKError, kindForStatus, type ShipApiErrorBody } from './errors.js';
-import type { DeviceCodeResponse, DeviceLoginOptions, OAuthTokenResponse, RefreshTokenOptions } from './types.js';
+import type { AuthorizationCodeFlow, AuthorizationCodeFlowOptions, DeviceCodeResponse, DeviceLoginOptions, OAuthTokenResponse, RefreshTokenOptions } from './types.js';
+import crypto from 'node:crypto';
 
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
+const VERIFIER_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+
+function randomString(length: number): string {
+  const bytes = crypto.randomBytes(length);
+  return Array.from(bytes, (byte) => VERIFIER_ALPHABET[byte % VERIFIER_ALPHABET.length]).join('');
+}
+
+function s256(verifier: string): string {
+  return crypto.createHash('sha256').update(verifier).digest('base64url');
+}
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -46,6 +57,7 @@ async function requestJson(fetchImpl: typeof fetch, url: string, body: unknown, 
         status: response.status,
         requestId: apiError?.request_id,
         details: apiError?.details,
+        retryAfterSeconds: Number(response.headers.get('Retry-After')) || undefined,
       },
     );
   }
@@ -103,6 +115,7 @@ async function pollToken(
         status: response.status,
         requestId: apiError?.request_id,
         details: apiError?.details,
+        retryAfterSeconds: Number(response.headers.get('Retry-After')) || undefined,
       },
     );
   }
@@ -127,6 +140,49 @@ export async function deviceLogin(options: DeviceLoginOptions): Promise<OAuthTok
     codeResponse.device_code,
     options.pollIntervalMs ?? codeResponse.interval * 1000,
   );
+}
+
+export function authorizationCodeFlow(options: AuthorizationCodeFlowOptions): AuthorizationCodeFlow {
+  const shipUrl = (options.shipUrl ?? 'http://localhost:3000').replace(/\/$/, '');
+  const codeVerifier = options.codeVerifier ?? randomString(64);
+  const state = options.state ?? randomString(24);
+  const authorizationUrl = new URL(`${shipUrl}/oauth/authorize`);
+  authorizationUrl.searchParams.set('response_type', 'code');
+  authorizationUrl.searchParams.set('client_id', options.clientId);
+  authorizationUrl.searchParams.set('redirect_uri', options.redirectUri);
+  authorizationUrl.searchParams.set('code_challenge', s256(codeVerifier));
+  authorizationUrl.searchParams.set('code_challenge_method', 'S256');
+  authorizationUrl.searchParams.set('state', state);
+  if (options.scope) authorizationUrl.searchParams.set('scope', options.scope);
+
+  return {
+    authorizationUrl: authorizationUrl.toString(),
+    codeVerifier,
+    state,
+    async exchange(callbackUrlOrCode: string): Promise<OAuthTokenResponse> {
+      let code = callbackUrlOrCode;
+      if (/^https?:\/\//.test(callbackUrlOrCode)) {
+        const callbackUrl = new URL(callbackUrlOrCode);
+        const callbackState = callbackUrl.searchParams.get('state');
+        if (callbackState !== state) {
+          throw new ShipSDKError('auth', 'OAuth state mismatch');
+        }
+        code = callbackUrl.searchParams.get('code') ?? '';
+      }
+
+      if (!code) {
+        throw new ShipSDKError('auth', 'OAuth authorization code missing');
+      }
+
+      return requestJson(options.fetch ?? fetch, `${shipUrl}/oauth/token`, {
+        grant_type: 'authorization_code',
+        client_id: options.clientId,
+        code,
+        redirect_uri: options.redirectUri,
+        code_verifier: codeVerifier,
+      }, options.signal) as Promise<OAuthTokenResponse>;
+    },
+  };
 }
 
 export async function refreshAccessToken(options: RefreshTokenOptions): Promise<OAuthTokenResponse> {

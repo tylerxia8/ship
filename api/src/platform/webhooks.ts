@@ -1,12 +1,11 @@
 import { pool } from '../db/client.js';
 import { signWebhookPayload } from './crypto.js';
-
-export const WEBHOOK_EVENTS = ['document.created'] as const;
-export type WebhookEventType = typeof WEBHOOK_EVENTS[number];
+import type { WebhookEventType } from './events.js';
 
 const RETRY_DELAYS_SECONDS = [1, 4, 16, 60, 300, 1800] as const;
 const MAX_ATTEMPTS = RETRY_DELAYS_SECONDS.length;
 const MAX_RETRY_DELAY_SECONDS = 1800;
+const WEBHOOK_TIMEOUT_MS = 10_000;
 
 interface WebhookSubscriptionRow {
   id: string;
@@ -42,7 +41,7 @@ function responseExcerpt(text: string): string {
 
 function deliveryStatus(responseStatus: number | null, ok: boolean, attemptNumber: number): string {
   if (ok) return 'delivered';
-  if (responseStatus !== null && responseStatus >= 400 && responseStatus < 500 && responseStatus !== 429) {
+  if (responseStatus !== null && responseStatus >= 400 && responseStatus < 500) {
     return 'dead_letter';
   }
   return attemptNumber >= MAX_ATTEMPTS ? 'dead_letter' : 'retry_pending';
@@ -50,7 +49,10 @@ function deliveryStatus(responseStatus: number | null, ok: boolean, attemptNumbe
 
 function nextAttemptDelaySeconds(attemptNumber: number): number | null {
   if (attemptNumber >= MAX_ATTEMPTS) return null;
-  return RETRY_DELAYS_SECONDS[attemptNumber] ?? null;
+  const baseDelay = RETRY_DELAYS_SECONDS[attemptNumber - 1];
+  if (!baseDelay) return null;
+  const jitterMultiplier = 1 + Math.random() * 0.2;
+  return Math.max(1, Math.round(baseDelay * jitterMultiplier));
 }
 
 function retryAfterDelaySeconds(value: string | null, nowMs = Date.now()): number | null {
@@ -104,11 +106,12 @@ export async function deliverWebhook(subscriptionId: string, eventId: string): P
   try {
     const response = await fetch(row.target_url, {
       method: 'POST',
+      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       headers: {
         'Content-Type': 'application/json',
         'Ship-Event-Id': row.event_id,
         'Ship-Event-Type': row.event_type,
-        'Ship-Idempotency-Key': row.idempotency_key,
+        'Idempotency-Key': row.idempotency_key,
         'Ship-Signature': signWebhookPayload(rawBody, row.signing_secret),
       },
       body: rawBody,

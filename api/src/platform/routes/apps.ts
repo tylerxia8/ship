@@ -298,6 +298,39 @@ router.get('/:id/webhook-deliveries', authMiddleware, async (req, res, next) => 
   }
 });
 
+router.post('/:id/webhook-deliveries/:deliveryId/replay', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const workspaceId = req.workspaceId;
+    if (!userId || !workspaceId) {
+      throw new ApiError(401, 'unauthorized', 'Login required');
+    }
+    const appId = String(req.params.id);
+
+    await requireAdminApp(userId, workspaceId, appId);
+
+    const delivery = await pool.query(
+      `SELECT d.id, d.subscription_id, d.event_id
+         FROM webhook_deliveries d
+         JOIN webhook_subscriptions s ON s.id = d.subscription_id
+        WHERE d.id = $1
+          AND s.workspace_id = $2
+          AND s.app_id = $3`,
+      [req.params.deliveryId, workspaceId, appId],
+    );
+
+    const row = delivery.rows[0];
+    if (!row) {
+      throw new ApiError(404, 'not_found', 'Webhook delivery not found');
+    }
+
+    await deliverWebhook(row.subscription_id, row.event_id);
+    res.status(202).json({ replayed: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/:id/webhook-subscriptions/:subscriptionId/test', authMiddleware, async (req, res, next) => {
   try {
     const userId = req.userId;

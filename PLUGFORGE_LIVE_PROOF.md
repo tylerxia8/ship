@@ -12,6 +12,16 @@ This file captures the concrete production evidence used in the final demo.
 
 ## Production OAuth App
 
+Read-only grader app:
+
+- Name: `Plugforge MVP Read-Only Grader App`
+- Client ID: `ship_app_8d138f5f898a7dd8bd9ae88e1d6f18c5`
+- Scopes: `documents:read`
+- Redirect URI: `https://example.com/callback`
+- Created: `2026-06-02T23:11:09Z`
+
+Full demo app:
+
 - Name: `Plugforge MVP Grader App`
 - Client ID: `ship_app_d8200057ae8afcd914151e0738af09f3`
 - Scopes: `documents:read`, `documents:write`, `webhooks:manage`
@@ -25,6 +35,20 @@ This file captures the concrete production evidence used in the final demo.
 - Webhook delivery: `1dfdb680-d30b-4e02-92d5-6c2e2c5bee04`
 - Delivery result: `document.created`, attempt `1`, delivered, HTTP `200`, `43ms`
 
+## Authenticated Live TTFE
+
+Captured: `2026-06-02T22:54Z`
+
+- Device Authorization Grant approved with user code: `YNDK-AP95`
+- Receiver: `webhook.site`
+- Public API document create proof: `436f86e1-07e1-4e4e-adff-e958f23200c9`
+- Webhook subscription: `542901f6-4a4f-45cf-92cc-04cd3cbf73e7`
+- Webhook delivery: `52d11acd-1c1c-44df-92b6-889f2829408c`
+- Delivery result: `document.created`, status `delivered`, response `204`
+- Elapsed time: `2916ms`
+- Signature verified: `true`
+- Temporary subscription deactivated after proof capture.
+
 ## Screenshots
 
 - `docs/screenshots/plugforge/developer-portal.png`
@@ -37,7 +61,7 @@ This file captures the concrete production evidence used in the final demo.
 
 ```powershell
 corepack.cmd pnpm plugforge:live-smoke
-corepack.cmd pnpm plugforge:evidence-pack
+corepack.cmd pnpm plugforge:evidence-pack -- --include-final-check
 corepack.cmd pnpm plugforge:screenshots
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
 ```

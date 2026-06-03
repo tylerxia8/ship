@@ -6,6 +6,14 @@ export type ShipSDKErrorKind =
   | 'server'
   | 'network';
 
+export type ShipSDKErrorUnion =
+  | { kind: 'auth'; message: string; status?: 401 | 403; requestId?: string; details?: Record<string, unknown> }
+  | { kind: 'rate_limit'; message: string; status: 429; requestId?: string; details?: Record<string, unknown>; retryAfterSeconds?: number }
+  | { kind: 'not_found'; message: string; status: 404; requestId?: string; details?: Record<string, unknown> }
+  | { kind: 'validation'; message: string; status?: number; requestId?: string; details?: Record<string, unknown> }
+  | { kind: 'server'; message: string; status?: number; requestId?: string; details?: Record<string, unknown> }
+  | { kind: 'network'; message: string; status?: undefined; requestId?: undefined; details?: undefined };
+
 export interface ShipApiErrorBody {
   code: string;
   message: string;
@@ -18,11 +26,13 @@ export class ShipSDKError extends Error {
   readonly status?: number;
   readonly requestId?: string;
   readonly details?: Record<string, unknown>;
+  readonly retryAfterSeconds?: number;
 
   constructor(kind: ShipSDKErrorKind, message: string, options: {
     status?: number;
     requestId?: string;
     details?: Record<string, unknown>;
+    retryAfterSeconds?: number;
   } = {}) {
     super(message);
     this.name = 'ShipSDKError';
@@ -30,6 +40,18 @@ export class ShipSDKError extends Error {
     this.status = options.status;
     this.requestId = options.requestId;
     this.details = options.details;
+    this.retryAfterSeconds = options.retryAfterSeconds;
+  }
+
+  toUnion(): ShipSDKErrorUnion {
+    return {
+      kind: this.kind,
+      message: this.message,
+      status: this.status,
+      requestId: this.requestId,
+      details: this.details,
+      retryAfterSeconds: this.retryAfterSeconds,
+    } as ShipSDKErrorUnion;
   }
 }
 

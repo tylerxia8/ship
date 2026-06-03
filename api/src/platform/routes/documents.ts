@@ -5,7 +5,7 @@ import { publicBearerAuth } from '../auth.js';
 import { ApiError } from '../errors.js';
 import { requireScope } from '../scopes.js';
 import { decodeCursor, encodeCursor } from '../pagination.js';
-import { publishWebhookEvent } from '../webhooks.js';
+import { createPublicDocument, publicDocument } from '../domain/documents.js';
 
 const router = Router();
 
@@ -21,19 +21,6 @@ const createDocumentSchema = z.object({
   content: z.unknown().optional(),
   properties: z.record(z.unknown()).default({}),
 });
-
-function publicDocument(row: Record<string, unknown>): Record<string, unknown> {
-  return {
-    id: row.id,
-    workspace_id: row.workspace_id,
-    document_type: row.document_type,
-    title: row.title,
-    content: row.content,
-    properties: row.properties ?? {},
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  };
-}
 
 router.get('/', publicBearerAuth, requireScope('documents:read'), async (req, res, next) => {
   try {
@@ -65,14 +52,14 @@ router.get('/', publicBearerAuth, requireScope('documents:read'), async (req, re
 
     if (cursor) {
       params.push(cursor.timestamp, cursor.id);
-      where += ` AND (updated_at, id) < ($${params.length - 1}::timestamptz, $${params.length}::uuid)`;
+      where += ` AND (created_at, id) < ($${params.length - 1}::timestamptz, $${params.length}::uuid)`;
     }
 
     const result = await pool.query(
       `SELECT id, workspace_id, document_type, title, content, properties, created_at, updated_at
          FROM documents
         WHERE ${where}
-        ORDER BY updated_at DESC, id DESC
+        ORDER BY created_at DESC, id DESC
         LIMIT $2`,
       params,
     );
@@ -83,7 +70,7 @@ router.get('/', publicBearerAuth, requireScope('documents:read'), async (req, re
 
     res.json({
       data: rows.map(publicDocument),
-      next_cursor: hasNext ? encodeCursor({ id: last.id, timestamp: last.updated_at.toISOString?.() ?? String(last.updated_at) }) : null,
+      next_cursor: hasNext ? encodeCursor({ id: last.id, timestamp: last.created_at.toISOString?.() ?? String(last.created_at) }) : null,
     });
   } catch (err) {
     next(err);
@@ -124,39 +111,15 @@ router.post('/', publicBearerAuth, requireScope('documents:write'), async (req, 
     }
 
     const auth = req.publicAuth!;
-    const result = await pool.query(
-      `INSERT INTO documents
-        (workspace_id, document_type, title, content, properties, visibility, created_by)
-       VALUES ($1, $2, $3, $4, $5, 'workspace', $6)
-       RETURNING id, workspace_id, document_type, title, content, properties, created_at, updated_at`,
-      [
-        auth.workspaceId,
-        parsed.data.document_type,
-        parsed.data.title,
-        parsed.data.content ?? { type: 'doc', content: [] },
-        parsed.data.properties,
-        auth.userId,
-      ],
-    );
-
-    const document = publicDocument(result.rows[0]);
-    await publishWebhookEvent({
+    const document = await createPublicDocument({
       workspaceId: auth.workspaceId,
-      eventType: 'document.created',
-      idempotencyKey: `document.created:${result.rows[0].id}`,
-      data: {
-        id: `document.created:${result.rows[0].id}`,
-        type: 'document.created',
-        created_at: new Date().toISOString(),
-        data: {
-          document,
-          actor: {
-            user_id: auth.userId,
-            app_id: auth.appId,
-            client_id: auth.clientId,
-          },
-        },
-      },
+      userId: auth.userId,
+      appId: auth.appId,
+      clientId: auth.clientId,
+      documentType: parsed.data.document_type,
+      title: parsed.data.title,
+      content: parsed.data.content ?? { type: 'doc', content: [] },
+      properties: parsed.data.properties,
     });
 
     res.status(201).json({ data: document });

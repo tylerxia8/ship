@@ -1,5 +1,12 @@
+export interface ITokenStore {
+  get(): Promise<OAuthTokenResponse | null> | OAuthTokenResponse | null;
+  set(tokens: OAuthTokenResponse): Promise<void> | void;
+  clear(): Promise<void> | void;
+}
+
 export interface ShipClientOptions {
-  token: string;
+  token?: string;
+  tokenStore?: ITokenStore;
   baseUrl?: string;
   fetch?: typeof fetch;
 }
@@ -39,6 +46,24 @@ export interface RefreshTokenOptions {
   signal?: AbortSignal;
 }
 
+export interface AuthorizationCodeFlowOptions {
+  clientId: string;
+  redirectUri: string;
+  scope?: string;
+  shipUrl?: string;
+  fetch?: typeof fetch;
+  state?: string;
+  codeVerifier?: string;
+  signal?: AbortSignal;
+}
+
+export interface AuthorizationCodeFlow {
+  authorizationUrl: string;
+  codeVerifier: string;
+  state?: string;
+  exchange(callbackUrlOrCode: string): Promise<OAuthTokenResponse>;
+}
+
 export interface ShipUser {
   id: string;
   email: string;
@@ -48,6 +73,42 @@ export interface ShipUser {
 export interface ShipWorkspace {
   id: string;
   name: string;
+}
+
+export interface ShipOAuthApp {
+  id: string;
+  workspace_id: string;
+  owner_user_id: string;
+  name: string;
+  client_id: string;
+  redirect_uris: string[];
+  requested_scopes: PublicScope[];
+  active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CreateOAuthAppInput {
+  name: string;
+  redirect_uris: string[];
+  requested_scopes?: PublicScope[];
+}
+
+export interface OAuthAppSecretResponse {
+  app: ShipOAuthApp;
+  client_secret: string;
+  secret_display: 'shown_once';
+}
+
+export interface PublicApiAuditRow {
+  request_id: string;
+  client_id: string;
+  method: string;
+  route: string;
+  scope_used: PublicScope | null;
+  status: number;
+  latency_ms: number | null;
+  created_at: string;
 }
 
 export interface ShipMe {
@@ -69,6 +130,14 @@ export interface ShipDocument {
   created_at: string;
   updated_at: string;
 }
+
+export type ShipIssue = ShipDocument & {
+  document_type: 'issue';
+};
+
+export type ShipSprint = ShipDocument & {
+  document_type: 'sprint' | 'weekly_plan' | 'weekly_retro';
+};
 
 export interface Page<T> {
   data: T[];
@@ -96,7 +165,23 @@ export interface CreateDocumentInput {
   properties?: Record<string, unknown>;
 }
 
-export type WebhookEventType = 'document.created';
+export type CreateIssueInput = Omit<CreateDocumentInput, 'document_type'> & {
+  document_type?: 'issue';
+};
+
+export type CreateSprintInput = Omit<CreateDocumentInput, 'document_type'> & {
+  document_type?: 'sprint' | 'weekly_plan' | 'weekly_retro';
+};
+
+export type WebhookEventType =
+  | 'document.created'
+  | 'document.updated'
+  | 'document.deleted'
+  | 'issue.created'
+  | 'issue.assigned'
+  | 'issue.status_changed'
+  | 'sprint.started'
+  | 'sprint.completed';
 
 export interface WebhookEventDefinition {
   type: WebhookEventType;

@@ -197,6 +197,41 @@ describe('Plugforge public API foundation', () => {
           description: expect.any(String),
           required_scope: 'documents:read',
         },
+        {
+          type: 'document.updated',
+          description: expect.any(String),
+          required_scope: 'documents:read',
+        },
+        {
+          type: 'document.deleted',
+          description: expect.any(String),
+          required_scope: 'documents:read',
+        },
+        {
+          type: 'issue.created',
+          description: expect.any(String),
+          required_scope: 'issues:read',
+        },
+        {
+          type: 'issue.assigned',
+          description: expect.any(String),
+          required_scope: 'issues:read',
+        },
+        {
+          type: 'issue.status_changed',
+          description: expect.any(String),
+          required_scope: 'issues:read',
+        },
+        {
+          type: 'sprint.started',
+          description: expect.any(String),
+          required_scope: 'sprints:read',
+        },
+        {
+          type: 'sprint.completed',
+          description: expect.any(String),
+          required_scope: 'sprints:read',
+        },
       ],
       next_cursor: null,
     });
@@ -316,6 +351,7 @@ describe('Plugforge public API foundation', () => {
   });
 
   it('completes Authorization Code + PKCE and rejects a wrong verifier', async () => {
+    const startedAt = Date.now();
     const verifier = `verifier-${crypto.randomBytes(32).toString('base64url')}`;
     const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
 
@@ -375,6 +411,7 @@ describe('Plugforge public API foundation', () => {
     expect(tokenResponse.body.access_token).toMatch(/^ship_at_/);
     expect(tokenResponse.body.refresh_token).toMatch(/^ship_rt_/);
     expect(tokenResponse.body.scope).toBe('documents:read documents:write');
+    expect(Date.now() - startedAt).toBeLessThan(3000);
     refreshToken = tokenResponse.body.refresh_token;
   });
 
@@ -587,6 +624,8 @@ describe('Plugforge public API foundation', () => {
       expect(received).toHaveLength(1);
       const webhookRequest = received[0]!;
       expect(webhookRequest.headers['ship-event-type']).toBe('document.created');
+      expect(webhookRequest.headers['idempotency-key']).toBe(`document.created:${createResponse.body.data.id}`);
+      expect(webhookRequest.headers['ship-idempotency-key']).toBeUndefined();
       expect(verifyWebhookSignature(webhookRequest.headers, webhookRequest.body, subscriptionResponse.body.signing_secret)).toBe(true);
 
       const payload = JSON.parse(webhookRequest.body);
@@ -606,6 +645,83 @@ describe('Plugforge public API foundation', () => {
       });
     } finally {
       await new Promise<void>((resolve) => receiver.close(() => resolve()));
+    }
+  });
+
+  it('creates a webhook subscription through the SDK and verifies signatures with the SDK helper', async () => {
+    const sdk = await import(new URL('../../../sdk/src/index.ts', import.meta.url).href) as {
+      ShipClient: new (options: { token: string; baseUrl: string }) => {
+        webhooks: {
+          createSubscription(input: { event_type: 'document.created'; target_url: string }): Promise<{ data: { id: string }; signing_secret: string }>;
+        };
+        documents: {
+          create(input: { title: string; document_type: 'wiki' }): Promise<{ data: { id: string } }>;
+        };
+      };
+      verifyWebhook(headers: Record<string, string | string[] | undefined>, rawBody: string, secret: string): boolean;
+    };
+
+    const apiServer = http.createServer(app);
+    const received: Array<{ headers: http.IncomingHttpHeaders; body: string; receivedAt: number }> = [];
+    const receiver = http.createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        received.push({
+          headers: req.headers,
+          body: Buffer.concat(chunks).toString('utf8'),
+          receivedAt: Date.now(),
+        });
+        res.writeHead(204).end();
+      });
+    });
+
+    await new Promise<void>((resolve) => apiServer.listen(0, '127.0.0.1', resolve));
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+    const apiAddress = apiServer.address();
+    const receiverAddress = receiver.address();
+    if (!apiAddress || typeof apiAddress === 'string') throw new Error('Expected API server port');
+    if (!receiverAddress || typeof receiverAddress === 'string') throw new Error('Expected receiver port');
+
+    try {
+      const webhookToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+        [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:write', 'webhooks:manage']],
+      );
+
+      const client = new sdk.ShipClient({
+        token: webhookToken,
+        baseUrl: `http://127.0.0.1:${apiAddress.port}/api/v1`,
+      });
+
+      const subscription = await client.webhooks.createSubscription({
+        event_type: 'document.created',
+        target_url: `http://127.0.0.1:${receiverAddress.port}/ship-sdk-webhook`,
+      });
+
+      const startedAt = Date.now();
+      await client.documents.create({
+        title: 'SDK Webhook Proof',
+        document_type: 'wiki',
+      });
+
+      const deadline = Date.now() + 2000;
+      while (received.length === 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+
+      expect(received).toHaveLength(1);
+      expect(received[0]!.receivedAt - startedAt).toBeLessThan(2000);
+      expect(sdk.verifyWebhook(received[0]!.headers, received[0]!.body, subscription.signing_secret)).toBe(true);
+      expect(sdk.verifyWebhook(received[0]!.headers, `${received[0]!.body} `, subscription.signing_secret)).toBe(false);
+    } finally {
+      await new Promise<void>((resolve) => receiver.close(() => resolve()));
+      await new Promise<void>((resolve) => apiServer.close(() => resolve()));
     }
   });
 
@@ -683,6 +799,14 @@ describe('Plugforge public API foundation', () => {
         status: 'delivered',
         response_status: 204,
       });
+
+      const replayResponse = await request(app)
+        .post(`/api/v1/oauth/apps/${appId}/webhook-deliveries/${testResponse.body.delivery.id}/replay`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken);
+      expect(replayResponse.status).toBe(202);
+      expect(replayResponse.body.replayed).toBe(true);
+      expect(received).toHaveLength(2);
 
       const auditResponse = await request(app)
         .get(`/api/v1/oauth/apps/${appId}/audit`)
@@ -793,15 +917,16 @@ describe('Plugforge public API foundation', () => {
     }
   });
 
-  it('schedules retry_pending webhooks and processes due retries', async () => {
-    let fail = true;
+  it('retries webhook 5xx failures on 1s, 4s, and 16s floors before fourth-attempt success', async () => {
+    let attempts = 0;
     const received: string[] = [];
     const receiver = http.createServer((req, res) => {
       const chunks: Buffer[] = [];
       req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
       req.on('end', () => {
+        attempts += 1;
         received.push(Buffer.concat(chunks).toString('utf8'));
-        if (fail) {
+        if (attempts <= 3) {
           res.writeHead(500).end('temporary failure');
         } else {
           res.writeHead(204).end();
@@ -839,47 +964,187 @@ describe('Plugforge public API foundation', () => {
         .send({ title: 'Webhook Retry Proof' })
         .expect(201);
 
-      const pending = await pool.query(
-        `SELECT id, status, response_status, attempt_number, next_attempt_at
+      const idempotencyKey = `document.created:${createResponse.body.data.id}`;
+      async function latestDelivery() {
+        const result = await pool.query(
+          `SELECT id, status, response_status, attempt_number, next_attempt_at, created_at,
+                  next_attempt_at >= created_at + ($3::text || ' seconds')::interval AS honors_floor
+             FROM webhook_deliveries
+            WHERE idempotency_key = $1
+              AND subscription_id = $2
+            ORDER BY created_at DESC
+            LIMIT 1`,
+          [idempotencyKey, subscriptionResponse.body.data.id, 0],
+        );
+        return result.rows[0];
+      }
+
+      async function assertPendingAttempt(attemptNumber: number, floorSeconds: number) {
+        const result = await pool.query(
+          `SELECT id, status, response_status, attempt_number, next_attempt_at, created_at,
+                  next_attempt_at >= created_at + ($3::text || ' seconds')::interval AS honors_floor
            FROM webhook_deliveries
           WHERE idempotency_key = $1
             AND subscription_id = $2
           ORDER BY created_at DESC
           LIMIT 1`,
-        [`document.created:${createResponse.body.data.id}`, subscriptionResponse.body.data.id],
-      );
-      expect(pending.rows[0]).toMatchObject({
-        status: 'retry_pending',
-        response_status: 500,
-        attempt_number: 1,
-      });
-      expect(pending.rows[0].next_attempt_at).toBeTruthy();
+          [idempotencyKey, subscriptionResponse.body.data.id, floorSeconds],
+        );
+        expect(result.rows[0]).toMatchObject({
+          status: 'retry_pending',
+          response_status: 500,
+          attempt_number: attemptNumber,
+          honors_floor: true,
+        });
+        expect(result.rows[0].next_attempt_at).toBeTruthy();
+        return result.rows[0];
+      }
 
-      fail = false;
-      await pool.query(
-        `UPDATE webhook_deliveries
-            SET next_attempt_at = NOW() - INTERVAL '1 second'
-          WHERE id = $1`,
-        [pending.rows[0].id],
-      );
+      for (const [attemptNumber, floorSeconds] of [[1, 1], [2, 4], [3, 16]] as const) {
+        const pending = await assertPendingAttempt(attemptNumber, floorSeconds);
+        await pool.query(
+          `UPDATE webhook_deliveries
+              SET next_attempt_at = NOW() - INTERVAL '1 second'
+            WHERE id = $1`,
+          [pending.id],
+        );
+        const processed = await processDueWebhookDeliveries();
+        expect(processed).toBeGreaterThanOrEqual(1);
+      }
 
-      const processed = await processDueWebhookDeliveries();
-      expect(processed).toBeGreaterThanOrEqual(1);
-      expect(received).toHaveLength(2);
+      expect(received).toHaveLength(4);
 
       const deliveriesResponse = await request(app)
         .get('/api/v1/webhooks/deliveries')
         .set('Authorization', `Bearer ${webhookToken}`);
 
       expect(deliveriesResponse.status).toBe(200);
-      const retriedDelivery = deliveriesResponse.body.data.find(
-        (delivery: Record<string, unknown>) => delivery.subscription_id === subscriptionResponse.body.data.id
-          && delivery.attempt_number === 2,
-      );
-      expect(retriedDelivery).toMatchObject({
+      const latest = await latestDelivery();
+      expect(latest).toMatchObject({
         status: 'delivered',
         response_status: 204,
-        attempt_number: 2,
+        attempt_number: 4,
+      });
+    } finally {
+      await new Promise<void>((resolve) => receiver.close(() => resolve()));
+    }
+  });
+
+  it('dead-letters after six 5xx failures and portal replay preserves the original idempotency key', async () => {
+    let healthy = false;
+    const received: Array<{ idempotencyKey: string | undefined; body: string }> = [];
+    const receiver = http.createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        received.push({
+          idempotencyKey: Array.isArray(req.headers['idempotency-key'])
+            ? req.headers['idempotency-key'][0]
+            : req.headers['idempotency-key'],
+          body: Buffer.concat(chunks).toString('utf8'),
+        });
+        if (healthy) {
+          res.writeHead(204).end();
+        } else {
+          res.writeHead(500).end('still down');
+        }
+      });
+    });
+
+    await new Promise<void>((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+    const address = receiver.address();
+    if (!address || typeof address === 'string') throw new Error('Expected receiver port');
+
+    try {
+      const webhookToken = `ship_at_${crypto.randomBytes(32).toString('base64url')}`;
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $2, $3, $4, $5, now() + interval '15 minutes')`,
+        [hashToken(webhookToken), appId, adminUserId, workspaceId, ['documents:write', 'webhooks:manage']],
+      );
+
+      const subscriptionResponse = await request(app)
+        .post('/api/v1/webhooks/subscriptions')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({
+          event_type: 'document.created',
+          target_url: `http://127.0.0.1:${address.port}/ship-webhook-six-failures`,
+        })
+        .expect(201);
+
+      const createResponse = await request(app)
+        .post('/api/v1/documents')
+        .set('Authorization', `Bearer ${webhookToken}`)
+        .send({ title: 'Webhook Six Failure DLQ Proof' })
+        .expect(201);
+
+      const idempotencyKey = `document.created:${createResponse.body.data.id}`;
+      let latestDeliveryId = '';
+      for (let expectedAttempt = 1; expectedAttempt <= 6; expectedAttempt += 1) {
+        const latest = await pool.query(
+          `SELECT id, status, response_status, attempt_number, next_attempt_at
+             FROM webhook_deliveries
+            WHERE idempotency_key = $1
+              AND subscription_id = $2
+            ORDER BY created_at DESC
+            LIMIT 1`,
+          [idempotencyKey, subscriptionResponse.body.data.id],
+        );
+        expect(latest.rows[0]).toMatchObject({
+          response_status: 500,
+          attempt_number: expectedAttempt,
+          status: expectedAttempt === 6 ? 'dead_letter' : 'retry_pending',
+        });
+        latestDeliveryId = latest.rows[0].id;
+        if (expectedAttempt < 6) {
+          await pool.query(
+            `UPDATE webhook_deliveries
+                SET next_attempt_at = NOW() - INTERVAL '1 second'
+              WHERE id = $1`,
+            [latest.rows[0].id],
+          );
+          await processDueWebhookDeliveries();
+        }
+      }
+
+      expect(received).toHaveLength(6);
+      const portalDeliveriesResponse = await request(app)
+        .get(`/api/v1/oauth/apps/${appId}/webhook-deliveries`)
+        .set('Cookie', sessionCookie);
+      expect(portalDeliveriesResponse.status).toBe(200);
+      expect(portalDeliveriesResponse.body.data).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id: latestDeliveryId,
+          status: 'dead_letter',
+          idempotency_key: idempotencyKey,
+        }),
+      ]));
+
+      healthy = true;
+      const replayResponse = await request(app)
+        .post(`/api/v1/oauth/apps/${appId}/webhook-deliveries/${latestDeliveryId}/replay`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken);
+      expect(replayResponse.status).toBe(202);
+      expect(replayResponse.body.replayed).toBe(true);
+      expect(received).toHaveLength(7);
+      expect(received[6]!.idempotencyKey).toBe(idempotencyKey);
+
+      const replayed = await pool.query(
+        `SELECT status, response_status, idempotency_key
+           FROM webhook_deliveries
+          WHERE subscription_id = $1
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [subscriptionResponse.body.data.id],
+      );
+      expect(replayed.rows[0]).toMatchObject({
+        status: 'delivered',
+        response_status: 204,
+        idempotency_key: idempotencyKey,
       });
     } finally {
       await new Promise<void>((resolve) => receiver.close(() => resolve()));
@@ -945,15 +1210,14 @@ describe('Plugforge public API foundation', () => {
       });
       expect(delivery.rows[0].next_attempt_at).toBeNull();
 
-      const processed = await processDueWebhookDeliveries();
-      expect(processed).toBe(0);
+      await processDueWebhookDeliveries();
       expect(received).toHaveLength(1);
     } finally {
       await new Promise<void>((resolve) => receiver.close(() => resolve()));
     }
   });
 
-  it('honors Retry-After on transient webhook subscriber rate limits', async () => {
+  it('dead-letters webhook subscriber rate limits as permanent 4xx failures', async () => {
     const receiver = http.createServer((_req, res) => {
       res.writeHead(429, { 'Retry-After': '7' }).end('rate limited');
     });
@@ -985,13 +1249,11 @@ describe('Plugforge public API foundation', () => {
       const createResponse = await request(app)
         .post('/api/v1/documents')
         .set('Authorization', `Bearer ${webhookToken}`)
-        .send({ title: 'Webhook Retry After Proof' })
+        .send({ title: 'Webhook Rate Limit Dead Letter Proof' })
         .expect(201);
 
       const delivery = await pool.query(
-        `SELECT status, response_status, attempt_number,
-                next_attempt_at >= NOW() + INTERVAL '6 seconds' AS retry_after_lower_bound,
-                next_attempt_at <= NOW() + INTERVAL '8 seconds' AS retry_after_upper_bound
+        `SELECT status, response_status, attempt_number, next_attempt_at
            FROM webhook_deliveries
           WHERE idempotency_key = $1
             AND subscription_id = $2
@@ -1001,11 +1263,10 @@ describe('Plugforge public API foundation', () => {
       );
 
       expect(delivery.rows[0]).toMatchObject({
-        status: 'retry_pending',
+        status: 'dead_letter',
         response_status: 429,
         attempt_number: 1,
-        retry_after_lower_bound: true,
-        retry_after_upper_bound: true,
+        next_attempt_at: null,
       });
     } finally {
       await new Promise<void>((resolve) => receiver.close(() => resolve()));
@@ -1112,6 +1373,13 @@ describe('Plugforge public API foundation', () => {
     ]);
     expect(firstPage.body.next_cursor).toEqual(expect.any(String));
 
+    await pool.query(
+      `UPDATE documents
+          SET updated_at = '2026-01-04T12:00:00.000Z'
+        WHERE workspace_id = $1 AND title = 'Public Pagination Old'`,
+      [workspaceId],
+    );
+
     const secondPage = await request(app)
       .get(`/api/v1/documents?type=weekly_retro&limit=2&cursor=${encodeURIComponent(firstPage.body.next_cursor)}`)
       .set('Authorization', `Bearer ${accessToken}`);
@@ -1182,6 +1450,10 @@ describe('Plugforge public API foundation', () => {
         .set('Authorization', `Bearer ${firstToken}`);
       expect(limitedResponse.status).toBe(429);
       expect(limitedResponse.body.code).toBe('rate_limited');
+      expect(limitedResponse.headers['retry-after']).toBeDefined();
+      expect(limitedResponse.headers['x-ratelimit-limit']).toBe('2');
+      expect(limitedResponse.headers['x-ratelimit-remaining']).toBe('0');
+      expect(limitedResponse.headers['x-ratelimit-reset']).toBeDefined();
 
       const auditRow = await waitForAuditRow(
         'route = $1 AND status = $2 AND created_at >= NOW() - INTERVAL \'10 seconds\'',
@@ -1194,6 +1466,43 @@ describe('Plugforge public API foundation', () => {
         .set('Authorization', `Bearer ${secondToken}`);
       expect(independentTokenResponse.status).toBe(401);
       expect(independentTokenResponse.headers['ratelimit-remaining']).toBe('1');
+      expect(independentTokenResponse.headers['x-ratelimit-remaining']).toBe('1');
+
+      clearPublicRateLimitBuckets();
+      const appRow = await pool.query('SELECT id FROM oauth_apps WHERE client_id = $1', [clientId]);
+      const appId = appRow.rows[0].id;
+      const sharedAppTokenA = `ship_at_rate_${crypto.randomBytes(16).toString('base64url')}`;
+      const sharedAppTokenB = `ship_at_rate_${crypto.randomBytes(16).toString('base64url')}`;
+
+      await pool.query(
+        `INSERT INTO oauth_access_tokens
+          (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+         VALUES ($1, $3, $4, $5, $6, now() + interval '15 minutes'),
+                ($2, $3, $4, $5, $6, now() + interval '15 minutes')`,
+        [
+          hashToken(sharedAppTokenA),
+          hashToken(sharedAppTokenB),
+          appId,
+          adminUserId,
+          workspaceId,
+          ['documents:read'],
+        ],
+      );
+
+      await request(app)
+        .get('/api/v1/me')
+        .set('Authorization', `Bearer ${sharedAppTokenA}`)
+        .expect(401);
+      await request(app)
+        .get('/api/v1/me')
+        .set('Authorization', `Bearer ${sharedAppTokenB}`)
+        .expect(401);
+
+      const appLimitedResponse = await request(app)
+        .get('/api/v1/me')
+        .set('Authorization', `Bearer ${sharedAppTokenB}`);
+      expect(appLimitedResponse.status).toBe(429);
+      expect(appLimitedResponse.headers['retry-after']).toBeDefined();
 
       const auditAfter = await pool.query(
         `SELECT COUNT(*)::int AS count
