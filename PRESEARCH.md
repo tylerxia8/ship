@@ -334,3 +334,79 @@ If scope gets tight, the smallest acceptable platform is:
 - `@ship/sdk` with auth, documents, pagination, and webhook verifier.
 - `document.created` webhook with signing, delivery log, DLQ, replay.
 - CLI TTFE drill proving login -> create document -> verified webhook.
+
+## Appendix: Pre-Search Checklist Completion
+
+This appendix maps the assignment checklist to the decisions above. The AI
+conversation reference artifact should be the exported Codex thread used during
+this Plugforge implementation and submitted alongside this repository.
+
+### Phase 1: Define Your Constraints
+
+| Checklist area | Answer |
+|---|---|
+| Demo API request rate and webhook fanout | Demo load is expected at 5-10 API requests/second burst, normally under 1 request/second. One `document.created` event fans out to N deliveries for N active matching subscriptions; demo fanout is 1-2. |
+| Seeded OAuth apps and subscriptions | Seed one read-only grader app, one full demo/CLI app, and one `document.created` subscription. |
+| In-memory deliverer capacity risk | In-memory delivery is acceptable at demo fanout. The target is `<2s` P95 first-attempt latency; production needs a queue adapter once fanout or retries grow beyond demo scale. |
+| Concurrent CLI device flows | Demo assumes one CLI session; tests should cover two sessions and `slow_down` polling behavior. |
+| Delivery-log growth and retention | Demo produces tens or hundreds of rows. Delivery logs retain 30 days; public API audit rows retain 90 days. |
+| LLM budget for Epic 7 | Platform LLM budget is $0. Agent rewire spend is tracked separately and must preserve before/after tokens per agent turn. |
+| CI minute ceiling | Target TTFE under 60 seconds and Week 6 CI under 10 minutes for the focused gate. Full regression should run through the repo E2E workflow. |
+| SDK install footprint | Budget is `<250 KB` production deps, gzipped. Keep `@ship/sdk` dependency-light and enforce with a size check/bundle analyzer. |
+| Runaway webhook costs | Six-attempt cap, DLQ after final failure, and persisted delivery rows prevent infinite retry cost. |
+| Must-ship scope | Must ship OAuth, `/api/v1`, `ApiError`, scopes, generated OpenAPI, SDK, signed `document.created` webhooks, CLI TTFE. |
+| Daily plan and portal kill criterion | Day-by-day plan above. If portal slips, minimum viable portal is app registration plus read-only delivery log and replay. |
+| Client secret storage | Raw secret shown once; only salted hash stored. Lost secrets are rotated, not recovered. |
+| Token lifetime and refresh rotation | Access tokens are short-lived; refresh tokens rotate one time; reuse invalidates the family. |
+| Webhook payload sensitivity | Payloads carry event metadata and document identifiers/title/type, not full document content by default. |
+| Secret display leakage | Shown-once UI, masked after navigation, never returned by list/get endpoints, never logged. |
+| Team skill risks | OAuth implementation is highest-risk; RFC 6749, 7636, and 8628 are the morning research requirement before E1. Zod/OpenAPI and SDK quality are controlled by route/spec/SDK parity tests. |
+
+### Phase 2: Architecture Discovery
+
+| Checklist area | Answer |
+|---|---|
+| Refresh tokens from day one | Yes. Waiting would change the token table, SDK token store, and auth helper contracts. |
+| Scope upgrades | MVP requires re-consent for expanded scopes; incremental consent is future work. |
+| Consent screen and clickjacking | Consent lives in Ship UI through `/oauth/authorize`, protected by session auth and frame-blocking headers/CSP. |
+| Device verification UX | CLI prints `verification_uri` and `user_code`; tests can approve by helper/form. |
+| Public error shape | All `/api/v1` failures use `{ code, message, details?, request_id }`; richer details live in `details`. |
+| Sparse fieldsets | Skipped for Week 6. The public API stays small and complete rather than broad and partially filtered. |
+| Versioning policy | `/api/v1` is additive-only; breaking changes require `/api/v2` or explicit deprecation policy. |
+| Cursor pagination rule | Resource lists return `{ data, next_cursor }`; small registries such as scopes/events can be marked as static metadata in route metadata. |
+| Webhook signature input | Sign `timestamp.rawBody` with HMAC-SHA256 and emit `Ship-Signature: t=...,v1=...`. |
+| Retry schedule testing | Use deterministic clock/fake scheduler, not real sleeps, for `1s, 4s, 16s, 1m, 5m, 30m`. |
+| Permanent vs transient delivery failures | 2xx succeeds, 4xx permanent/DLQ, 5xx/timeouts retry, 429 is transient and should honor `Retry-After`. |
+| Idempotency contract | Event idempotency key is stable and replay preserves the original key so subscribers can dedupe. |
+| SDK generation strategy | Hand-written SDK for quality, parity-tested against generated OpenAPI to prevent drift. |
+| SDK error model | Throw structured SDK errors with discriminated `kind`; consumers can switch exhaustively. |
+| SDK pagination | Support raw list cursors and async iterators; common consumers use `for await`. |
+| `ITokenStore` contract | Persist access and refresh tokens; refresh coordination is SDK responsibility when concurrent calls appear. |
+| Developer Portal API path | Portal eats the public platform API where practical, while relying on first-party session auth for UI access. |
+| Secret rotation model | MVP invalidates old secret immediately and shows new secret once; dual-secret grace period is future work. |
+| Delivery-log visual scale | Server-side pagination and filters first; virtualization later if rows reach thousands per app. |
+| Payload visibility | Metadata by default; full payload behind reveal; no secrets in payloads. |
+| Agent OAuth choice | First-party agent uses a seeded OAuth app/service account or refresh-token store through the SDK; no privileged shortcut. |
+| Agent seeding and scopes | Deploy seed/migration creates the app. Start with read scopes and add write scopes only for approved mutations. |
+| Feature-flag proof | CI should run Part 2 behavior with old direct mode and new public API mode, then inspect audit rows in public mode. |
+
+### Phase 3: Post-Stack Refinement
+
+| Checklist area | Answer |
+|---|---|
+| Deleted OAuth app owner | Deactivate apps by default and allow admin transfer; never leave active orphaned apps. |
+| Deliverer crash semantics | At-least-once delivery is the honest contract; subscribers dedupe with idempotency keys. |
+| Leaked client secret response | Owner/admin rotation, audit signal on rotation and failed token attempts, optional force-deactivation. |
+| CSRF on portal/consent | Session-backed portal and consent actions use first-party CSRF protections; token endpoints use OAuth credentials/PKCE instead. |
+| TTFE drill style | CI can use packed workspace SDK for speed; clean-machine proof uses published/workspace install instructions. |
+| OAuth Playwright stability | Use Ship's existing auth/session and a registered test app; include happy path and wrong-verifier negative case. |
+| Retry schedule tests | Fake timers/injected scheduler, not real waiting. |
+| Public/internal lint | Boundary script fails if `/api/v1` imports internal route handlers or integrations import `api/src`. |
+| OpenAPI CI gate | Drift fails CI; additive changes must still update route metadata and SDK parity. |
+| Performance regression budget | Gate what is automated now: PKCE P95, webhook latency, rate-limit headers, spec parity. Part 1 `+10%` budget needs baseline artifact comparison. |
+| Deployment and grader access | Public Ship URL, live `/api/v1/openapi.json`, Developer Portal, and pre-registered read-only OAuth app are documented in `PLUGFORGE_FINAL_SUBMISSION.md`. |
+| Static OpenAPI | Live spec is served from Ship and static copy is committed at `docs/openapi.json`. |
+| One-command CLI setup | Documented in final submission and SDK packaging notes; CLI drill is `corepack.cmd pnpm drill ttfe`. |
+| API observability | Public audit logs record request_id, app, user, route, scope, status, and latency; portal exposes the trail. |
+| Agent audit proof | Production proof should be audit rows showing FleetGraph app `client_id` using `/api/v1` with scopes/status/latency. |
+| Idempotency visibility | Delivery log records event, subscription, attempt number, status, latency, and idempotency key; portal replay keeps the same key. |

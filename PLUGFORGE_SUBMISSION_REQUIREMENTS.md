@@ -6,7 +6,7 @@ Deadline: Sunday 10:59 PM CT.
 |---|---|---|
 | GitHub repository public | Ready | Branch `plugforge/main`; reviewer hub in `PLUGFORGE_README.md`. Per-slice branches/PR descriptions are repository-history evidence; every shipped slice in this branch maps to acceptance criteria in the docs below. |
 | Demo video 3-5 min | Ready script | `PLUGFORGE_DEMO_SCRIPT.md` uses the five-line story, then Developer Portal replay. |
-| Pre-search document | Ready | `PRESEARCH.md` contains all three phases. Saved AI conversation should be attached by exporting this Codex thread as the reference artifact. |
+| Pre-search document | Ready | `PRESEARCH.md` contains all three phases plus the appendix checklist completion matrix. Saved AI conversation should be attached by exporting this Codex thread as the reference artifact. |
 | Architecture document | Ready | `docs/architecture.md` is the concise required architecture doc; `docs/architecture-extended.md` preserves deeper rationale. |
 | OpenAPI spec live and static | Ready | Live `/api/v1/openapi.json`; static `docs/openapi.json`; schema validation in `api/src/platform/fitness.test.ts`. |
 | AI cost analysis | Ready | `PLUGFORGE_AI_COST_ANALYSIS.md` tracks dev spend, production projections, webhook fanout, agent active rate, and retention assumptions. |

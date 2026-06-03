@@ -47,7 +47,7 @@ new app.
 
 | Rubric area | Evidence |
 |---|---|
-| Architecture and pre-search | `PRESEARCH.md`, `docs/architecture.md` |
+| Architecture and pre-search | `PRESEARCH.md` including appendix checklist, `docs/architecture.md` |
 | Public API contract | Live `/api/v1/openapi.json`, static `docs/openapi.json` |
 | OAuth app lifecycle | `/settings/developers`, `api/src/platform/routes/apps.ts` |
 | Auth flows | `api/src/platform/routes/oauth.ts`, `api/src/platform/platform.test.ts` |
