@@ -33,6 +33,7 @@
     "db:orphan-check": "corepack pnpm --filter @ship/api db:orphan-check",
     "drill": "node scripts/drill.mjs",
     "plugforge:ttfe": "corepack pnpm drill ttfe --no-docker",
+    "plugforge:flows": "corepack pnpm --filter @ship/integration-flows test && corepack pnpm --filter @ship/cli test:drill",
     "plugforge:live-smoke": "node scripts/plugforge-live-smoke.mjs",
     "plugforge:evidence-pack": "node scripts/plugforge-evidence-pack.mjs",
     "plugforge:screenshots": "node scripts/plugforge-screenshots.mjs",

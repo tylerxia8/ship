@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ship Browser SDK Demo</title>
+  </head>
+  <body>
+    <main id="app"></main>
+    <script type="module">
+      import { startBrowserSdkDemo } from './src/app.mjs';
+
+      startBrowserSdkDemo({
+        root: document.querySelector('#app'),
+        shipUrl: window.SHIP_URL ?? 'http://localhost:3000',
+        clientId: window.SHIP_CLIENT_ID,
+        redirectUri: window.location.origin + window.location.pathname,
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "@ship/integration-flows",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Plugforge reference integrations and post-MVP flow drills",
+  "type": "module",
+  "scripts": {
+    "build": "node src/slack.mjs && node src/github.mjs && node browser-sdk-demo/src/app.mjs",
+    "test": "corepack pnpm --filter @ship/sdk build && vitest run",
+    "type-check": "node src/slack.mjs && node src/github.mjs && node browser-sdk-demo/src/app.mjs"
+  },
+  "dependencies": {
+    "@ship/sdk": "workspace:*"
+  }
+}
