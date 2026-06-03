@@ -12,7 +12,7 @@ Deadline: Sunday 10:59 PM CT.
 | AI cost analysis | Ready | `PLUGFORGE_AI_COST_ANALYSIS.md` tracks dev spend, production projections, webhook fanout, agent active rate, and retention assumptions. |
 | Per-epic write-up | Ready | `PLUGFORGE_PER_EPIC_WRITEUP.md`. Epic 6 proof is TTFE/flows; Epic 7 proof target is agent OAuth app audit rows. |
 | Three discoveries | Ready | `PLUGFORGE_DISCOVERIES.md`. |
-| Deployed application | Ready for current MVP | `PLUGFORGE_FINAL_SUBMISSION.md` lists live app, Developer Portal, OpenAPI URL, read-only OAuth app, and reviewer credentials. Branch changes after MVP submission should be deployed before final external grading. |
+| Deployed application | Ready | `PLUGFORGE_FINAL_SUBMISSION.md` lists live app, Developer Portal, OpenAPI URL, read-only OAuth app, reviewer credentials, and the verified Elastic Beanstalk version `v20260603152032`. |
 | Social post | Ready draft | `PLUGFORGE_SOCIAL_POST.md`; screenshot target is terminal `ship webhooks tail` showing a verified signed event, tag `@GauntletAI`. |
 
 ## Video Runbook

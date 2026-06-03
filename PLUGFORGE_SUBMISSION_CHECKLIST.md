@@ -40,16 +40,17 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Public scopes registry: `https://d2rr1fze9v095b.cloudfront.net/api/v1/scopes`
 - Public webhook event registry: `https://d2rr1fze9v095b.cloudfront.net/api/v1/webhooks/events`
 - API health through CloudFront: `https://d2rr1fze9v095b.cloudfront.net/health`
-- Elastic Beanstalk version verified: `v20260602113723`
+- Elastic Beanstalk version verified: `v20260603152032`
 - Production read-only OAuth app created: `Plugforge MVP Read-Only Grader App`
 - Production read-only OAuth `client_id`: `ship_app_8d138f5f898a7dd8bd9ae88e1d6f18c5`
 - Production read-only scopes: `documents:read`
 - Production full demo OAuth app: `Plugforge MVP Grader App`
 - Production full demo OAuth `client_id`: `ship_app_d8200057ae8afcd914151e0738af09f3`
 - Production full demo scopes: `documents:read`, `documents:write`, `webhooks:manage`
-- Production webhook registry currently exposes the deployed `document.created`
-  event. This branch expands the registry to all required events and should be
-  deployed before external grading.
+- Production webhook registry exposes all eight required events:
+  `document.created`, `document.updated`, `document.deleted`, `issue.created`,
+  `issue.assigned`, `issue.status_changed`, `sprint.started`, and
+  `sprint.completed`.
 
 ## Live MVP Proof
 
@@ -102,11 +103,11 @@ node integrations/cli/src/index.mjs --help
 | Per-app/per-token rate limiting | Pass: `api/src/platform/ratelimit.ts`; platform tests assert token isolation, shared app bucket enforcement, `X-RateLimit-*`, and `Retry-After`; generated OpenAPI declares those headers. |
 | Public audit trail | Pass: `api/src/platform/audit.ts`; `/api/v1/oauth/apps/{id}/audit`; Developer Portal API Activity table. |
 | Developer Portal controls | Pass: `web/src/pages/DeveloperPortal.tsx` lists/registers apps, shows/rotates one-time secrets, manages subscriptions, browses deliveries, replays deliveries, and shows public API audit rows. |
-| Webhook event registry and schemas | Pass in branch: `api/src/platform/events.ts` registers `document.created`, `document.updated`, `document.deleted`, `issue.created`, `issue.assigned`, `issue.status_changed`, `sprint.started`, and `sprint.completed` with Zod schemas. |
-| Event bus and domain publication | Pass in branch: `IEventBus` and in-process implementation live in `api/src/platform/events.ts`; document writes publish from `api/src/platform/domain/documents.ts`; fitness blocks route-layer webhook publication. |
+| Webhook event registry and schemas | Pass: `api/src/platform/events.ts` registers `document.created`, `document.updated`, `document.deleted`, `issue.created`, `issue.assigned`, `issue.status_changed`, `sprint.started`, and `sprint.completed` with Zod schemas; live registry verified on `v20260603152032`. |
+| Event bus and domain publication | Pass: `IEventBus` and in-process implementation live in `api/src/platform/events.ts`; document writes publish from `api/src/platform/domain/documents.ts`; fitness blocks route-layer webhook publication. |
 | Webhook signing, retries, DLQ, replay | Pass: `api/src/platform/webhooks.ts`; tests assert `Ship-Signature`, `Idempotency-Key`, first retry near 1s, 4xx dead-lettering, delivery listing, replay, rotation, and deactivation. |
 | Regression and performance guardrails | Partial in this session: focused Playwright PKCE, `plugforge:final-check`, `plugforge:fitness`, type-check, and build passed. Full 600+ Playwright suite should be run via the repo E2E runner workflow, not directly. |
-| Deployed public app and grader app | Pass for current deployed MVP: CloudFront URLs above plus read-only grader app. Expanded webhook registry changes are branch-ready and need deployment before graders inspect all eight events live. |
+| Deployed public app and grader app | Pass: CloudFront URLs above plus read-only grader app; Elastic Beanstalk version `v20260603152032` exposes the all-event webhook registry live. |
 
 ## Demo Flow
 

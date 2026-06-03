@@ -8,9 +8,8 @@ Start here when reviewing the Week 6 final submission.
 - Developer Portal: `https://d2rr1fze9v095b.cloudfront.net/settings/developers`
 - OpenAPI: `https://d2rr1fze9v095b.cloudfront.net/api/v1/openapi.json`
 - Read-only grader OAuth app: `ship_app_8d138f5f898a7dd8bd9ae88e1d6f18c5` (`documents:read`)
-- Webhook registry status: production currently exposes `document.created`;
-  this branch implements and tests all eight required webhook event definitions
-  and needs deployment before final external grading.
+- Webhook registry status: production exposes all eight required webhook event
+  definitions on Elastic Beanstalk version `v20260603152032`.
 - Evidence pack: `PLUGFORGE_EVIDENCE_PACK.md`
 - Live proof IDs: `PLUGFORGE_LIVE_PROOF.md`
 - Demo video script: `PLUGFORGE_DEMO_SCRIPT.md`

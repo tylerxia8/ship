@@ -93,7 +93,7 @@ new app.
 | Developer Portal app/webhook management | `web/src/pages/DeveloperPortal.tsx` lists/registers apps, shows/rotates one-time secrets, manages subscriptions, browses deliveries, opens delivery details, and sends/replays delivery workflows through public platform endpoints including `/api/v1/oauth/apps/{id}/webhook-deliveries/{deliveryId}/replay`. |
 | Webhook event registry, domain event bus, signing, retries, DLQ, replay | `api/src/platform/events.ts` defines event types and Zod schemas as data; domain writes publish through `IEventBus`; `api/src/platform/webhooks.ts` signs with `Ship-Signature`, retries 5xx/timeouts on `1s, 4s, 16s, 1m, 5m, 30m`, dead-letters 4xx/permanent failures, and preserves `Idempotency-Key` on replay. |
 | Existing regression/perf guardrails | Focused Playwright PKCE passed; `plugforge:final-check`, `plugforge:fitness`, type-check, and build passed. Full 600+ Playwright regression suite was not rerun in this constrained session; use the repo E2E runner workflow for the complete mainline gate. |
-| Deployed and publicly accessible with OpenAPI and read-only grader app | Live URLs above; read-only app `ship_app_8d138f5f898a7dd8bd9ae88e1d6f18c5`. The expanded webhook registry is implemented and tested locally; deploy this branch before grader review to expose all eight event definitions live. |
+| Deployed and publicly accessible with OpenAPI and read-only grader app | Live URLs above; read-only app `ship_app_8d138f5f898a7dd8bd9ae88e1d6f18c5`. Production is on Elastic Beanstalk version `v20260603152032`; the live webhook registry exposes all eight required event definitions. |
 
 ## Performance Target Map
 
@@ -228,8 +228,7 @@ proof above used an ephemeral Webhook.site URL, then verified Ship's
   `document.created`, `document.updated`, `document.deleted`, `issue.created`,
   `issue.assigned`, `issue.status_changed`, `sprint.started`, and
   `sprint.completed`.
-- Production currently responds with the deployed `document.created` registry;
-  the branch contains and tests the expanded registry and needs deployment before
-  final external grading.
+- Production webhook registry exposes all eight required event types on Elastic
+  Beanstalk version `v20260603152032`.
 - Operational tradeoffs and next steps are documented in
   `PLUGFORGE_OPERATIONAL_READINESS.md`.
