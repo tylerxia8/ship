@@ -415,6 +415,12 @@ FleetGraph OAuth app -> @ship/sdk -> /api/v1 -> scope middleware -> audit log ->
 
 The payoff is that the agent has the same scopes, rate limits, and audit trail as an external developer app. The final proof should be an audit-log row showing FleetGraph's app identity, route, scope, status, and latency.
 
+The cost payoff is deliberately boring: this rewire changes the agent's access
+shape, not the platform's cost shape. Plugforge platform traffic does zero AI
+work. LLM calls remain isolated to FleetGraph agent turns, so the AI bill scales
+with agent activity rather than OAuth traffic, API reads, document writes, or
+webhook delivery volume.
+
 ```mermaid
 sequenceDiagram
     participant Agent as FleetGraph Agent

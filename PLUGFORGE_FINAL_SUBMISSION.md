@@ -65,6 +65,7 @@ new app.
 | Demo/social screenshots | `docs/screenshots/plugforge/`, `scripts/plugforge-screenshots.mjs` |
 | Security controls | `PLUGFORGE_SECURITY.md` |
 | Operational readiness | `PLUGFORGE_OPERATIONAL_READINESS.md` |
+| AI cost analysis | `PLUGFORGE_AI_COST_ANALYSIS.md` |
 | Live proof IDs and screenshots | `PLUGFORGE_LIVE_PROOF.md` |
 | Performance targets | `PLUGFORGE_PERFORMANCE_TARGETS.md` |
 | Reviewer hub | `PLUGFORGE_README.md` |
@@ -98,6 +99,14 @@ under `3000ms`, first webhook delivery under `2000ms`, retry schedule success,
 100% public OpenAPI/spec/SDK parity, and 100% generated public rate-limit
 header coverage. The Part 1 `+10%` regression comparison still needs the Part 1
 baseline artifact and deployed-environment measurements.
+
+## AI Cost Analysis
+
+`PLUGFORGE_AI_COST_ANALYSIS.md` documents the cost boundary: Plugforge platform
+traffic does zero AI work. OAuth, `/api/v1`, SDK calls, webhooks, retries,
+delivery logs, rate limits, and the Developer Portal are deterministic. LLM cost
+remains isolated to FleetGraph agent turns, so cost scales with agent activity
+rather than platform traffic.
 
 ## Live Proof Captured
 
