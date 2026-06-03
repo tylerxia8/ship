@@ -34,6 +34,24 @@ Tuesday MVP is intentionally narrower than the final platform. The MVP must prov
 
 Post-MVP scope adds webhooks, CLI, TTFE drill, developer portal, rate-limit hardening, and FleetGraph's agent-as-citizen rewire. The defense is that OAuth + public API correctness is the foundation; webhooks and CLI become meaningful only after tokens, scopes, errors, and OpenAPI are stable.
 
+## Technical Stack
+
+The stack follows the pre-search constraint: use whatever helps Ship ship, but
+make the public contract explicit, typed, and testable.
+
+| Layer | Chosen technology | Alternatives considered | Decision rationale |
+|---|---|---|---|
+| Backend | Existing Ship stack: Node.js, Express, TypeScript. TypeScript strict mode is required for platform/SDK surfaces. Zod supplies request/response schemas and OpenAPI metadata. | Fastify, NestJS, a separate platform service. | Reusing Express avoids framework churn and keeps the public API close to the existing document model while route metadata and tests supply the contract discipline. |
+| Frontend Developer Portal | Existing Ship React UI. Portal screens reuse public-platform endpoints where reasonable and show the same app/subscription/delivery surfaces external developers use. | Separate docs portal, admin-only internal API only. | Dogfooding the public API keeps the portal honest and avoids a private management path that contradicts the platform story. |
+| AI / LLM | Agent service only. Claude API is the primary Part 2 path; Sonnet 4-class models are recommended for reasoning. GPT-4-class OpenAI models or local Llama via Ollama are acceptable agent alternatives. | Platform-side AI enrichment on writes or webhooks. | Plugforge itself is LLM-free. LLM cost and provider choice stay isolated to explicit FleetGraph agent turns. |
+| OAuth implementation | Hand-rolled minimal IETF-correct flows: RFC 6749 Authorization Code, RFC 7636 PKCE, RFC 8628 Device Authorization Grant, plus refresh rotation. | `node-oauth2-server`, Ory Hydra, Auth0 fronting Ship. | Hand-rolling the small required subset is the learning goal and keeps the demo understandable; tests cover verifier mismatch, slow-down, rotation, and family invalidation. |
+| Webhook queue | In-memory must-ship deliverer with persisted event/delivery rows. | BullMQ + Redis, Inngest, AWS SQS. | In-memory is enough for deterministic MVP signing/retry/DLQ/replay proof. The persisted state and interfaces leave room for a queue-backed drop-in. |
+| Rate limiting | In-memory token-bucket by app and access token. | `@upstash/ratelimit`, Redis-backed buckets, Cloudflare edge rate-limit rules. | In-memory proves headers and isolation with low operational risk. Production should move the bucket to shared storage or edge rules. |
+| OpenAPI / SDK | Zod schemas to OpenAPI 3.1 through `@asteasolutions/zod-to-openapi`; SDK is hand-written TypeScript and fitness-tested against the spec. | Fully generated SDK, hand-written OpenAPI. | Generated specs prevent handler/spec drift; a hand-written SDK gives better DX while parity tests prevent missing methods. |
+| Reference integrations | CLI in Node; Slack adapter as Express-compatible webhook/OAuth pattern; GitHub adapter via GitHub App webhook pattern, compatible with `@octokit/auth-app` for production. | Heavy CLI frameworks such as commander or oclif; fully deployed Slack/GitHub apps in MVP. | The reference integrations prove the flows without adding unnecessary package weight. Production integrations can adopt the framework/client libraries. |
+| Architecture patterns | SOLID through TypeScript interfaces, one composition root, public/internal API boundary tests, and in-memory test doubles. | Route-level ad hoc wiring, direct imports from internal handlers. | Interfaces and boundary tests let the MVP stay small without losing substitutability for queues, stores, and test doubles. |
+| Deployment | Reuse Ship deployment. Fly.io, Railway, Render, and AWS are all acceptable hosts; the current Ship branch documents AWS/free-tier deployment paths. `@ship/sdk` is a workspace package with npm-publish steps documented. | Separate platform-only deployment. | Reusing Ship keeps the grader surface simple: app, Developer Portal, OpenAPI URL, and one SDK package. |
+
 ## Module Layout
 
 Planned backend layout:
