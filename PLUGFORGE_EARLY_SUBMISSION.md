@@ -37,6 +37,7 @@ if a fresh secret is needed for review.
 - Architecture defense: `docs/architecture.md`
 - Static public API contract: `docs/openapi.json`
 - Submission checklist and live proof IDs: `PLUGFORGE_SUBMISSION_CHECKLIST.md`
+- Early demo recording runbook: `PLUGFORGE_EARLY_DEMO_RUNBOOK.md`
 - Demo guide: `PLUGFORGE_DEMO_GUIDE.md`
 - Copyable examples: `PLUGFORGE_API_EXAMPLES.md`
 - SDK: `sdk/`
