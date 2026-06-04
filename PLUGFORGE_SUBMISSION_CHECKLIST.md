@@ -76,6 +76,7 @@ Latest authenticated TTFE proof:
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
 corepack.cmd pnpm plugforge:live-smoke
 corepack.cmd pnpm plugforge:doctor
+corepack.cmd pnpm plugforge:proof-gate
 corepack.cmd pnpm plugforge:evidence-pack -- --include-final-check
 corepack.cmd pnpm plugforge:screenshots
 corepack.cmd pnpm plugforge:final-check
@@ -91,6 +92,10 @@ node integrations/cli/src/index.mjs --help
   against the live deployment and local Plugforge fitness suite.
 - 2026-06-03 23:35Z: `corepack.cmd pnpm plugforge:doctor` passed all
   required checks: Git, Node, Corepack, pnpm, live health, and live OpenAPI.
+- Growth-edge proof discipline: `corepack.cmd pnpm plugforge:proof-gate`
+  verifies required evidence files, proof scripts, CI drill settings, generated
+  evidence-pack status, reviewer links, environment-limit notes, and the latest
+  successful GitHub Actions PlugForge Drill for the current branch tip.
 - 2026-06-03 23:36Z: `corepack.cmd pnpm plugforge:screenshots -- --public-only`
   refreshed the public OpenAPI, scope registry, and webhook event screenshots.
   Previously captured authenticated Developer Portal screenshots are retained

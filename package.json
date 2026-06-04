@@ -44,6 +44,7 @@
     "plugforge:sdk-pack": "corepack pnpm --filter @ship/sdk build && corepack pnpm --filter @ship/sdk pack --pack-destination .tmp",
     "plugforge:evidence-pack": "node scripts/plugforge-evidence-pack.mjs",
     "plugforge:screenshots": "node scripts/plugforge-screenshots.mjs",
+    "plugforge:proof-gate": "node scripts/plugforge-proof-gate.mjs",
     "plugforge:final-check": "node scripts/plugforge-final-check.mjs",
     "prepare": "husky",
     "postinstall": "node scripts/check-comply-compatible.mjs"

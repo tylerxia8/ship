@@ -36,6 +36,7 @@ Start here when reviewing the Week 6 final submission.
 - SDK quickstart: `sdk/README.md`
 - Signature TTFE drill: `corepack.cmd pnpm drill ttfe`
 - Workstation readiness: `corepack.cmd pnpm plugforge:doctor`
+- Evidence/readiness gate: `corepack.cmd pnpm plugforge:proof-gate`
 - Agent audit proof: `corepack.cmd pnpm plugforge:agent-audit-proof`
 - Runnable SDK examples: `examples/plugforge/`
 - CLI reference integration: `integrations/cli/src/index.mjs`
@@ -59,12 +60,17 @@ corepack.cmd pnpm --filter @ship/sdk build
 ```powershell
 corepack.cmd pnpm plugforge:final-check
 corepack.cmd pnpm plugforge:doctor
+corepack.cmd pnpm plugforge:proof-gate
 corepack.cmd pnpm plugforge:evidence-pack -- --include-final-check
 corepack.cmd pnpm plugforge:screenshots
 ```
 
 The final check covers live discovery, CLI discovery, CLI help, and the Plugforge
 fitness suite.
+
+The proof gate checks that the evidence files, reviewer links, CI drill
+workflow, final-check evidence, and latest successful GitHub Actions drill are
+all present for the current branch tip.
 
 For the Time-to-First-Event signature challenge, run
 `corepack.cmd pnpm drill ttfe`. It installs the packed SDK in a temporary clean
