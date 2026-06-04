@@ -95,8 +95,20 @@ node integrations/cli/src/index.mjs --help
   refreshed the public OpenAPI, scope registry, and webhook event screenshots.
   Previously captured authenticated Developer Portal screenshots are retained
   in `docs/screenshots/plugforge/`.
-- Full Docker/Testcontainers E2E remains an environment check for a healthy
-  Docker host; Docker engine calls timed out on this workstation.
+- 2026-06-03 23:44Z: GitHub Actions PlugForge Drill run
+  `26920080204` passed on commit
+  `b2d2a6367ca7fee330ef016aec011493fc110d83`. The job ran the TTFE drill,
+  the 20-run flake drill, and uploaded `ttfe.log` plus
+  `plugforge-flake-proof.json`; the flake proof reported `20` runs,
+  `0` failures, and `flake_rate: 0`.
+- 2026-06-03 local full Playwright/Testcontainers attempt: Docker was
+  restarted and the suite was run with `PLAYWRIGHT_WORKERS=2`. It reached
+  `701` passed, `139` skipped, and `55` failed attempts before Testcontainers
+  lost Docker runtime access under low-memory pressure (`0.6GB`-`1.4GB`
+  warnings and `Could not find a working container runtime strategy`). Treat
+  this as an environment-capacity result, not a Plugforge-specific regression;
+  rerun the full suite on a higher-memory Docker host for the clean mainline
+  gate.
 - The installed `comply` binary is a different CLI that exposes `init` and
   `check`, not the required `comply opensource` subcommand. Pre-commit still
   runs and warns, but the compatible compliance CLI should be installed before
