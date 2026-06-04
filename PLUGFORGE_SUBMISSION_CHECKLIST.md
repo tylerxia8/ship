@@ -95,9 +95,9 @@ node integrations/cli/src/index.mjs --help
   refreshed the public OpenAPI, scope registry, and webhook event screenshots.
   Previously captured authenticated Developer Portal screenshots are retained
   in `docs/screenshots/plugforge/`.
-- 2026-06-03 23:44Z: GitHub Actions PlugForge Drill run
-  `26920080204` passed on commit
-  `b2d2a6367ca7fee330ef016aec011493fc110d83`. The job ran the TTFE drill,
+- 2026-06-04 00:40Z: GitHub Actions PlugForge Drill run
+  `26922331471` passed on commit
+  `10f7286508671977b03108c392b367750a192af6`. The job ran the TTFE drill,
   the 20-run flake drill, and uploaded `ttfe.log` plus
   `plugforge-flake-proof.json`; the flake proof reported `20` runs,
   `0` failures, and `flake_rate: 0`.
