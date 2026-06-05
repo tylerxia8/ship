@@ -35,6 +35,7 @@
     "plugforge:ttfe": "corepack pnpm drill ttfe --no-docker",
     "plugforge:boundary": "node scripts/plugforge-boundary-check.mjs",
     "plugforge:flows": "corepack pnpm plugforge:boundary && corepack pnpm --filter @ship/integration-flows test && corepack pnpm --filter @ship/cli test:drill",
+    "plugforge:sdk-test": "corepack pnpm --filter @ship/sdk test",
     "plugforge:perf": "corepack pnpm --filter @ship/sdk build && node scripts/plugforge-signature-perf.mjs && node scripts/plugforge-sdk-size.mjs",
     "plugforge:flake": "node scripts/plugforge-flake-drill.mjs",
     "plugforge:costs": "node scripts/plugforge-cost-snapshot.mjs",

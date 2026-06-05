@@ -24,6 +24,7 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
     "clean": "rm -rf dist",
     "prepack": "corepack pnpm build"
   },

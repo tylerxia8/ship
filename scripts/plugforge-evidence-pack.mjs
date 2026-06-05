@@ -64,6 +64,7 @@ function runCommand(command, args) {
       cwd: process.cwd(),
       encoding: 'utf8',
       env: { ...process.env, SHIP_URL: shipUrl },
+      maxBuffer: 10 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     return {

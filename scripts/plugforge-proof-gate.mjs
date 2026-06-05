@@ -98,6 +98,9 @@ const requiredFiles = [
   'docs/architecture.md',
   'docs/openapi.json',
   'docs/screenshots/plugforge/README.md',
+  'api/src/platform/webhooks.signer.test.ts',
+  'sdk/tests/client.test.ts',
+  'sdk/tests/webhooks.test.ts',
   'scripts/plugforge-final-check.mjs',
   'scripts/plugforge-evidence-pack.mjs',
   'scripts/plugforge-doctor.mjs',
@@ -120,6 +123,7 @@ const requiredScripts = [
   'plugforge:evidence-pack',
   'plugforge:flake',
   'plugforge:proof-gate',
+  'plugforge:sdk-test',
 ];
 for (const script of requiredScripts) {
   addCheck(`package script: ${script}`, Boolean(packageJson.scripts?.[script]), packageJson.scripts?.[script] || 'missing');
@@ -139,6 +143,11 @@ addCheck(
   'reviewer hub names repeatable proof commands',
   includesAll(reviewerHub, ['plugforge:proof-gate', 'plugforge:final-check', 'plugforge:doctor']),
   'PLUGFORGE_README.md Developer Experience / Verification',
+);
+addCheck(
+  'final check includes SDK unit regression tests',
+  read('scripts/plugforge-final-check.mjs').includes('sdk unit tests'),
+  'scripts/plugforge-final-check.mjs checks array',
 );
 addCheck(
   'checklist records behavior evidence and environment limits',

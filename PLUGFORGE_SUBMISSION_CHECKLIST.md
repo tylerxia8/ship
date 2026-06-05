@@ -10,6 +10,8 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Developer Portal: `/settings/developers`
 - Public API implementation: `api/src/platform/`
 - SDK: `sdk/`
+- SDK regression tests: `sdk/tests/client.test.ts`, `sdk/tests/webhooks.test.ts`
+- Focused webhook signer suite: `api/src/platform/webhooks.signer.test.ts`
 - Developer examples: `examples/plugforge/`
 - CLI reference integration: `integrations/cli/src/index.mjs` (`login`, `scopes`, `docs ls/get/create`, `webhooks`)
 - TTFE drill: `scripts/plugforge-ttfe-drill.mjs`
@@ -74,6 +76,7 @@ Latest authenticated TTFE proof:
 
 ```bash
 corepack.cmd pnpm --filter @ship/api plugforge:fitness
+corepack.cmd pnpm plugforge:sdk-test
 corepack.cmd pnpm plugforge:live-smoke
 corepack.cmd pnpm plugforge:doctor
 corepack.cmd pnpm plugforge:proof-gate
@@ -132,6 +135,7 @@ node integrations/cli/src/index.mjs --help
 | Cursor pagination | Pass: `api/src/platform/pagination.ts`; document list cursors use stable `created_at, id` ordering and platform tests mutate `updated_at` between page requests. |
 | OpenAPI 3.1 live and generated | Pass: live `/api/v1/openapi.json`, static `docs/openapi.json`, `plugforge:openapi`, route metadata generation, and OpenAPI 3.1 schema validation in fitness tests. |
 | SDK workspace package | Pass: `sdk/src/client.ts`, `sdk/README.md`, `examples/plugforge/`; SDK parity tests cover `.me()` and public resources. |
+| Minimal SDK regression tests | Pass: `sdk/tests/client.test.ts` protects `.me()`, typed error mapping, resource-client exposure, and async-iterator pagination; `sdk/tests/webhooks.test.ts` protects the one-call webhook verifier. |
 | Typed SDK resource clients | Pass: `client.documents`, `client.issues`, `client.sprints`, and `client.webhooks` are exposed by `sdk/src/client.ts`; issues/sprints are typed document facades in `sdk/src/document-resources.ts`. |
 | SDK OAuth helpers and token stores | Pass: `ShipClient.authorizationCodeFlow()`, `ShipClient.deviceLogin()`, `ITokenStore`, `InMemoryTokenStore`, `FileTokenStore`, and `BrowserLocalStorageTokenStore` are implemented under `sdk/src/`. |
 | SDK pagination, webhook verifier, typed errors | Pass: async iterator pagination hides cursors; `verifyWebhook()` checks timestamped HMAC signatures; `ShipSDKErrorUnion` supports exhaustive `kind` switching. |
@@ -141,6 +145,7 @@ node integrations/cli/src/index.mjs --help
 | Webhook event registry and schemas | Pass: `api/src/platform/events.ts` registers `document.created`, `document.updated`, `document.deleted`, `issue.created`, `issue.assigned`, `issue.status_changed`, `sprint.started`, and `sprint.completed` with Zod schemas; live registry verified on `v20260603152032`. |
 | Event bus and domain publication | Pass: `IEventBus` and in-process implementation live in `api/src/platform/events.ts`; document writes publish from `api/src/platform/domain/documents.ts`; fitness blocks route-layer webhook publication. |
 | Webhook signing, retries, DLQ, replay | Pass: `api/src/platform/webhooks.ts`; tests assert `Ship-Signature`, `Idempotency-Key`, first retry near 1s, 4xx dead-lettering, delivery listing, replay, rotation, and deactivation. |
+| Focused webhook signer unit suite | Pass: `api/src/platform/webhooks.signer.test.ts` isolates the four rubric cases: positive, negative, replay, and tamper. |
 | Regression and performance guardrails | Partial in this session: focused Playwright PKCE, `plugforge:final-check`, `plugforge:fitness`, type-check, build, and the 20-run `plugforge:flake` drill passed. Full 600+ Playwright suite was attempted through the progress reporter but blocked by this workstation's unhealthy Docker/Testcontainers runtime; run the repo E2E runner workflow on a healthy Docker host for the complete gate. |
 | Deployed public app and grader app | Pass: CloudFront URLs above plus read-only grader app; Elastic Beanstalk version `v20260603152032` exposes the all-event webhook registry live. |
 
@@ -174,6 +179,7 @@ The Plugforge fitness command covers:
 - Rate-limit isolation by bearer token, shared app-bucket enforcement, `X-RateLimit-*`, `Retry-After`, and audit evidence for 429 responses.
 - Domain event bus boundary for webhook publication.
 - Signed `document.created` webhooks with Stripe-style timestamped HMAC headers.
+- Focused signer positive, negative, replay-window, and tamper tests.
 - Webhook retry schedule, timeout retry behavior, permanent 4xx dead lettering, delivery listing, replay, signing-secret rotation, and deactivation.
 - Developer Portal audit viewing, webhook delivery viewing, failed-delivery replay, and test-event sending.
 - Developer Portal onboarding checklist, copyable curl examples, accessible app controls, and delivery detail drawer.

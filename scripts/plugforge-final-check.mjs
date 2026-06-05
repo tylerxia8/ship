@@ -77,6 +77,7 @@ const checks = [
   ['cli scopes discovery', 'node', ['integrations/cli/src/index.mjs', 'scopes', '--ship-url', shipUrl]],
   ['cli webhook event discovery', 'node', ['integrations/cli/src/index.mjs', 'webhooks', 'events', '--ship-url', shipUrl]],
   ['cli help', 'node', ['integrations/cli/src/index.mjs', '--help']],
+  ['sdk unit tests', corepack, ['pnpm', 'plugforge:sdk-test']],
   ['plugforge fitness', corepack, ['pnpm', '--filter', '@ship/api', 'plugforge:fitness']],
 ];
 

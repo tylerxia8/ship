@@ -1,6 +1,6 @@
 # Plugforge Evidence Pack
 
-Generated: `2026-06-04T15:58:25.040Z`
+Generated: `2026-06-05T21:22:48.102Z`
 
 ## Deployment
 
@@ -22,10 +22,10 @@ No relevant uncommitted changes.
 
 | Check | Status | HTTP | Latency |
 | --- | --- | --- | --- |
-| `/health` | Yes | 200 | 297ms |
-| `/api/v1/openapi.json` | Yes | 200 | 301ms |
-| `/api/v1/scopes` | Yes | 200 | 212ms |
-| `/api/v1/webhooks/events` | Yes | 200 | 218ms |
+| `/health` | Yes | 200 | 330ms |
+| `/api/v1/openapi.json` | Yes | 200 | 331ms |
+| `/api/v1/scopes` | Yes | 200 | 247ms |
+| `/api/v1/webhooks/events` | Yes | 200 | 243ms |
 
 ## OpenAPI Contract Coverage
 
@@ -45,46 +45,46 @@ No relevant uncommitted changes.
 
 - Command: `corepack.cmd pnpm plugforge:live-smoke`
 - Passed: Yes
-- Elapsed: 1370ms
+- Elapsed: 2081ms
 
 ```text
   "authenticated_checks": false,
-  "checked_at": "2026-06-04T15:58:10.218Z",
+  "checked_at": "2026-06-05T21:22:24.038Z",
   "results": [
     {
       "name": "GET /health",
       "path": "/health",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 205
+      "elapsed_ms": 254
     },
     {
       "name": "GET /api/v1/openapi.json",
       "path": "/api/v1/openapi.json",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 117
+      "elapsed_ms": 210
     },
     {
       "name": "GET /api/v1/scopes",
       "path": "/api/v1/scopes",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 60
+      "elapsed_ms": 52
     },
     {
       "name": "GET /api/v1/webhooks/events",
       "path": "/api/v1/webhooks/events",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 56
+      "elapsed_ms": 63
     },
     {
       "name": "POST /oauth/device/code",
       "path": "/oauth/device/code",
       "ok": true,
       "status": 200,
-      "elapsed_ms": 62
+      "elapsed_ms": 68
     }
   ]
 }
@@ -94,20 +94,12 @@ No relevant uncommitted changes.
 
 - Command: `corepack.cmd pnpm plugforge:final-check`
 - Passed: Yes
-- Elapsed: 14623ms
+- Elapsed: 23801ms
 
 ```text
       "ok": true,
       "exit_code": 0,
-      "elapsed_ms": 1593,
-      "stderr_excerpt": null,
-      "stdout_excerpt": "> ship@0.0.0 plugforge:live-smoke C:\\Users\\tyler\\ship\n> node scripts/plugforge-live-smoke.mjs\n\n{\n  \"ok\": true,\n  \"ship_url\": \"https://d2rr1fze9v095b.cloudfront.net\",\n  \"authenticated_checks\": false,\n  \"checked_at\": \"2026-06-04T15:58:12.868Z\",\n  \"results\": [\n    {\n      \"name\": \"GET /health\",\n      \""
-    },
-    {
-      "name": "cli scopes discovery",
-      "ok": true,
-      "exit_code": 0,
-      "elapsed_ms": 392,
+      "elapsed_ms": 669,
       "stderr_excerpt": null,
       "stdout_excerpt": "{\n  \"data\": [\n    {\n      \"name\": \"documents:read\",\n      \"description\": \"Read documents visible to the authorized user.\"\n    },\n    {\n      \"name\": \"documents:write\",\n      \"description\": \"Create and update documents as the authorized user.\"\n    },\n    {\n      \"name\": \"issues:read\",\n      \"descript"
     },
@@ -115,7 +107,7 @@ No relevant uncommitted changes.
       "name": "cli webhook event discovery",
       "ok": true,
       "exit_code": 0,
-      "elapsed_ms": 359,
+      "elapsed_ms": 423,
       "stderr_excerpt": null,
       "stdout_excerpt": "{\n  \"data\": [\n    {\n      \"type\": \"document.created\",\n      \"description\": \"A document was created.\",\n      \"required_scope\": \"documents:read\"\n    },\n    {\n      \"type\": \"document.updated\",\n      \"description\": \"A document was updated.\",\n      \"required_scope\": \"documents:read\"\n    },\n    {\n      \"t"
     },
@@ -123,17 +115,25 @@ No relevant uncommitted changes.
       "name": "cli help",
       "ok": true,
       "exit_code": 0,
-      "elapsed_ms": 184,
+      "elapsed_ms": 97,
       "stderr_excerpt": null,
       "stdout_excerpt": "Ship Plugforge CLI\n\nUsage:\n  ship login --client-id <id> [--ship-url <url>] [--scope <scopes>]\n  ship scopes [--ship-url <url>]\n  ship me [--ship-url <url>]\n  ship docs ls [--ship-url <url>] [--limit 25] [--cursor <cursor>] [--type <type>]\n  ship docs get <document-id> [--ship-url <url>]\n  ship docs"
+    },
+    {
+      "name": "sdk unit tests",
+      "ok": true,
+      "exit_code": 0,
+      "elapsed_ms": 2989,
+      "stderr_excerpt": null,
+      "stdout_excerpt": "> ship@0.0.0 plugforge:sdk-test C:\\Users\\tyler\\ship\n> corepack pnpm --filter @ship/sdk test\n\n\n> @ship/sdk@0.0.0 test C:\\Users\\tyler\\ship\\sdk\n> vitest run\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.17 \u001b[39m\u001b[90mC:/Users/tyler/ship/sdk\u001b[39m\n\n \u001b[32m✓\u001b[39m tests/webhooks.test.ts \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m"
     },
     {
       "name": "plugforge fitness",
       "ok": true,
       "exit_code": 0,
-      "elapsed_ms": 10983,
+      "elapsed_ms": 16115,
       "stderr_excerpt": null,
-      "stdout_excerpt": "> @ship/api@0.0.0 plugforge:fitness C:\\Users\\tyler\\ship\\api\n> vitest run src/platform/fitness.test.ts && vitest run src/platform/platform.test.ts\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.17 \u001b[39m\u001b[90mC:/Users/tyler/ship/api\u001b[39m\n\n \u001b[32m✓\u001b[39m src/platform/fitness.test.ts \u001b[2m(\u001b[22m\u001b[2m8 tests\u001b[22m\u001b[2m)\u001b"
+      "stdout_excerpt": "> @ship/api@0.0.0 plugforge:fitness C:\\Users\\tyler\\ship\\api\n> vitest run src/platform/fitness.test.ts && vitest run src/platform/webhooks.signer.test.ts && vitest run src/platform/platform.test.ts\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.17 \u001b[39m\u001b[90mC:/Users/tyler/ship/api\u001b[39m\n\n \u001b[32m✓\u001b[39m src/platfo"
     }
   ]
 }
