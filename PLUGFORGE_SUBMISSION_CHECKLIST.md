@@ -16,6 +16,8 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - CLI reference integration: `integrations/cli/src/index.mjs` (`login`, `scopes`, `docs ls/get/create`, `webhooks`)
 - TTFE drill: `scripts/plugforge-ttfe-drill.mjs`
 - Demo walkthrough: `PLUGFORGE_DEMO_GUIDE.md`
+- Final demo video script: `PLUGFORGE_FINAL_DEMO_SCRIPT.md`
+- Final demo recording dashboard: `docs/plugforge-final-demo.html`
 - Copyable API examples: `PLUGFORGE_API_EXAMPLES.md`
 - Early submission entry point: `PLUGFORGE_EARLY_SUBMISSION.md`
 - Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`

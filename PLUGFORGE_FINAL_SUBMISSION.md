@@ -210,6 +210,9 @@ proof above used an ephemeral Webhook.site URL, then verified Ship's
 
 ## Demo Video Path
 
+Use `PLUGFORGE_FINAL_DEMO_SCRIPT.md` as the spoken runbook and
+`docs/plugforge-final-demo.html` as the local recording dashboard.
+
 1. Open the Developer Portal and show the production OAuth app.
 2. Expand the app row and show app permissions, API activity, webhook
    subscriptions, delivery logs, and test-event controls.

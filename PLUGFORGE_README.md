@@ -12,7 +12,9 @@ Start here when reviewing the Week 6 final submission.
   definitions on Elastic Beanstalk version `v20260603152032`.
 - Evidence pack: `PLUGFORGE_EVIDENCE_PACK.md`
 - Live proof IDs: `PLUGFORGE_LIVE_PROOF.md`
-- Demo video script: `PLUGFORGE_DEMO_SCRIPT.md`
+- Final demo video script: `PLUGFORGE_FINAL_DEMO_SCRIPT.md`
+- Final demo recording dashboard: `docs/plugforge-final-demo.html`
+- MVP demo script archive: `PLUGFORGE_DEMO_SCRIPT.md`
 - Five-line developer story: `PLUGFORGE_FIVE_LINE_STORY.md`
 - Screenshots: `docs/screenshots/plugforge/`
 - Latest authenticated TTFE proof: document `436f86e1-07e1-4e4e-adff-e958f23200c9`,

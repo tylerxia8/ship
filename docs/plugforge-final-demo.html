@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ship PlugForge Final Demo</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f6b5f'/%3E%3Cpath d='M8 18h10.5c3.2 0 5.5-2.2 5.5-5.2C24 9.7 21.7 8 18.7 8H8v4h10.2c.9 0 1.5.4 1.5 1.2s-.6 1.2-1.5 1.2H8v3.6Zm0 6h11.3c3.3 0 5.7-1.8 5.7-5.1 0-3.1-2.4-4.9-5.7-4.9H8v4h10.8c1 0 1.7.4 1.7 1.2 0 .9-.7 1.3-1.7 1.3H8V24Z' fill='white'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --ink: #18202a;
+      --muted: #5c6675;
+      --line: #d8dde6;
+      --accent: #0f6b5f;
+      --accent-ink: #063c36;
+      --warn: #8a5a00;
+      --code: #111827;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .wrap {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      padding: 34px 0 26px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 34px;
+      line-height: 1.1;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 10px;
+      max-width: 720px;
+    }
+
+    .badge {
+      border: 1px solid #9fcfc7;
+      background: #e8f6f3;
+      color: var(--accent-ink);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    main {
+      padding: 28px 0 54px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    section,
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    section + section,
+    .card + .card {
+      margin-top: 18px;
+    }
+
+    h2 {
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    h3 {
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--accent-ink);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    ul,
+    ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    a {
+      color: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    pre {
+      margin: 0;
+      padding: 14px;
+      overflow-x: auto;
+      color: #f9fafb;
+      background: var(--code);
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    code {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+
+    .cue {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 14px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    .cue:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .time {
+      color: var(--muted);
+      font-weight: 760;
+      font-size: 13px;
+    }
+
+    .say {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+
+    .link-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .link-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: #fbfcfd;
+    }
+
+    .link-row span {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .note {
+      border-left: 4px solid var(--warn);
+      background: #fff8e8;
+      color: #3f2e08;
+      padding: 12px 14px;
+      border-radius: 4px;
+      margin-top: 12px;
+    }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .pill-list li {
+      margin: 0;
+      border: 1px solid #c8d7d4;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #f3faf8;
+      color: var(--accent-ink);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    @media (max-width: 860px) {
+      .top,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .badge {
+        justify-self: start;
+      }
+
+      .cue {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div>
+        <h1>Ship PlugForge Final Demo</h1>
+        <p class="subtitle">A recording dashboard for the final submission: exact links, proof commands, and short speaking cues for a 4-5 minute demo.</p>
+      </div>
+      <div class="badge">Depth over breadth. Proof over promises.</div>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <div>
+      <section>
+        <h2>Five-Line Developer Story</h2>
+        <pre><code>pnpm install @ship/sdk
+ship login
+ship docs create --title "hello"
+ship webhooks tail
+# document.created arrives, signature verified</code></pre>
+        <p class="note">Say: The CLI uses the SDK, and the SDK uses the public API. The reference integration walks through the same front door as an external developer.</p>
+      </section>
+
+      <section>
+        <h2>Recording Timeline</h2>
+        <div class="timeline">
+          <div class="cue">
+            <div class="time">0:00</div>
+            <div>
+              <h3>Opening</h3>
+              <p>Show this dashboard or the final submission hub.</p>
+              <p class="say">Say Ship is now a small developer platform: OAuth apps, scoped APIs, OpenAPI, SDK, CLI, webhooks, retries, replay, rate limits, audit, and portal.</p>
+            </div>
+          </div>
+
+          <div class="cue">
+            <div class="time">0:30</div>
+            <div>
+              <h3>Five Lines</h3>
+              <p>Show the five-line story.</p>
+              <p class="say">Say the TTFE drill is the scripted version of this loop.</p>
+            </div>
+          </div>
+
+          <div class="cue">
+            <div class="time">1:15</div>
+            <div>
+              <h3>Developer Portal</h3>
+              <p>Show apps, scopes, subscriptions, deliveries, audit activity, replay/test controls.</p>
+              <p class="say">Say raw secrets are shown once and stored hashed; replay preserves idempotency keys.</p>
+            </div>
+          </div>
+
+          <div class="cue">
+            <div class="time">2:00</div>
+            <div>
+              <h3>Public Contract</h3>
+              <p>Show OpenAPI, scopes, and webhook events.</p>
+              <p class="say">Say the contract is generated from route metadata and protected by fitness tests.</p>
+            </div>
+          </div>
+
+          <div class="cue">
+            <div class="time">2:45</div>
+            <div>
+              <h3>Proof Commands</h3>
+              <p>Run or show final-check and proof-gate output, then show GitHub Actions.</p>
+              <p class="say">Say the current branch tip has passing local proof plus a successful TTFE/flake CI run.</p>
+            </div>
+          </div>
+
+          <div class="cue">
+            <div class="time">3:45</div>
+            <div>
+              <h3>Growth Edge</h3>
+              <p>Call out focused signer tests and SDK regression tests.</p>
+              <p class="say">Say feedback was implemented by isolating positive, negative, replay, and tamper signer cases.</p>
+            </div>
+          </div>
+
+          <div class="cue">
+            <div class="time">4:30</div>
+            <div>
+              <h3>Close</h3>
+              <p>Return to the thesis.</p>
+              <p class="say">Say a small public API that matches its spec beats a sprawling one that contradicts it.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside>
+      <div class="card">
+        <h2>Open These Sites</h2>
+        <div class="link-grid">
+          <div class="link-row"><a href="https://d2rr1fze9v095b.cloudfront.net/settings/developers" target="_blank" rel="noreferrer">Developer Portal</a><span>apps, webhooks, audit</span></div>
+          <div class="link-row"><a href="https://d2rr1fze9v095b.cloudfront.net/api/v1/openapi.json" target="_blank" rel="noreferrer">OpenAPI JSON</a><span>generated contract</span></div>
+          <div class="link-row"><a href="https://d2rr1fze9v095b.cloudfront.net/api/v1/scopes" target="_blank" rel="noreferrer">Scope Registry</a><span>scopes as data</span></div>
+          <div class="link-row"><a href="https://d2rr1fze9v095b.cloudfront.net/api/v1/webhooks/events" target="_blank" rel="noreferrer">Webhook Events</a><span>events as data</span></div>
+          <div class="link-row"><a href="https://github.com/tylerxia8/ship/actions/runs/27040876928" target="_blank" rel="noreferrer">GitHub Actions</a><span>TTFE + flake proof</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Terminal Commands</h2>
+        <pre><code>corepack.cmd pnpm plugforge:final-check
+corepack.cmd pnpm plugforge:proof-gate
+corepack.cmd pnpm --filter @ship/sdk test
+corepack.cmd pnpm --filter @ship/api plugforge:fitness</code></pre>
+      </div>
+
+      <div class="card">
+        <h2>Named Proof</h2>
+        <ul class="pill-list">
+          <li>OAuth + PKCE</li>
+          <li>Device Grant</li>
+          <li>Scope Registry</li>
+          <li>ApiError Shape</li>
+          <li>OpenAPI 3.1</li>
+          <li>SDK + CLI</li>
+          <li>Signed Webhooks</li>
+          <li>Retries + DLQ</li>
+          <li>Replay</li>
+          <li>Rate Limits</li>
+          <li>Audit Trail</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Safety</h2>
+        <ul>
+          <li>Do not show passwords, bearer tokens, or raw client secrets.</li>
+          <li>Sign in before recording if the portal needs a session.</li>
+          <li>If a command is slow, show prior passing output and the CI run.</li>
+          <li>Use the evidence pack if the live UI is slow.</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>
