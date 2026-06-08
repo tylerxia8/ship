@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 const shipUrl = (process.env.SHIP_URL || 'https://d2rr1fze9v095b.cloudfront.net').replace(/\/$/, '');
-const token = process.env.SHIP_PUBLIC_API_TOKEN || process.env.SHIP_TOKEN;
+const injectedToken = process.env.SHIP_PUBLIC_API_TOKEN || process.env.SHIP_TOKEN;
+let token = injectedToken;
+const agentClientId = process.env.SHIP_AGENT_CLIENT_ID;
+const agentClientSecret = process.env.SHIP_AGENT_CLIENT_SECRET;
+const agentClientScope = process.env.SHIP_AGENT_CLIENT_SCOPE || 'documents:read';
 const email = process.env.SHIP_DEMO_EMAIL;
 const password = process.env.SHIP_DEMO_PASSWORD;
 const appId = process.env.SHIP_AGENT_APP_ID || process.env.SHIP_OAUTH_APP_ID;
@@ -10,16 +14,22 @@ function usage() {
   console.log(`FleetGraph public API audit proof
 
 Required:
-  SHIP_PUBLIC_API_TOKEN or SHIP_TOKEN  OAuth bearer token for the agent app
+  SHIP_AGENT_CLIENT_ID                 OAuth app client_id for preferred proof path
+  SHIP_AGENT_CLIENT_SECRET             OAuth app client_secret for preferred proof path
+
+Fallback:
+  SHIP_PUBLIC_API_TOKEN or SHIP_TOKEN  Pre-minted OAuth bearer token
 
 Optional:
   SHIP_URL                             Default: https://d2rr1fze9v095b.cloudfront.net
+  SHIP_AGENT_CLIENT_SCOPE              Default: documents:read
   SHIP_DEMO_EMAIL / SHIP_DEMO_PASSWORD Session credentials for audit-row lookup
   SHIP_AGENT_APP_ID                    OAuth app id for audit-row lookup
 
-The script always calls /api/v1/me and /api/v1/documents with the bearer token.
-When session credentials and app id are provided, it also reads the Developer
-Portal audit endpoint and reports matching rows.
+The script prefers OAuth client credentials, then calls /api/v1/me and
+/api/v1/documents with the minted bearer token. When session credentials and app
+id are provided, it also reads the Developer Portal audit endpoint and reports
+matching rows.
 `);
 }
 
@@ -28,9 +38,33 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   process.exit(0);
 }
 
+async function mintClientCredentialsToken() {
+  if (!agentClientId || !agentClientSecret) return null;
+  const response = await fetch(`${shipUrl}/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'client_credentials',
+      client_id: agentClientId,
+      client_secret: agentClientSecret,
+      scope: agentClientScope,
+    }),
+  });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`Client credentials token exchange failed: ${response.status} ${JSON.stringify(body)}`);
+  }
+  return body;
+}
+
+const minted = await mintClientCredentialsToken();
+if (minted?.access_token) {
+  token = minted.access_token;
+}
+
 if (!token) {
   usage();
-  console.error('Missing SHIP_PUBLIC_API_TOKEN or SHIP_TOKEN.');
+  console.error('Missing SHIP_AGENT_CLIENT_ID/SHIP_AGENT_CLIENT_SECRET or SHIP_PUBLIC_API_TOKEN/SHIP_TOKEN.');
   process.exit(1);
 }
 
@@ -123,6 +157,8 @@ const proof = {
   ok: me.ok && docs.ok && (!audit || audit.ok),
   generated_at: new Date().toISOString(),
   ship_url: shipUrl,
+  auth_mode: minted?.access_token ? 'client_credentials' : 'pre_minted_bearer',
+  requested_scope: minted?.scope ?? null,
   client_id: clientId,
   public_calls: [
     {

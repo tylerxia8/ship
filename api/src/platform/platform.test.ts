@@ -66,6 +66,25 @@ describe('Plugforge public API foundation', () => {
     throw new Error('Timed out waiting for public API audit row');
   }
 
+  async function ensureOAuthApp(): Promise<void> {
+    if (clientId && clientSecret && oauthAppId) return;
+
+    const response = await request(app)
+      .post('/api/v1/oauth/apps')
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        name: 'Plugforge Test App',
+        redirect_uris: ['https://example.com/callback'],
+        requested_scopes: ['documents:read', 'documents:write', 'webhooks:manage'],
+      });
+
+    expect(response.status).toBe(201);
+    oauthAppId = response.body.app.id;
+    clientId = response.body.app.client_id;
+    clientSecret = response.body.client_secret;
+  }
+
   beforeAll(async () => {
     const migration041Sql = readFileSync(join(__dirname, '../db/migrations/041_plugforge_platform.sql'), 'utf8');
     const migration042Sql = readFileSync(join(__dirname, '../db/migrations/042_device_code_consumed_at.sql'), 'utf8');
@@ -260,23 +279,10 @@ describe('Plugforge public API foundation', () => {
   });
 
   it('registers an OAuth app and shows the raw secret once', async () => {
-    const response = await request(app)
-      .post('/api/v1/oauth/apps')
-      .set('Cookie', sessionCookie)
-      .set('x-csrf-token', csrfToken)
-      .send({
-        name: 'Plugforge Test App',
-        redirect_uris: ['https://example.com/callback'],
-        requested_scopes: ['documents:read', 'documents:write', 'webhooks:manage'],
-      });
+    await ensureOAuthApp();
 
-    expect(response.status).toBe(201);
-    oauthAppId = response.body.app.id;
-    expect(response.body.app.client_id).toMatch(/^ship_app_/);
-    expect(response.body.client_secret).toMatch(/^ship_sk_/);
-    expect(response.body.app.client_secret_hash).toBeUndefined();
-    clientId = response.body.app.client_id;
-    clientSecret = response.body.client_secret;
+    expect(clientId).toMatch(/^ship_app_/);
+    expect(clientSecret).toMatch(/^ship_sk_/);
 
     const listResponse = await request(app)
       .get('/api/v1/oauth/apps')
@@ -292,6 +298,7 @@ describe('Plugforge public API foundation', () => {
   });
 
   it('rotates OAuth app secrets and invalidates the old secret', async () => {
+    await ensureOAuthApp();
     const verifier = `rotate-${crypto.randomBytes(32).toString('base64url')}`;
     const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
     const authParams = {
@@ -348,6 +355,60 @@ describe('Plugforge public API foundation', () => {
 
     expect(newSecretResponse.status).toBe(200);
     clientSecret = rotateResponse.body.client_secret;
+  });
+
+  it('issues an app-owned client credentials token and records public audit rows', async () => {
+    await ensureOAuthApp();
+    const tokenResponse = await request(app)
+      .post('/oauth/token')
+      .send({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: 'documents:read',
+      });
+
+    expect(tokenResponse.status).toBe(200);
+    expect(tokenResponse.body).toMatchObject({
+      token_type: 'Bearer',
+      expires_in: 900,
+      scope: 'documents:read',
+    });
+    expect(tokenResponse.body.access_token).toMatch(/^ship_at_/);
+    expect(tokenResponse.body.refresh_token).toBeUndefined();
+
+    const meResponse = await request(app)
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${tokenResponse.body.access_token}`);
+
+    expect(meResponse.status).toBe(200);
+    expect(meResponse.body).toMatchObject({
+      user: { id: adminUserId },
+      workspace: { id: workspaceId },
+      app: { client_id: clientId, scopes: ['documents:read'] },
+    });
+
+    const documentsResponse = await request(app)
+      .get('/api/v1/documents?limit=1')
+      .set('Authorization', `Bearer ${tokenResponse.body.access_token}`);
+
+    expect(documentsResponse.status).toBe(200);
+    expect(documentsResponse.body).toMatchObject({
+      data: expect.any(Array),
+      next_cursor: null,
+    });
+
+    const auditRow = await waitForAuditRow(
+      'workspace_id = $1 AND client_id = $2 AND route = $3 AND scope_used = $4 AND status = $5',
+      [workspaceId, clientId, '/api/v1/documents/', 'documents:read', 200],
+    );
+    expect(auditRow).toMatchObject({
+      client_id: clientId,
+      method: 'GET',
+      route: '/api/v1/documents/',
+      scope_used: 'documents:read',
+      status: 200,
+    });
   });
 
   it('completes Authorization Code + PKCE and rejects a wrong verifier', async () => {

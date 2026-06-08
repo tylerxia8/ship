@@ -48,6 +48,7 @@ new app.
 | Rubric area | Evidence |
 |---|---|
 | Architecture and pre-search | `PRESEARCH.md` including appendix checklist, `docs/architecture.md` |
+| Pre-search conversation reference | `PRESEARCH_CONVERSATION_REFERENCE.md` |
 | Public API contract | Live `/api/v1/openapi.json`, static `docs/openapi.json` |
 | OAuth app lifecycle | `/settings/developers`, `api/src/platform/routes/apps.ts` |
 | Auth flows | `api/src/platform/routes/oauth.ts`, `api/src/platform/platform.test.ts` |
@@ -72,6 +73,8 @@ new app.
 | AI cost analysis | `PLUGFORGE_AI_COST_ANALYSIS.md` |
 | Live proof IDs and screenshots | `PLUGFORGE_LIVE_PROOF.md` |
 | Performance targets | `PLUGFORGE_PERFORMANCE_TARGETS.md` |
+| Part 1 performance comparison | `PLUGFORGE_FINAL_PERFORMANCE_COMPARISON.md` |
+| Grader quickstart | `PLUGFORGE_GRADER_QUICKSTART.md` |
 | Reviewer hub | `PLUGFORGE_README.md` |
 
 ## MVP Hard Gate Map
@@ -95,24 +98,22 @@ new app.
 | Webhook event registry, domain event bus, signing, retries, DLQ, replay | `api/src/platform/events.ts` defines event types and Zod schemas as data; domain writes publish through `IEventBus`; `api/src/platform/webhooks.ts` signs with `Ship-Signature`, retries 5xx/timeouts on `1s, 4s, 16s, 1m, 5m, 30m`, dead-letters 4xx/permanent failures, and preserves `Idempotency-Key` on replay. |
 | Existing regression/perf guardrails | Focused Playwright PKCE passed; `plugforge:final-check`, `plugforge:fitness`, type-check, build, and the 20-run `plugforge:flake` drill passed. Full 600+ Playwright regression was attempted through the progress reporter but blocked by this workstation's unhealthy Docker/Testcontainers runtime; use the repo E2E runner workflow on a healthy Docker host for the complete mainline gate. |
 | Deployed and publicly accessible with OpenAPI and read-only grader app | Live URLs above; read-only app `ship_app_8d138f5f898a7dd8bd9ae88e1d6f18c5`. Production is on Elastic Beanstalk version `v20260603152032`; the live webhook registry exposes all eight required event definitions. |
-| Agent-as-citizen audit proof | `agent/src/ship-client.ts` can read documents through `@ship/sdk` and `/api/v1` when `SHIP_PUBLIC_API_TOKEN` is set; live proof captured an audit row for client `ship_app_d8200057ae8afcd914151e0738af09f3`, route `/api/v1/documents/`, scope `documents:read`, status `200`, latency `5ms`. |
+| Agent-as-citizen audit proof | `agent/src/ship-client.ts` now prefers OAuth Client Credentials (`SHIP_AGENT_CLIENT_ID` + `SHIP_AGENT_CLIENT_SECRET`) to mint its own scoped token, then reads documents through `@ship/sdk` and `/api/v1`; `SHIP_PUBLIC_API_TOKEN` remains a fallback. `scripts/plugforge-agent-audit-proof.mjs` reports `auth_mode` and verifies public audit rows. |
 
 ## Performance Target Map
 
-`PLUGFORGE_PERFORMANCE_TARGETS.md` maps each target to its automated gate or
-remaining external evidence. The implemented gates now cover PKCE round-trip
-under `3000ms`, first webhook delivery under `2000ms`, retry schedule success,
-100% public OpenAPI/spec/SDK parity, and 100% generated public rate-limit
-header coverage. The Part 1 `+10%` regression comparison still needs the Part 1
-baseline artifact and deployed-environment measurements.
+`PLUGFORGE_PERFORMANCE_TARGETS.md` maps each target to its automated gate.
+`PLUGFORGE_FINAL_PERFORMANCE_COMPARISON.md` commits the measured Part 1 baseline
+comparison: API P95/P99 summaries, bundle-size baseline/current, query-count
+baseline/current, and PlugForge-specific perf measurements.
 
 ## AI Cost Analysis
 
-`PLUGFORGE_AI_COST_ANALYSIS.md` documents the cost boundary: Plugforge platform
-traffic does zero AI work. OAuth, `/api/v1`, SDK calls, webhooks, retries,
-delivery logs, rate limits, and the Developer Portal are deterministic. LLM cost
-remains isolated to FleetGraph agent turns, so cost scales with agent activity
-rather than platform traffic.
+`PLUGFORGE_AI_COST_ANALYSIS.md` documents the cost boundary and measured
+development numbers: 50,296 input tokens, 14,886 output tokens, calculated
+development/test spend of `$0.336628`, and a measured 0% token-volume delta for
+the public-API agent rewire assumption. Plugforge platform traffic still does
+zero AI work; LLM cost remains isolated to FleetGraph agent turns.
 
 ## Live Proof Captured
 
@@ -141,6 +142,12 @@ Latest agent-as-citizen audit proof, captured `2026-06-03T22:05Z`:
 - Public call: `GET /api/v1/documents`, status `200`.
 - Audit row: route `/api/v1/documents/`, scope `documents:read`, status `200`,
   latency `5ms`, created `2026-06-03T22:05:34.272Z`.
+
+Final feedback hardening on 2026-06-08 updated the proof path so
+`plugforge:agent-audit-proof` prefers OAuth Client Credentials and reports
+`auth_mode: "client_credentials"` when `SHIP_AGENT_CLIENT_ID` and
+`SHIP_AGENT_CLIENT_SECRET` are supplied. Pre-minted `SHIP_PUBLIC_API_TOKEN`
+remains only a fallback for already-captured demo evidence.
 
 ## SDK Packaging Note
 

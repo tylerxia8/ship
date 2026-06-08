@@ -1,8 +1,11 @@
 /**
  * Ship REST API client for the FleetGraph agent.
  *
- * Reads documents through the public API when SHIP_PUBLIC_API_TOKEN is set,
+ * Reads documents through the public API when SHIP_AGENT_CLIENT_ID and
+ * SHIP_AGENT_CLIENT_SECRET are set. The agent exchanges those OAuth client
+ * credentials for a scoped access token through Ship's public token endpoint,
  * which makes FleetGraph an OAuth app shaped like any external integration.
+ * SHIP_PUBLIC_API_TOKEN remains a compatibility fallback for captured demos.
  * Association reads and finding writes still use the service-account path until
  * those surfaces exist under /api/v1.
  *
@@ -115,19 +118,31 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-let publicClientInstance: ShipClient | null | undefined;
+let publicClientInstance: Promise<ShipClient | null> | null = null;
 
-function publicClient(): ShipClient | null {
-  if (publicClientInstance !== undefined) return publicClientInstance;
-  if (!config.ship.publicApiToken) {
-    publicClientInstance = null;
-    return publicClientInstance;
+async function publicClient(): Promise<ShipClient | null> {
+  if (config.ship.agentClientId && config.ship.agentClientSecret) {
+    return ShipClient.clientCredentials({
+      clientId: config.ship.agentClientId,
+      clientSecret: config.ship.agentClientSecret,
+      scope: config.ship.agentClientScope,
+      shipUrl: config.ship.apiBaseUrl,
+    });
   }
-  publicClientInstance = new ShipClient({
+
+  if (publicClientInstance) return publicClientInstance;
+  publicClientInstance = createPublicClient();
+  return publicClientInstance;
+}
+
+async function createPublicClient(): Promise<ShipClient | null> {
+  if (!config.ship.publicApiToken) {
+    return null;
+  }
+  return new ShipClient({
     token: config.ship.publicApiToken,
     baseUrl: config.ship.publicApiBaseUrl,
   });
-  return publicClientInstance;
 }
 
 // ─── Typed read helpers ────────────────────────────────────────────────────
@@ -160,7 +175,7 @@ function unwrap<T>(body: unknown): T {
 }
 
 export async function getDocument(id: string): Promise<ShipDocument> {
-  const client = publicClient();
+  const client = await publicClient();
   if (client) {
     const body = await client.documents.get(id);
     return normalizePublicDocument(body.data);
@@ -179,7 +194,7 @@ export interface ListDocumentsOptions {
 }
 
 export async function listDocuments(opts: ListDocumentsOptions = {}): Promise<ShipDocument[]> {
-  const client = publicClient();
+  const client = await publicClient();
   if (client) {
     const page = await client.documents.list({
       limit: opts.limit ?? 100,

@@ -116,4 +116,51 @@ describe('ShipClient', () => {
       retryAfterSeconds: 7,
     } satisfies Partial<ShipSDKError>);
   });
+
+  it('creates an authenticated client with the OAuth client credentials helper', async () => {
+    const calls: Array<{ url: string; body: unknown }> = [];
+    const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({
+        url: String(input),
+        body: init?.body ? JSON.parse(String(init.body)) : null,
+      });
+      if (String(input).endsWith('/oauth/token')) {
+        return jsonResponse({
+          token_type: 'Bearer',
+          access_token: 'ship_at_agent',
+          expires_in: 900,
+          scope: 'documents:read',
+        });
+      }
+      return jsonResponse({
+        user: { id: 'user_1', email: 'agent-owner@example.com', name: 'Agent Owner' },
+        workspace: { id: 'workspace_1', name: 'Ship' },
+        app: { client_id: 'ship_app_agent', scopes: ['documents:read'] },
+      } satisfies ShipMe);
+    };
+
+    const client = await ShipClient.clientCredentials({
+      clientId: 'ship_app_agent',
+      clientSecret: 'ship_sk_agent_secret',
+      scope: 'documents:read',
+      shipUrl: 'https://ship.example',
+      fetch: fetchImpl as typeof fetch,
+    });
+
+    await expect(client.me()).resolves.toMatchObject({
+      app: { client_id: 'ship_app_agent', scopes: ['documents:read'] },
+    });
+    expect(calls).toEqual([
+      {
+        url: 'https://ship.example/oauth/token',
+        body: {
+          grant_type: 'client_credentials',
+          client_id: 'ship_app_agent',
+          client_secret: 'ship_sk_agent_secret',
+          scope: 'documents:read',
+        },
+      },
+      { url: 'https://ship.example/api/v1/me', body: null },
+    ]);
+  });
 });

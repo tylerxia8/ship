@@ -1,7 +1,7 @@
 import { DocumentsClient, type Transport } from './documents.js';
-import { authorizationCodeFlow, deviceLogin, refreshAccessToken } from './auth.js';
+import { authorizationCodeFlow, clientCredentials, deviceLogin, refreshAccessToken } from './auth.js';
 import { ShipSDKError, kindForStatus, type ShipApiErrorBody } from './errors.js';
-import type { AuthorizationCodeFlow, AuthorizationCodeFlowOptions, DeviceLoginClientOptions, DeviceLoginOptions, ITokenStore, OAuthTokenResponse, Page, PublicScopeDefinition, RefreshTokenOptions, ShipClientOptions, ShipMe } from './types.js';
+import type { AuthorizationCodeFlow, AuthorizationCodeFlowOptions, ClientCredentialsOptions, DeviceLoginClientOptions, DeviceLoginOptions, ITokenStore, OAuthTokenResponse, Page, PublicScopeDefinition, RefreshTokenOptions, ShipClientOptions, ShipMe } from './types.js';
 import { WebhooksClient } from './webhook-client.js';
 import { IssuesClient, SprintsClient } from './document-resources.js';
 import { OAuthAppsClient } from './oauth-apps.js';
@@ -50,6 +50,16 @@ export class ShipClient implements Transport {
 
   static refreshAccessToken(options: RefreshTokenOptions): Promise<OAuthTokenResponse> {
     return refreshAccessToken(options);
+  }
+
+  static async clientCredentials(options: ClientCredentialsOptions): Promise<ShipClient> {
+    const tokens = await clientCredentials(options);
+    return new ShipClient({
+      token: options.tokenStore ? undefined : tokens.access_token,
+      tokenStore: options.tokenStore,
+      baseUrl: `${(options.shipUrl ?? 'http://localhost:3000').replace(/\/$/, '')}/api/v1`,
+      fetch: options.fetch,
+    });
   }
 
   me(): Promise<ShipMe> {

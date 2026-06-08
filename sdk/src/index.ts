@@ -1,5 +1,5 @@
 export { ShipClient } from './client.js';
-export { authorizationCodeFlow, deviceLogin, refreshAccessToken } from './auth.js';
+export { authorizationCodeFlow, clientCredentials, deviceLogin, refreshAccessToken } from './auth.js';
 export { IssuesClient, SprintsClient } from './document-resources.js';
 export { ShipSDKError, kindForStatus } from './errors.js';
 export { OAuthAppsClient } from './oauth-apps.js';
@@ -9,6 +9,7 @@ export { verifyWebhook } from './webhooks.js';
 export type {
   AuthorizationCodeFlow,
   AuthorizationCodeFlowOptions,
+  ClientCredentialsOptions,
   ApiError,
   ApiErrorCode,
   CreateDocumentInput,

@@ -6,6 +6,8 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 
 - Architecture defense: `docs/architecture.md`
 - Pre-search and risk discovery: `PRESEARCH.md`
+- Pre-search conversation reference: `PRESEARCH_CONVERSATION_REFERENCE.md`
+- Grader quickstart: `PLUGFORGE_GRADER_QUICKSTART.md`
 - Public OpenAPI contract: `docs/openapi.json`
 - Developer Portal: `/settings/developers`
 - Public API implementation: `api/src/platform/`
@@ -21,6 +23,7 @@ Use this as the quick evidence map for the Week 6 Plugforge submission.
 - Copyable API examples: `PLUGFORGE_API_EXAMPLES.md`
 - Early submission entry point: `PLUGFORGE_EARLY_SUBMISSION.md`
 - Final submission entry point: `PLUGFORGE_FINAL_SUBMISSION.md`
+- Final performance comparison: `PLUGFORGE_FINAL_PERFORMANCE_COMPARISON.md`
 - Submission requirements map: `PLUGFORGE_SUBMISSION_REQUIREMENTS.md`
 - Per-epic write-up: `PLUGFORGE_PER_EPIC_WRITEUP.md`
 - Three discoveries: `PLUGFORGE_DISCOVERIES.md`
@@ -85,6 +88,8 @@ corepack.cmd pnpm plugforge:proof-gate
 corepack.cmd pnpm plugforge:evidence-pack -- --include-final-check
 corepack.cmd pnpm plugforge:screenshots
 corepack.cmd pnpm plugforge:final-check
+corepack.cmd pnpm plugforge:perf
+corepack.cmd pnpm plugforge:costs -- --measure-ci
 corepack.cmd pnpm exec playwright test e2e/plugforge-oauth.spec.ts --workers=1
 corepack.cmd pnpm --recursive run type-check
 corepack.cmd pnpm --recursive run build
@@ -138,6 +143,7 @@ node integrations/cli/src/index.mjs --help
 | OpenAPI 3.1 live and generated | Pass: live `/api/v1/openapi.json`, static `docs/openapi.json`, `plugforge:openapi`, route metadata generation, and OpenAPI 3.1 schema validation in fitness tests. |
 | SDK workspace package | Pass: `sdk/src/client.ts`, `sdk/README.md`, `examples/plugforge/`; SDK parity tests cover `.me()` and public resources. |
 | Minimal SDK regression tests | Pass: `sdk/tests/client.test.ts` protects `.me()`, typed error mapping, resource-client exposure, and async-iterator pagination; `sdk/tests/webhooks.test.ts` protects the one-call webhook verifier. |
+| Agent client credentials rewire | Pass: `/oauth/token` supports `grant_type=client_credentials`; `ShipClient.clientCredentials()` mints an app-owned scoped client; FleetGraph prefers `SHIP_AGENT_CLIENT_ID`/`SHIP_AGENT_CLIENT_SECRET`; `scripts/plugforge-agent-audit-proof.mjs` reports `auth_mode`. |
 | Typed SDK resource clients | Pass: `client.documents`, `client.issues`, `client.sprints`, and `client.webhooks` are exposed by `sdk/src/client.ts`; issues/sprints are typed document facades in `sdk/src/document-resources.ts`. |
 | SDK OAuth helpers and token stores | Pass: `ShipClient.authorizationCodeFlow()`, `ShipClient.deviceLogin()`, `ITokenStore`, `InMemoryTokenStore`, `FileTokenStore`, and `BrowserLocalStorageTokenStore` are implemented under `sdk/src/`. |
 | SDK pagination, webhook verifier, typed errors | Pass: async iterator pagination hides cursors; `verifyWebhook()` checks timestamped HMAC signatures; `ShipSDKErrorUnion` supports exhaustive `kind` switching. |

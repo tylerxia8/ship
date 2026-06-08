@@ -171,10 +171,30 @@ Refresh tokens rotate on every use:
 ```ts
 const refreshed = await ShipClient.refreshAccessToken({
   clientId: 'ship_app_...',
-  refreshToken: token.refresh_token,
+  refreshToken: token.refresh_token!,
   shipUrl: process.env.SHIP_URL,
 });
 ```
+
+## Client Credentials
+
+Server-side integrations such as FleetGraph can mint a scoped public API client
+without a pre-injected bearer token:
+
+```ts
+const agentClient = await ShipClient.clientCredentials({
+  clientId: process.env.SHIP_AGENT_CLIENT_ID!,
+  clientSecret: process.env.SHIP_AGENT_CLIENT_SECRET!,
+  shipUrl: process.env.SHIP_URL,
+  scope: 'documents:read',
+});
+
+console.log(await agentClient.me());
+```
+
+Client Credentials tokens are app-owned and short-lived. Ship attributes the
+token to the OAuth app owner for audit rows, while scopes and rate limits still
+come from the OAuth app.
 
 ## Webhooks
 

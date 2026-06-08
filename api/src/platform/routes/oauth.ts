@@ -61,10 +61,18 @@ const refreshTokenSchema = z.object({
   refresh_token: z.string().min(1),
 });
 
+const clientCredentialsTokenSchema = z.object({
+  grant_type: z.literal('client_credentials'),
+  client_id: z.string().min(1),
+  client_secret: z.string().min(1),
+  scope: z.string().optional(),
+});
+
 const tokenBodySchema = z.discriminatedUnion('grant_type', [
   authorizationCodeTokenSchema,
   deviceCodeTokenSchema,
   refreshTokenSchema,
+  clientCredentialsTokenSchema,
 ]);
 
 const deviceCodeBodySchema = z.object({
@@ -86,6 +94,7 @@ interface OAuthAppRow {
   requested_scopes: string[];
   active: boolean;
   name: string;
+  owner_user_id: string;
 }
 
 interface AuthorizationCodeRow {
@@ -143,8 +152,8 @@ function escapeHtml(value: string): string {
 
 async function getActiveApp(clientId: string): Promise<OAuthAppRow> {
   const app = await queryOne<OAuthAppRow>(
-    `SELECT id, workspace_id, client_id, client_secret_hash, redirect_uris,
-            requested_scopes, active, name
+    `SELECT id, workspace_id, owner_user_id, client_id, client_secret_hash,
+            redirect_uris, requested_scopes, active, name
        FROM oauth_apps
       WHERE client_id = $1`,
     [clientId],
@@ -215,6 +224,17 @@ async function issueTokens(app: OAuthAppRow, userId: string, workspaceId: string
   } finally {
     client.release();
   }
+}
+
+async function issueClientCredentialsToken(app: OAuthAppRow, scopes: string[]): Promise<string> {
+  const accessToken = generateAccessToken();
+  await pool.query(
+    `INSERT INTO oauth_access_tokens
+      (token_hash, app_id, user_id, workspace_id, scopes, expires_at)
+     VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '15 minutes')`,
+    [hashToken(accessToken), app.id, app.owner_user_id, app.workspace_id, scopes],
+  );
+  return accessToken;
 }
 
 router.get('/authorize', authMiddleware, async (req, res, next) => {
@@ -443,6 +463,23 @@ router.post('/token', async (req, res, next) => {
         expires_in: 15 * 60,
         refresh_token: refreshToken,
         scope: tokenRow.scopes.join(' '),
+      });
+      return;
+    }
+
+    if (parsed.data.grant_type === 'client_credentials') {
+      const app = await getActiveApp(parsed.data.client_id);
+      if (!verifySecret(parsed.data.client_secret, app.client_secret_hash)) {
+        throw new ApiError(401, 'unauthorized', 'Invalid client_secret');
+      }
+
+      const scopes = requestedScopesFor(app, parsed.data.scope);
+      const accessToken = await issueClientCredentialsToken(app, scopes);
+      res.json({
+        token_type: 'Bearer',
+        access_token: accessToken,
+        expires_in: 15 * 60,
+        scope: scopes.join(' '),
       });
       return;
     }

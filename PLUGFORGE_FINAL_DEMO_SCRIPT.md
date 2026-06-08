@@ -23,7 +23,7 @@ It contains the live links, commands, and short cue cards below.
 4. Live OpenAPI: `https://d2rr1fze9v095b.cloudfront.net/api/v1/openapi.json`
 5. Scope registry: `https://d2rr1fze9v095b.cloudfront.net/api/v1/scopes`
 6. Webhook event registry: `https://d2rr1fze9v095b.cloudfront.net/api/v1/webhooks/events`
-7. GitHub Actions proof: `https://github.com/tylerxia8/ship/actions/runs/27040876928`
+7. GitHub Actions proof: `https://github.com/tylerxia8/ship/actions/runs/27080244158`
 8. Terminal in repo root: `c:\Users\tyler\ship`
 
 ## Before Recording
@@ -82,7 +82,31 @@ Say:
 > the point: the reference integration uses the same front door as any external
 > developer.
 
-## 1:15-2:00 Developer Portal
+## 1:15-2:00 Complete SDK Workflow
+
+Switch to terminal or show the TTFE proof output.
+
+Say:
+
+> For the re-recorded final demo, I am walking the complete SDK-backed workflow:
+> login, create a webhook subscription, create a document, receive the signed
+> event, verify it with the SDK helper, then replay the delivery from the portal.
+
+Show or run:
+
+```powershell
+ship login
+ship webhooks subscribe --url <public-listener-url> --event document.created
+ship docs create --title "hello"
+ship webhooks tail
+```
+
+Say:
+
+> `ship login` uses Device Authorization Grant. The docs and webhooks commands
+> go through `@ship/sdk`, not private server internals.
+
+## 2:00-2:45 Developer Portal
 
 Switch to the Developer Portal.
 
@@ -107,7 +131,14 @@ If you show a delivery:
 > idempotency key. Replay keeps the original idempotency key so subscribers can
 > dedupe safely.
 
-## 2:00-2:45 Public Contract
+Click replay for one delivery if the portal has a completed delivery visible.
+
+Say:
+
+> This closes the SDK workflow: the event arrived signed, and the operator can
+> replay it with the same idempotency key.
+
+## 2:45-3:20 Public Contract
 
 Open `/api/v1/openapi.json`.
 
@@ -130,7 +161,7 @@ Say:
 > Webhook event types are also data with schemas. Domain writes publish through
 > the event bus, not from route handlers, so the public layer stays clean.
 
-## 2:45-3:45 Proof Commands
+## 3:20-4:10 Proof Commands
 
 Switch to terminal and run or show the successful output:
 
@@ -155,20 +186,22 @@ Say:
 > files exist, SDK tests are wired in, and the current branch tip has a
 > successful GitHub Actions PlugForge Drill run.
 
-Switch to GitHub Actions run `27040876928`.
+Switch to GitHub Actions run `27080244158` or a newer passing run.
 
 Say:
 
 > This run passed for the current commit. It ran the Time-to-First-Event drill
 > and the 20-run flake drill, then uploaded proof artifacts.
 
-## 3:45-4:30 Feedback Growth Edge
+## 4:10-4:45 Feedback Growth Edge
 
 Show or mention:
 
 - `api/src/platform/webhooks.signer.test.ts`
 - `sdk/tests/client.test.ts`
 - `sdk/tests/webhooks.test.ts`
+- `ShipClient.clientCredentials()`
+- `scripts/plugforge-agent-audit-proof.mjs`
 
 Say:
 
@@ -178,7 +211,13 @@ Say:
 > `.me()`, resource clients, async pagination, typed errors, and the webhook
 > verifier.
 
-## 4:30-5:00 Closing
+Then say:
+
+> The final feedback also asked for a cleaner agent citizen story. The agent can
+> now use OAuth Client Credentials to mint its own scoped public API token, so it
+> no longer depends on a pre-injected bearer token for the preferred path.
+
+## 4:45-5:00 Closing
 
 Say:
 
@@ -201,4 +240,3 @@ Then close with:
   history and the GitHub Actions run.
 - If login appears, stop recording or crop credentials.
 - Do not show bearer tokens, raw client secrets, or passwords.
-

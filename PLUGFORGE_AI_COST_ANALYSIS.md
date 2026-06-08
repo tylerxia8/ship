@@ -106,6 +106,41 @@ audit storage = audit rows * bytes/audit_row * audit_retention_days / 7
 
 ## Development And Testing Costs To Track
 
+## Measured Development Cost Evidence
+
+Actual FleetGraph development token evidence was copied forward from the
+Part 2/FleetGraph Anthropic export (`claude_api_tokens_2026_05.csv`) documented
+in `FLEETGRAPH.md`.
+
+| Measurement | Value |
+|---|---:|
+| Claude API input tokens, cumulative | 50,296 |
+| Claude API output tokens, cumulative | 14,886 |
+| Documented evidence invocations | 10 final test-case runs plus additional production verification scans included in the export |
+| Calculated development/test spend | $0.336628 |
+| Average tokens per invocation used for planning | ~2,600 |
+| Rewire token-volume target | 0% delta for the same agent turns |
+
+Measured PlugForge cost snapshot on 2026-06-08:
+
+| Bucket | Measurement |
+|---|---:|
+| Epic 7 daily LLM spend input to snapshot | $0.336628 |
+| Baseline tokens per turn | 2,600 |
+| Rewire tokens per turn | 2,600 |
+| Token delta | 0 tokens, 0% |
+| OAuth Playwright contexts | 1 |
+| OpenAPI generation overhead | 1,721ms |
+| OpenAPI schema validation slice | 9,120ms |
+| Demo-volume retained storage | ~4.19 MB |
+| Demo-volume weekly egress | ~400 KB |
+
+The important conclusion is unchanged but now backed by numbers: moving the
+agent behind the public API changes authorization and auditability, not LLM
+prompt volume. The agent still invokes the model only in the same graph nodes
+as Part 2 (`intent_classifier` and `reasoner`), while SDK/public API reads are
+deterministic platform calls.
+
 Run the cost snapshot from the repository root:
 
 ```powershell

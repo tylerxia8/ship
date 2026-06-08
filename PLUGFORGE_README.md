@@ -11,6 +11,7 @@ Start here when reviewing the Week 6 final submission.
 - Webhook registry status: production exposes all eight required webhook event
   definitions on Elastic Beanstalk version `v20260603152032`.
 - Evidence pack: `PLUGFORGE_EVIDENCE_PACK.md`
+- Grader quickstart: `PLUGFORGE_GRADER_QUICKSTART.md`
 - Live proof IDs: `PLUGFORGE_LIVE_PROOF.md`
 - Final demo video script: `PLUGFORGE_FINAL_DEMO_SCRIPT.md`
 - Final demo recording dashboard: `docs/plugforge-final-demo.html`
@@ -25,11 +26,13 @@ Start here when reviewing the Week 6 final submission.
 ## Architecture
 
 - Pre-search: `PRESEARCH.md`
+- Pre-search conversation reference: `PRESEARCH_CONVERSATION_REFERENCE.md`
 - Architecture defense: `docs/architecture.md`
 - Extended stack/rationale appendix: `docs/architecture-extended.md`
 - Security controls: `PLUGFORGE_SECURITY.md`
 - Operational readiness: `PLUGFORGE_OPERATIONAL_READINESS.md`
 - AI cost analysis: `PLUGFORGE_AI_COST_ANALYSIS.md`
+- Part 1 performance comparison: `PLUGFORGE_FINAL_PERFORMANCE_COMPARISON.md`
 - Post-MVP status: `PLUGFORGE_POST_MVP_STATUS.md`
 
 ## Developer Experience

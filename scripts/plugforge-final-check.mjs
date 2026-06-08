@@ -27,7 +27,14 @@ async function run(name, command, args) {
   const [spawnCommand, spawnArgs] = normalizeCommand(command, args);
   const child = spawn(spawnCommand, spawnArgs, {
     cwd: process.cwd(),
-    env: { ...process.env, SHIP_URL: shipUrl },
+    env: {
+      ...process.env,
+      SHIP_URL: shipUrl,
+      EPIC7_LLM_SPEND_USD_DAY: process.env.EPIC7_LLM_SPEND_USD_DAY || '0.336628',
+      EPIC7_AGENT_BASELINE_TOKENS_PER_TURN: process.env.EPIC7_AGENT_BASELINE_TOKENS_PER_TURN || '2600',
+      EPIC7_AGENT_REWIRE_TOKENS_PER_TURN: process.env.EPIC7_AGENT_REWIRE_TOKENS_PER_TURN || '2600',
+      EPIC7_USERS: process.env.EPIC7_USERS || '1000',
+    },
     shell: false,
   });
 
@@ -79,6 +86,8 @@ const checks = [
   ['cli help', 'node', ['integrations/cli/src/index.mjs', '--help']],
   ['sdk unit tests', corepack, ['pnpm', 'plugforge:sdk-test']],
   ['plugforge fitness', corepack, ['pnpm', '--filter', '@ship/api', 'plugforge:fitness']],
+  ['performance evidence', corepack, ['pnpm', 'plugforge:perf']],
+  ['cost snapshot', corepack, ['pnpm', 'plugforge:costs', '--', '--measure-ci']],
 ];
 
 const results = [];

@@ -1,5 +1,5 @@
 import { ShipSDKError, kindForStatus, type ShipApiErrorBody } from './errors.js';
-import type { AuthorizationCodeFlow, AuthorizationCodeFlowOptions, DeviceCodeResponse, DeviceLoginOptions, OAuthTokenResponse, RefreshTokenOptions } from './types.js';
+import type { AuthorizationCodeFlow, AuthorizationCodeFlowOptions, ClientCredentialsOptions, DeviceCodeResponse, DeviceLoginOptions, OAuthTokenResponse, RefreshTokenOptions } from './types.js';
 import crypto from 'node:crypto';
 
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
@@ -209,4 +209,19 @@ export async function refreshAccessToken(options: RefreshTokenOptions): Promise<
     client_secret: options.clientSecret,
     refresh_token: options.refreshToken,
   }, options.signal) as Promise<OAuthTokenResponse>;
+}
+
+export async function clientCredentials(options: ClientCredentialsOptions): Promise<OAuthTokenResponse> {
+  const fetchImpl = options.fetch ?? fetch;
+  const shipUrl = (options.shipUrl ?? 'http://localhost:3000').replace(/\/$/, '');
+
+  const tokens = await requestJson(fetchImpl, `${shipUrl}/oauth/token`, {
+    grant_type: 'client_credentials',
+    client_id: options.clientId,
+    client_secret: options.clientSecret,
+    scope: options.scope,
+  }, options.signal) as OAuthTokenResponse;
+
+  await options.tokenStore?.set(tokens);
+  return tokens;
 }

@@ -85,16 +85,22 @@ const workflow = read('.github/workflows/plugforge-drill.yml');
 const evidence = read('PLUGFORGE_EVIDENCE_PACK.md');
 const checklist = read('PLUGFORGE_SUBMISSION_CHECKLIST.md');
 const reviewerHub = read('PLUGFORGE_README.md');
+const costAnalysis = read('PLUGFORGE_AI_COST_ANALYSIS.md');
+const finalSubmission = read('PLUGFORGE_FINAL_SUBMISSION.md');
+const performanceComparison = read('PLUGFORGE_FINAL_PERFORMANCE_COMPARISON.md');
 
 const requiredFiles = [
   'PLUGFORGE_README.md',
   'PLUGFORGE_FINAL_SUBMISSION.md',
+  'PLUGFORGE_GRADER_QUICKSTART.md',
   'PLUGFORGE_EARLY_SUBMISSION.md',
   'PLUGFORGE_EARLY_DEMO_RUNBOOK.md',
   'PLUGFORGE_FINAL_DEMO_SCRIPT.md',
   'PLUGFORGE_EVIDENCE_PACK.md',
   'PLUGFORGE_SUBMISSION_CHECKLIST.md',
   'PLUGFORGE_DEMO_SCRIPT.md',
+  'PLUGFORGE_FINAL_PERFORMANCE_COMPARISON.md',
+  'PRESEARCH_CONVERSATION_REFERENCE.md',
   'PRESEARCH.md',
   'docs/architecture.md',
   'docs/openapi.json',
@@ -150,6 +156,26 @@ addCheck(
   'final check includes SDK unit regression tests',
   read('scripts/plugforge-final-check.mjs').includes('sdk unit tests'),
   'scripts/plugforge-final-check.mjs checks array',
+);
+addCheck(
+  'final check includes cost and performance evidence',
+  includesAll(read('scripts/plugforge-final-check.mjs'), ['performance evidence', 'cost snapshot']),
+  'scripts/plugforge-final-check.mjs checks array',
+);
+addCheck(
+  'agent client credentials rewire is documented',
+  includesAll(finalSubmission, ['Client Credentials', 'SHIP_AGENT_CLIENT_ID', 'plugforge-agent-audit-proof']),
+  'PLUGFORGE_FINAL_SUBMISSION.md Agent-as-citizen evidence',
+);
+addCheck(
+  'cost analysis includes measured token and cost evidence',
+  includesAll(costAnalysis, ['50,296', '14,886', '$0.336628', '0%']),
+  'PLUGFORGE_AI_COST_ANALYSIS.md measured development evidence',
+);
+addCheck(
+  'performance comparison includes Part 1 baseline and PlugForge measurements',
+  includesAll(performanceComparison, ['Initial chunk raw', 'Query Counts', '0.009473ms/call', '4,094 B']),
+  'PLUGFORGE_FINAL_PERFORMANCE_COMPARISON.md',
 );
 addCheck(
   'checklist records behavior evidence and environment limits',
